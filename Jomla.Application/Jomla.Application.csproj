@@ -16,11 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Common\Behaviors\" />
     <Folder Include="Common\Mappings\" />
-    <Folder Include="Common\Interfaces\" />
     <Folder Include="Features\" />
-    <Folder Include="Common\Exceptions\" />
   </ItemGroup>
 
   <ItemGroup>

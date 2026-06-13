@@ -1,4 +1,8 @@
 
+using Jomla.API.Middleware;
+using Jomla.Application;
+using Jomla.Infrastructure;
+
 namespace Jomla.API
 {
     public class Program
@@ -9,9 +13,30 @@ namespace Jomla.API
 
             // Add services to the container.
 
+            // Application Layer Dependencies
+            builder.Services.AddApplication();
+
+            // Infrastructure Layer Dependencies
+            builder.Services.AddInfrastructure(builder.Configuration);
+
+            // SignalR
+            builder.Services.AddSignalR();
+
+            // Global exception handling
+            builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+            builder.Services.AddProblemDetails();
+
+            builder.Services.AddCors(opt =>
+                 opt.AddPolicy("Angular", p =>
+                 p.WithOrigins("http://localhost:4200")
+                 .AllowAnyHeader()
+                 .AllowAnyMethod()
+                 .AllowCredentials()));
+
             builder.Services.AddControllers();
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
 
@@ -19,12 +44,16 @@ namespace Jomla.API
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
+                app.UseSwagger();
+                app.UseSwaggerUI();
             }
 
             app.UseHttpsRedirection();
 
-            app.UseAuthorization();
+            app.UseCors("Angular");
 
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.MapControllers();
 

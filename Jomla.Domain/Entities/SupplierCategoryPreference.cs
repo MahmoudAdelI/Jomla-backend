@@ -1,6 +1,6 @@
 ﻿namespace Jomla.Domain.Entities
 {
-    public class SellerCategoryPreference
+    public class SupplierCategoryPreference
     {
         public Guid SupplierId { get; set; }
         public AppUser Supplier { get; set; } = null!;

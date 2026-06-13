@@ -6,6 +6,8 @@ namespace Jomla.Domain.Entities
     {
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
         public DateTime CreatedAt { get; set; }
+        public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
     }
 }

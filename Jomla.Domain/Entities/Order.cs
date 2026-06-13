@@ -12,7 +12,6 @@
         public int Quantity { get; set; }
         public decimal TotalAmount { get; set; }
         public OrderStatus Status { get; set; }
-        public string? StripePaymentIntentId { get; set; }
         public DateTime? PaidAt { get; set; }
         public DateTime CreatedAt { get; set; }
     }

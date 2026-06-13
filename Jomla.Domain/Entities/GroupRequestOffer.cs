@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Jomla.Domain.Entities
+﻿namespace Jomla.Domain.Entities
 {
     public class GroupRequestOffer
     {
+        public Guid Id { get; set; }
         public Guid GroupRequestId { get; set; }
         public GroupRequest GroupRequest { get; set; } = null!;
         public Guid SupplierId { get; set; }
