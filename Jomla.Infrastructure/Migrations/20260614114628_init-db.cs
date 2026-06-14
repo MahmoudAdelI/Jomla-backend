@@ -361,13 +361,21 @@ namespace Jomla.Infrastructure.Migrations
                     QuantityAvailable = table.Column<int>(type: "int", nullable: false),
                     MinFallbackQuantity = table.Column<int>(type: "int", nullable: true),
                     VariantAttributes = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RoundNumber = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "getdate()"),
-                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ParentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_group_request_offers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_group_request_offers_group_request_offers_ParentId",
+                        column: x => x.ParentId,
+                        principalTable: "group_request_offers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_group_request_offers_group_requests_GroupRequestId",
                         column: x => x.GroupRequestId,
@@ -594,6 +602,11 @@ namespace Jomla.Infrastructure.Migrations
                 name: "IX_group_request_offers_GroupRequestId",
                 table: "group_request_offers",
                 column: "GroupRequestId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_group_request_offers_ParentId",
+                table: "group_request_offers",
+                column: "ParentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_group_request_offers_SupplierId",

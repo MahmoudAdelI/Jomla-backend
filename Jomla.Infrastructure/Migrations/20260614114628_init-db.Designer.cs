@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Jomla.Infrastructure.Migrations
 {
     [DbContext(typeof(JomlaDbContext))]
-    [Migration("20260613182221_init-db")]
+    [Migration("20260614114628_init-db")]
     partial class initdb
     {
         /// <inheritdoc />
@@ -294,7 +294,13 @@ namespace Jomla.Infrastructure.Migrations
                     b.Property<decimal?>("MinUnitPrice")
                         .HasColumnType("decimal(10,2)");
 
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("QuantityAvailable")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RoundNumber")
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
@@ -314,6 +320,8 @@ namespace Jomla.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("GroupRequestId");
+
+                    b.HasIndex("ParentId");
 
                     b.HasIndex("SupplierId");
 
@@ -863,6 +871,11 @@ namespace Jomla.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Jomla.Domain.Entities.GroupRequestOffer", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Jomla.Domain.Entities.AppUser", "Supplier")
                         .WithMany()
                         .HasForeignKey("SupplierId")
@@ -870,6 +883,8 @@ namespace Jomla.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("GroupRequest");
+
+                    b.Navigation("Parent");
 
                     b.Navigation("Supplier");
                 });
@@ -1054,6 +1069,8 @@ namespace Jomla.Infrastructure.Migrations
 
             modelBuilder.Entity("Jomla.Domain.Entities.GroupRequestOffer", b =>
                 {
+                    b.Navigation("Children");
+
                     b.Navigation("NegotiationLogs");
 
                     b.Navigation("Responses");

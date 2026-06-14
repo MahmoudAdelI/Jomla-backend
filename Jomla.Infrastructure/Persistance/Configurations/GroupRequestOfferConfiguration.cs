@@ -32,6 +32,10 @@ namespace Jomla.Infrastructure.Persistance.Configurations
             builder.HasOne(x => x.Supplier)
                 .WithMany()
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.Parent)
+                .WithMany(x => x.Children)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
