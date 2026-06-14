@@ -9,5 +9,6 @@
         public int Quantity { get; set; }
         public string StripePaymentIntentId { get; set; } = string.Empty;
         public DateTime JoinedAt { get; set; }
+        public BatchParticipantStatus Status { get; set; }
     }
 }

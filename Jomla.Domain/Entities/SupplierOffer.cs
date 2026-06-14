@@ -16,7 +16,7 @@
         public int? MinFallbackQuantity { get; set; }
         public string? VariantAttributes { get; set; }   // JSON
         public string? ImageUrls { get; set; }            // JSON array
-        public SellerOfferStatus Status { get; set; }
+        public SupplierOfferStatus Status { get; set; }
         public ModerationStatus ModerationStatus { get; set; }
         public string? ModerationReason { get; set; }
         public DateTime CreatedAt { get; set; }

@@ -8,5 +8,6 @@
         public AppUser Buyer { get; set; } = null!;
         public int Quantity { get; set; }
         public DateTime JoinedAt { get; set; }
+        public GroupRequestParticipantStatus Status { get; set; }
     }
 }

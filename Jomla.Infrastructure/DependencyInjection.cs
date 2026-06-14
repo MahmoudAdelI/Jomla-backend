@@ -1,6 +1,8 @@
-﻿using Jomla.Application.Common.Settings;
+﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Settings;
 using Jomla.Domain.Entities;
 using Jomla.Infrastructure.Persistance;
+using Jomla.Infrastructure.Persistance.Seeders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +23,7 @@ namespace Jomla.Infrastructure
             services.AddDbContext<JomlaDbContext>(opt =>
                 opt.UseSqlServer(config.GetConnectionString("Default"))
             );
+            services.AddScoped<IAppDbContext, JomlaDbContext>();
 
             #region Identity
             var jwtSettings = config.GetSection("Jwt").Get<JwtSettings>()!;
@@ -34,6 +37,7 @@ namespace Jomla.Infrastructure
                 opt.Password.RequireDigit = true;
                 opt.Password.RequiredLength = 8;
             })
+                .AddRoles<IdentityRole<Guid>>()
                 .AddEntityFrameworkStores<JomlaDbContext>()
                 .AddSignInManager<SignInManager<AppUser>>();
 
@@ -71,6 +75,8 @@ namespace Jomla.Infrastructure
             services.AddAuthorization();
             #endregion
 
+
+            services.AddScoped<DataSeeder>();
             return services;
         }
     }

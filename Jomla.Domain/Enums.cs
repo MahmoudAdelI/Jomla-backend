@@ -2,7 +2,7 @@
 {
     public enum UserRole { Buyer, Supplier }
 
-    public enum SellerOfferStatus { Active, Inactive, Expired }
+    public enum SupplierOfferStatus { Active, Inactive, Expired }
 
     public enum BatchStatus { Open, Completed, Failed }
 
@@ -15,6 +15,12 @@
     public enum GroupRequestAlertStatus { Pending, Responded, Ignored }
 
     public enum OrderStatus { Pending, Paid, Failed }
+
+    public enum BatchParticipantStatus { Active, Left }
+    // Active = payment hold in place (join = pay)
+
+    public enum GroupRequestParticipantStatus { Active, Left }
+    // Active = still part of the demand pool, no payment implication
 
     public enum NotificationType {
         BatchCompleted,

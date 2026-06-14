@@ -2,12 +2,13 @@
 using Jomla.API.Middleware;
 using Jomla.Application;
 using Jomla.Infrastructure;
+using Jomla.Infrastructure.Persistance.Seeders;
 
 namespace Jomla.API
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +47,12 @@ namespace Jomla.API
                 app.MapOpenApi();
                 app.UseSwagger();
                 app.UseSwaggerUI();
+
+                using (var scope = app.Services.CreateScope())
+                {
+                    var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
+                    await seeder.SeedAsync();
+                }
             }
 
             app.UseHttpsRedirection();
