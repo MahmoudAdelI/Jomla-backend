@@ -3,5 +3,5 @@ using MediatR;
 
 namespace Jomla.Application.Features.Notifications
 {
-    public sealed record NotificationPushEvent(Guid UserId, NotificationDto Notification) : INotification;
+    public sealed record NotificationCreatedEvent(Guid UserId, NotificationDto Notification) : INotification;
 }

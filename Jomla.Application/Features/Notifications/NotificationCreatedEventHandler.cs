@@ -3,9 +3,9 @@ using MediatR;
 
 namespace Jomla.Application.Features.Notifications
 {
-    public class NotificationPushEventHandler(IRealtimeService _realtimeService) : INotificationHandler<NotificationPushEvent>
+    public class NotificationCreatedEventHandler(IRealtimeService _realtimeService) : INotificationHandler<NotificationCreatedEvent>
     {
-        public async Task Handle(NotificationPushEvent e, CancellationToken cancellationToken)
+        public async Task Handle(NotificationCreatedEvent e, CancellationToken cancellationToken)
         {
             await _realtimeService.SendNotificationAsync(e.UserId, e.Notification);
         }

@@ -92,7 +92,6 @@ namespace Jomla.Infrastructure
                     };
                 });
 
-            services.AddAuthentication();
             services.AddAuthorization();
             #endregion
 
