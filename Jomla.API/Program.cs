@@ -3,6 +3,7 @@ using Jomla.API.Middleware;
 using Jomla.Application;
 using Jomla.Infrastructure;
 using Jomla.Infrastructure.Persistance.Seeders;
+using System.Text.Json.Serialization;
 
 namespace Jomla.API
 {
@@ -34,13 +35,15 @@ namespace Jomla.API
                  .AllowAnyMethod()
                  .AllowCredentials()));
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())); // This will serialize enums as strings in JSON responses
             builder.Services.AddOpenApi();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
-
+            app.UseExceptionHandler();
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
