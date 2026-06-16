@@ -7,7 +7,7 @@ using System.Reflection;
 
 namespace Jomla.Infrastructure.Persistance
 {
-    public class JomlaDbContext(DbContextOptions<JomlaDbContext> options) 
+    public class AppDbContext(DbContextOptions<AppDbContext> options) 
         : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>(options), IAppDbContext
     {
         public DbSet<Category> Categories => Set<Category>();

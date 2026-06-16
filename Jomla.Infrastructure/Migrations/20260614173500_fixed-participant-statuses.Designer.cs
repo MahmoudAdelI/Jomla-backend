@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Jomla.Infrastructure.Migrations
 {
-    [DbContext(typeof(JomlaDbContext))]
+    [DbContext(typeof(AppDbContext))]
     [Migration("20260614173500_fixed-participant-statuses")]
     partial class fixedparticipantstatuses
     {

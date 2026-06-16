@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Jomla.Infrastructure.Migrations
 {
-    [DbContext(typeof(JomlaDbContext))]
+    [DbContext(typeof(AppDbContext))]
     partial class JomlaDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

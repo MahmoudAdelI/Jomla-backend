@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace Jomla.Infrastructure.Persistance.Seeders
 {
-    public class DataSeeder(JomlaDbContext _db, UserManager<AppUser> _userManager, RoleManager<IdentityRole<Guid>> _roleManager)
+    public class DataSeeder(AppDbContext _db, UserManager<AppUser> _userManager, RoleManager<IdentityRole<Guid>> _roleManager)
     {
         private static readonly Dictionary<string, string[]> ProductTitlesByCategory = new()
         {

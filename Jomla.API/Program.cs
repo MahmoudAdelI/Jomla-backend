@@ -1,8 +1,10 @@
 
 using Hangfire;
 using Jomla.API.Filters;
+using Jomla.API.Hubs;
 using Jomla.API.Middleware;
 using Jomla.Application;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Infrastructure;
 using Jomla.Infrastructure.Persistance.Seeders;
 using System.Text.Json.Serialization;
@@ -25,6 +27,7 @@ namespace Jomla.API
 
             // SignalR
             builder.Services.AddSignalR();
+            builder.Services.AddScoped<IRealtimeService, RealtimeService>();
 
             // Global exception handling
             builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -75,7 +78,7 @@ namespace Jomla.API
             app.UseAuthorization();
 
             app.MapControllers();
-
+            app.MapHub<JomlaHub>("/hubs/jomla");
             app.Run();
         }
     }
