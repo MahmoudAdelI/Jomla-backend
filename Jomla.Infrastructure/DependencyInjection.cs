@@ -1,6 +1,7 @@
 ﻿using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Common.Settings;
 using Jomla.Domain.Entities;
+using Jomla.Infrastructure.Auth;
 using Jomla.Infrastructure.Persistance;
 using Jomla.Infrastructure.Persistance.Seeders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -75,8 +76,11 @@ namespace Jomla.Infrastructure
             services.AddAuthorization();
             #endregion
 
-
             services.AddScoped<DataSeeder>();
+
+            // Infrastructure implementations
+            services.AddScoped<ITokenService, TokenService>();
+            services.AddScoped<IIdentityService, IdentityService>();
             return services;
         }
     }

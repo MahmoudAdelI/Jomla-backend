@@ -14,18 +14,36 @@ namespace Jomla.API.Middleware
                 ValidationException ex => new ValidationProblemDetails(
                     ex.Errors
                         .GroupBy(err => err.PropertyName)
-                        .ToDictionary(g => g.Key, g => g.Select(err => err.ErrorMessage).ToArray())
+                        .ToDictionary(
+                            g => string.IsNullOrEmpty(g.Key) ? "General" : g.Key,
+                            g => g.Select(err => err.ErrorMessage).ToArray())
                 )
                 {
                     Title = "Validation Failed",
                     Status = StatusCodes.Status400BadRequest
                 },
+
                 NotFoundException ex => new ProblemDetails
                 {
                     Title = "Resource not found!",
                     Detail = ex.Message,
                     Status = StatusCodes.Status404NotFound
                 },
+
+                ConflictException ex => new ProblemDetails
+                {
+                    Title = "Conflict",
+                    Detail = ex.Message,
+                    Status = StatusCodes.Status409Conflict
+                },
+
+                UnauthorizedAccessException ex => new ProblemDetails
+                {
+                    Title = "Unauthorized",
+                    Detail = ex.Message,
+                    Status = StatusCodes.Status401Unauthorized
+                },
+
                 _ => new ProblemDetails
                 {
                     Title = "Server Error!",
