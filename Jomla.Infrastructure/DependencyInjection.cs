@@ -1,4 +1,5 @@
-﻿using Jomla.Application.Common.Interfaces;
+﻿using Hangfire;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Common.Settings;
 using Jomla.Domain.Entities;
 using Jomla.Infrastructure.Auth;
@@ -20,11 +21,25 @@ namespace Jomla.Infrastructure
         {
             // Register your infrastructure services here
 
-            // EF Core
+            #region EF Core
             services.AddDbContext<JomlaDbContext>(opt =>
                 opt.UseSqlServer(config.GetConnectionString("Default"))
             );
             services.AddScoped<IAppDbContext, JomlaDbContext>();
+            #endregion
+
+            #region Hangfire
+            services.AddHangfire(hangfire => hangfire
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UseSqlServerStorage(config.GetConnectionString("Default"))
+            );
+
+            services.AddHangfireServer();
+            // Job registrations
+
+            #endregion
 
             #region Identity
             var jwtSettings = config.GetSection("Jwt").Get<JwtSettings>()!;

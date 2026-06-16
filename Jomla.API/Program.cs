@@ -1,4 +1,6 @@
 
+using Hangfire;
+using Jomla.API.Filters;
 using Jomla.API.Middleware;
 using Jomla.Application;
 using Jomla.Infrastructure;
@@ -57,6 +59,13 @@ namespace Jomla.API
                     await seeder.SeedAsync();
                 }
             }
+
+            // Hangfire dashboard
+            app.UseHangfireDashboard("/hangfire", new DashboardOptions
+            {
+                Authorization = [new HangfireDashboardAuthFilter()]
+            });
+            app.MapHangfireDashboard();
 
             app.UseHttpsRedirection();
 
