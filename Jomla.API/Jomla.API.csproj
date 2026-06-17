@@ -16,10 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Hubs\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Jomla.Application\Jomla.Application.csproj" />
     <ProjectReference Include="..\Jomla.Infrastructure\Jomla.Infrastructure.csproj" />
   </ItemGroup>

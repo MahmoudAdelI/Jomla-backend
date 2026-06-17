@@ -22,10 +22,15 @@ namespace Jomla.Infrastructure
             // Register your infrastructure services here
 
             #region EF Core
-            services.AddDbContext<JomlaDbContext>(opt =>
+            // AddDbContextFactory registers both the factory (for Hangfire jobs that need
+            // to own their own DbContext lifetime) and a scoped AppDbContext (for normal
+            // request-scoped usage). IAppDbContext is wired manually because the factory
+            // registration does not auto-register custom interfaces.
+            services.AddDbContextFactory<AppDbContext>(opt =>
                 opt.UseSqlServer(config.GetConnectionString("Default"))
             );
-            services.AddScoped<IAppDbContext, JomlaDbContext>();
+            services.AddScoped<IAppDbContext>(provider =>
+                provider.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
             #endregion
 
             #region Hangfire
@@ -54,7 +59,7 @@ namespace Jomla.Infrastructure
                 opt.Password.RequiredLength = 8;
             })
                 .AddRoles<IdentityRole<Guid>>()
-                .AddEntityFrameworkStores<JomlaDbContext>()
+                .AddEntityFrameworkStores<AppDbContext>()
                 .AddSignInManager<SignInManager<AppUser>>();
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key));
@@ -79,7 +84,7 @@ namespace Jomla.Infrastructure
                             var token = ctx.Request.Query["access_token"];
                             var path = ctx.HttpContext.Request.Path;
 
-                            if (!string.IsNullOrEmpty(token) && path.StartsWithSegments("/hubs"))
+                            if (!string.IsNullOrEmpty(token) && path.StartsWithSegments("/hubs/jomla"))
                                 ctx.Token = token;
 
                             return Task.CompletedTask;
@@ -87,7 +92,6 @@ namespace Jomla.Infrastructure
                     };
                 });
 
-            services.AddAuthentication();
             services.AddAuthorization();
             #endregion
 
