@@ -1,8 +1,12 @@
 ﻿namespace Jomla.Application.Jobs.Agents
 {
-    public interface IModerationJob
+    public interface IModerateSupplierOfferJob
     {
-        // Write the signature later
-        Task ExcuteAsync();
+        Task ExecuteAsync(Guid offerId, CancellationToken ct);
+    }
+
+    public interface IModerateGroupRequestJob
+    {
+        Task ExecuteAsync(Guid groupRequestId, CancellationToken ct);
     }
 }

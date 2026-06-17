@@ -28,8 +28,4 @@
     <ProjectReference Include="..\Jomla.Domain\Jomla.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Jobs\Agents\" />
-  </ItemGroup>
-
 </Project>

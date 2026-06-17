@@ -1,11 +1,15 @@
-﻿namespace Jomla.Application.Features.Notifications.DTOs
+﻿using Jomla.Domain;
+
+namespace Jomla.Application.Features.Notifications.DTOs
 {
     public sealed record NotificationDto(
         Guid Id,
-        string Type,
+        NotificationType Type,
         string Title,
         string Body,
         Guid? EntityId,
-        string? EntityType
+        string? EntityType,
+        bool isRead,
+        DateTime CreatedAt
     );
 }
