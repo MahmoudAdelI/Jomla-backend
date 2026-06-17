@@ -42,27 +42,17 @@ namespace Jomla.Infrastructure.Jobs.Agents
 
 
             // Save notification to DB
-            var notificationType = result.IsApproved
-                ? NotificationType.OfferApproved
-                : NotificationType.OfferFlagged;
-
-            var notificationTitle = result.IsApproved
-                ? "Your offer has been approved"
-                : "Your offer has been flagged";
-
-            var notificationBody = result.IsApproved
-                ? "Your offer is now live and visible to buyers."
-                : $"Your offer was flagged: {result.Reason}";
-
             var notification = new Notification
             {
                 UserId = offer.SupplierId,
-                Type = notificationType,
-                Title = notificationTitle,
-                Body = notificationBody,
+                Type = result.IsApproved ? NotificationType.OfferApproved : NotificationType.OfferFlagged,
+                Title = result.IsApproved ? "Your offer has been approved" : "Your offer has been flagged",
+                Body = result.IsApproved
+                ? "Your offer is now live and visible to buyers."
+                : $"Your offer was flagged: {result.Reason}",
                 EntityId = offer.Id,
                 EntityType = nameof(SupplierOffer),
-                IsRead = false,
+                IsRead = false
             };
 
             db.Notifications.Add(notification);

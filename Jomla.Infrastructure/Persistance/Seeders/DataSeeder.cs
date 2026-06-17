@@ -532,7 +532,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                     Id = groupRequestId,
                     InitiatorId = initiator.Id,
                     CategoryId = category.Id,
-                    ItemTitle = title,
+                    Title = title,
                     CurrentQuantity = currentQuantity,
                     Status = status,
                     ModerationStatus = ModerationStatus.Approved,

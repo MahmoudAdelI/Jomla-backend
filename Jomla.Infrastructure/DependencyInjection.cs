@@ -1,8 +1,11 @@
 ﻿using Hangfire;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Common.Settings;
+using Jomla.Application.Jobs.Agents;
 using Jomla.Domain.Entities;
+using Jomla.Infrastructure.AI;
 using Jomla.Infrastructure.Auth;
+using Jomla.Infrastructure.Jobs.Agents;
 using Jomla.Infrastructure.Persistance;
 using Jomla.Infrastructure.Persistance.Seeders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -11,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.SemanticKernel;
 using System.Text;
 
 namespace Jomla.Infrastructure
@@ -93,6 +97,19 @@ namespace Jomla.Infrastructure
                 });
 
             services.AddAuthorization();
+            #endregion
+
+            #region AI
+            var token = config["AI:Token"]
+                ?? throw new InvalidOperationException("AI:Token is not configured.");
+
+            services.AddOpenAIChatCompletion(
+                modelId: config["AI:ModelId"]!,
+                endpoint: new Uri(config["AI:Endpoint"]!),
+                apiKey: token);
+
+            services.AddScoped<IModerationService, ModerationService>();
+            services.AddScoped<IModerateSupplierOfferJob, ModerateSupplierOfferJob>();
             #endregion
 
             services.AddScoped<DataSeeder>();

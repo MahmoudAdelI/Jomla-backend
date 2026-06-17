@@ -3,6 +3,7 @@ using Hangfire;
 using Jomla.API.Filters;
 using Jomla.API.Hubs;
 using Jomla.API.Middleware;
+using Jomla.API.Services;
 using Jomla.Application;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Infrastructure;

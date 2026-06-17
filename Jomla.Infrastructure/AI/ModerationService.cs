@@ -5,7 +5,7 @@ using Microsoft.SemanticKernel;
 
 namespace Jomla.Infrastructure.AI;
 
-public class SemanticKernelModerationService(IChatCompletionService _chat) : IModerationService
+public class ModerationService(IChatCompletionService _chat) : IModerationService
 {
     private const string SystemPrompt = """
         You are a content moderation assistant for a B2B group-buying marketplace.
