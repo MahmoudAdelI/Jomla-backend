@@ -17,6 +17,7 @@
         public GroupRequestOfferStatus Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime ExpiresAt { get; set; }
+        public string JobId { get; set; } = string.Empty;
         public Guid? ParentId { get; set; } // For tracking offer revisions during negotiation
         public GroupRequestOffer? Parent { get; set; } 
         public ICollection<GroupRequestOffer> Children { get; set; } = []; // For tracking offer revisions during negotiation

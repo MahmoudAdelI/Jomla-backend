@@ -2,7 +2,6 @@
 {
     public interface ISupplierOfferExpiryJob
     {
-        // Write the signature later
-        Task ExcuteAsync();
+        Task ExcuteAsync(Guid offerId, CancellationToken ct);
     }
 }

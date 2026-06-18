@@ -1,4 +1,6 @@
-﻿using Jomla.Application.Common.Interfaces;
+﻿using System.Text.Json;
+using Jomla.Application.Common.Interfaces;
+using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
@@ -47,12 +49,6 @@ public class ModerationService(IChatCompletionService chat) : IModerationService
 
         history.Add(new ChatMessageContent(AuthorRole.User, parts));
 
-        var executionSettings = new OpenAIPromptExecutionSettings
-        {
-            ResponseFormat = "json_object"
-        };
-
-        var response = await _chat.GetChatMessageContentAsync(history, executionSettings, cancellationToken: ct);
 
         return Parse(response.Content ?? string.Empty);
     }
@@ -67,7 +63,6 @@ public class ModerationService(IChatCompletionService chat) : IModerationService
 
             return json is null
                 ? Fallback()
-                : new ModerationResult(json.Approved, json.Reason);
         }
         catch
         {
@@ -79,5 +74,4 @@ public class ModerationService(IChatCompletionService chat) : IModerationService
     private static ModerationResult Fallback()
         => new(false, "Moderation service returned an unreadable response.");
 
-    private sealed record ModerationJson(bool Approved, string? Reason);
 }
