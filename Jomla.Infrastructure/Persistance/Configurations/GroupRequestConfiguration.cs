@@ -10,7 +10,7 @@ namespace Jomla.Infrastructure.Persistance.Configurations
         {
             builder.ToTable("group_requests");
 
-            builder.Property(x => x.ItemTitle)
+            builder.Property(x => x.Title)
                 .IsRequired()
                 .HasMaxLength(255);
 

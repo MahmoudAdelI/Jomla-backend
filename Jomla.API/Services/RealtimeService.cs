@@ -3,7 +3,7 @@ using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Notifications.DTOs;
 using Microsoft.AspNetCore.SignalR;
 
-namespace Jomla.API
+namespace Jomla.API.Services
 {
     public class RealtimeService(IHubContext<JomlaHub, IJomlaClient> _hubContext) : IRealtimeService
     {

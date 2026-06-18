@@ -7,7 +7,9 @@
         public AppUser Initiator { get; set; } = null!;
         public Guid CategoryId { get; set; }
         public Category Category { get; set; } = null!;
-        public string ItemTitle { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? ImageUrls { get; set; }            // JSON array
         public int CurrentQuantity { get; set; }
         public GroupRequestStatus Status { get; set; }
         public ModerationStatus ModerationStatus { get; set; }

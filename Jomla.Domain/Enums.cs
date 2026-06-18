@@ -28,7 +28,9 @@
         GroupRequestOfferFilled,
         GroupRequestMatched,
         OfferApproved,
-        OfferFlagged
+        GroupRequestApproved,
+        OfferFlagged,
+        GroupRequestFlagged,
     }
 
     public enum ModerationStatus { Pending, Approved, Flagged }
