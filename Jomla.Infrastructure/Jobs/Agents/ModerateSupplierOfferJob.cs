@@ -40,7 +40,6 @@ namespace Jomla.Infrastructure.Jobs.Agents
 
             offer.ModerationReason = result.Reason;
 
-
             // Save notification to DB
             var notification = new Notification
             {
