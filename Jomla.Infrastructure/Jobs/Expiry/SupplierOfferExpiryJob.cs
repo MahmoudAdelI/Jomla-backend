@@ -1,12 +1,77 @@
-﻿using Jomla.Application.Jobs.Expiry;
+﻿using Jomla.Application.Features.Notifications;
+using Jomla.Application.Jobs.Expiry;
+using Jomla.Domain;
+using Jomla.Domain.Entities;
+using Jomla.Infrastructure.Persistance;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Jomla.Infrastructure.Jobs.Expiry
 {
-    public class SellerOfferExpiryJob : ISupplierOfferExpiryJob
+    public class SellerOfferExpiryJob(
+        IDbContextFactory<AppDbContext> contextFactory,
+        IMediator mediator) : ISupplierOfferExpiryJob
     {
-        public Task ExcuteAsync()
+        private readonly IDbContextFactory<AppDbContext> _contextFactory = contextFactory;
+        private readonly IMediator _mediator = mediator;
+        public async Task ExcuteAsync(Guid offerId, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            await using var db = await _contextFactory.CreateDbContextAsync(ct);
+
+            var offer = await db.SupplierOffers
+                .FirstOrDefaultAsync(o => o.Id == offerId, ct);
+            if (offer is null) return;
+
+            if (offer.Status == SupplierOfferStatus.Expired) return;
+
+            var batch = await db.SupplierBatches
+                .Include(b => b.Participants)
+                .FirstOrDefaultAsync(b => b.Id == offerId && b.Status == BatchStatus.Open, ct);
+
+            // No open batch — nothing to settle, just expire the offer
+            if (batch is null)
+            {
+                offer.Status = SupplierOfferStatus.Expired;
+                await db.SaveChangesAsync(ct);
+                return;
+            }
+
+            var shouldCapture = 
+                offer.MinFallbackQuantity.HasValue
+                && batch.CurrentQuantity >= offer.MinFallbackQuantity.Value;
+
+            if (shouldCapture)
+            {
+                // complete batch
+                //_mediator.Send(CompleteBatchCommand(batch.Id));
+
+                offer.TotalQuantityAvailable -= batch.CurrentQuantity;
+            }
+            else
+            {
+                // fail batch
+                //_mediator.Send(FailBatchCommand(batch.Id));
+            }
+
+            offer.Status = SupplierOfferStatus.Expired;
+
+            var notification = new Notification
+            {
+                UserId = offer.SupplierId,
+                Type = NotificationType.OfferExpired,
+                Title = shouldCapture ? "Your offer expired and was fulfilled" : "Your offer expired",
+                Body = shouldCapture
+                ? $"The last batch reached the fallback threshold. {batch.CurrentQuantity} units were captured."
+                : "The last batch did not meet the fallback threshold. All holds have been cancelled.",
+                EntityId = offer.Id,
+                EntityType = nameof(SupplierOffer),
+                IsRead = false
+            };
+
+            db.Notifications.Add(notification);
+            await db.SaveChangesAsync(ct);
+
+            await _mediator.Publish(new NotificationCreatedEvent(notification.UserId, notification.Id), ct);
         }
     }
 }

@@ -23,6 +23,7 @@
     // Active = still part of the demand pool, no payment implication
 
     public enum NotificationType {
+        OfferExpired,
         BatchCompleted,
         GroupRequestOfferPlaced,
         GroupRequestOfferFilled,
