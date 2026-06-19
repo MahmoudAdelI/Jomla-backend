@@ -2,10 +2,12 @@
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Common.Settings;
 using Jomla.Application.Jobs.Agents;
+using Jomla.Application.Jobs.Expiry;
 using Jomla.Domain.Entities;
 using Jomla.Infrastructure.AI;
 using Jomla.Infrastructure.Auth;
 using Jomla.Infrastructure.Jobs.Agents;
+using Jomla.Infrastructure.Jobs.Expiry;
 using Jomla.Infrastructure.Persistance;
 using Jomla.Infrastructure.Persistance.Seeders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -47,7 +49,8 @@ namespace Jomla.Infrastructure
 
             services.AddHangfireServer();
             // Job registrations
-
+            services.AddScoped<ISupplierOfferExpiryJob, SupplierOfferExpiryJob>();
+            services.AddScoped<IModerateSupplierOfferJob, ModerateSupplierOfferJob>();
             #endregion
 
             #region Identity

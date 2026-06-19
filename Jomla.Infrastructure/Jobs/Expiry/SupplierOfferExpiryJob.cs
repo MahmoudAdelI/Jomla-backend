@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Jomla.Infrastructure.Jobs.Expiry
 {
-    public class SellerOfferExpiryJob(
+    public class SupplierOfferExpiryJob(
         IDbContextFactory<AppDbContext> contextFactory,
         IMediator mediator) : ISupplierOfferExpiryJob
     {
@@ -26,7 +26,7 @@ namespace Jomla.Infrastructure.Jobs.Expiry
 
             var batch = await db.SupplierBatches
                 .Include(b => b.Participants)
-                .FirstOrDefaultAsync(b => b.Id == offerId && b.Status == BatchStatus.Open, ct);
+                .FirstOrDefaultAsync(b => b.OfferId == offerId && b.Status == BatchStatus.Open, ct);
 
             // No open batch — nothing to settle, just expire the offer
             if (batch is null)
