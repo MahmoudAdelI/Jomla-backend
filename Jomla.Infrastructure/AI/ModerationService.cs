@@ -2,11 +2,14 @@
 using Jomla.Application.Common.Interfaces;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace Jomla.Infrastructure.AI;
 
-public class ModerationService(IChatCompletionService _chat) : IModerationService
+public class ModerationService(IChatCompletionService chat) : IModerationService
 {
+    private readonly IChatCompletionService _chat = chat;
+
     private const string SystemPrompt = """
         You are a content moderation assistant for a B2B group-buying marketplace.
         Flag content that contains any of the following:
@@ -44,8 +47,12 @@ public class ModerationService(IChatCompletionService _chat) : IModerationServic
 
         history.Add(new ChatMessageContent(AuthorRole.User, parts));
 
-        var response = await _chat.GetChatMessageContentAsync(history, cancellationToken: ct);
+        var executionSettings = new OpenAIPromptExecutionSettings
+        {
+            ResponseFormat = "json_object"
+        };
 
+        var response = await _chat.GetChatMessageContentAsync(history, executionSettings, cancellationToken: ct);
         return Parse(response.Content ?? string.Empty);
     }
 
@@ -59,7 +66,7 @@ public class ModerationService(IChatCompletionService _chat) : IModerationServic
 
             return json is null
                 ? Fallback()
-                : new ModerationResult(json.IsApproved, json.Reason);
+                : new ModerationResult(json.Approved, json.Reason);
         }
         catch
         {
@@ -71,5 +78,5 @@ public class ModerationService(IChatCompletionService _chat) : IModerationServic
     private static ModerationResult Fallback()
         => new(false, "Moderation service returned an unreadable response.");
 
-    private sealed record ModerationJson(bool IsApproved, string? Reason);
+    private sealed record ModerationJson(bool Approved, string? Reason);
 }
