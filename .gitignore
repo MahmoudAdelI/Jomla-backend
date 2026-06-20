@@ -363,4 +363,7 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # Local secrets - never commit
+# Local secrets - never commit
 appsettings.Development.json
+appsettings.json
+appsettings.*.json

@@ -17,5 +17,8 @@ namespace Jomla.Application.Common.Interfaces
         public Task<bool> CheckPasswordAsync(AppUser user, string password);
 
         public Task<AppUser?> FindByRefreshTokenAsync(string refreshToken);
+
+        Guid GetCurrentUserId();
+        string GetCurrentUserEmail();
     }
 }

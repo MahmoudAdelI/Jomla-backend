@@ -9,6 +9,7 @@ using Jomla.Application.Common.Interfaces;
 using Jomla.Infrastructure;
 using Jomla.Infrastructure.Persistance.Seeders;
 using System.Text.Json.Serialization;
+using Jomla.Infrastructure.Payments;
 
 namespace Jomla.API
 {
@@ -48,6 +49,14 @@ namespace Jomla.API
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            //stripe services
+            builder.Services.AddScoped<IStripePaymentService>(provider =>
+             new StripePaymentService(
+                 builder.Configuration["Stripe:SecretKey"]
+             )
+             );
+        
+
             var app = builder.Build();
             app.UseExceptionHandler();
             // Configure the HTTP request pipeline.
@@ -81,6 +90,7 @@ namespace Jomla.API
             app.MapControllers();
             app.MapHub<JomlaHub>("/hubs/jomla");
             app.Run();
+          
         }
     }
 }
