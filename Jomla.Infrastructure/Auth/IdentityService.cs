@@ -54,7 +54,7 @@ namespace Jomla.Infrastructure.Auth
         public string GetCurrentUserEmail()
         {
             return _httpContextAccessor.HttpContext?.User
-                ?.FindFirst(JwtRegisteredClaimNames.Email)?.Value ?? "";
+                ?.FindFirst(ClaimTypes.Email)?.Value ?? "";
         }
     }
 }

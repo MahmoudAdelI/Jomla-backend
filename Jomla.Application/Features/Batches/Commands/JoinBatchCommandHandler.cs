@@ -1,4 +1,6 @@
 ﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Jobs.Fulfillment;
+using Jomla.Application.Jobs.JobDispatcher;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
@@ -10,13 +12,16 @@ namespace Jomla.Application.Features.Batches.Commands
     {
         private readonly IAppDbContext _context;
         private readonly IStripePaymentService _stripePaymentService;
+        private readonly IBackgroundJobDispatcher _jobDispatcher;
 
         public JoinBatchCommandHandler(
             IAppDbContext context,
-            IStripePaymentService stripePaymentService)
+            IStripePaymentService stripePaymentService,
+            IBackgroundJobDispatcher jobDispatcher)
         {
             _context = context;
             _stripePaymentService = stripePaymentService;
+            _jobDispatcher = jobDispatcher; 
         }
 
         public async Task<JoinBatchResponse> Handle(JoinBatchCommand request, CancellationToken cancellationToken)
@@ -103,7 +108,10 @@ namespace Jomla.Application.Features.Batches.Commands
                 await _context.SaveChangesAsync(cancellationToken);
 
                 // Step 9: Check if batch complete
-                bool batchComplete = batch.CurrentQuantity >= batch.TargetQuantity;
+                //bool batchComplete = batch.CurrentQuantity >= batch.TargetQuantity;
+
+                // Step 9: Fire background job
+                _jobDispatcher.Enqueue<IBatchCompletionJob>(j => j.ExecuteAsync(request.BatchId));
 
                 // Step 10: Return response
                 return new JoinBatchResponse
@@ -115,7 +123,7 @@ namespace Jomla.Application.Features.Batches.Commands
                     PaymentIntentId = paymentResult.PaymentIntentId,
                     BatchCurrentQuantity = batch.CurrentQuantity,
                     BatchTargetQuantity = batch.TargetQuantity,
-                    BatchComplete = batchComplete
+                    //BatchComplete = batchComplete
                 };
             }
             catch (Exception ex)

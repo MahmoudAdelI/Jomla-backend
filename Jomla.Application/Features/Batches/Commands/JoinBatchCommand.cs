@@ -25,7 +25,7 @@ namespace Jomla.Application.Features.Batches.Commands
             public string PaymentIntentId { get; set; }
             public int? BatchCurrentQuantity { get; set; }
             public int? BatchTargetQuantity { get; set; }
-            public bool BatchComplete { get; set; }
+            //public bool BatchComplete { get; set; }
             public string Error { get; set; }
             public string ErrorCode { get; set; }
             public int? SlotsAvailable { get; set; }

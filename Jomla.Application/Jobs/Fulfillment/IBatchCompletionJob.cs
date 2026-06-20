@@ -3,6 +3,6 @@
     public interface IBatchCompletionJob
     {
         // Write the signature later
-        Task ExcuteAsync();
+        Task ExecuteAsync(Guid batchId);
     }
 }

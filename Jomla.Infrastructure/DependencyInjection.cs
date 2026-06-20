@@ -3,11 +3,15 @@ using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Common.Settings;
 using Jomla.Application.Jobs.Agents;
 using Jomla.Application.Jobs.Expiry;
+using Jomla.Application.Jobs.Fulfillment;
+using Jomla.Application.Jobs.JobDispatcher;
 using Jomla.Domain.Entities;
 using Jomla.Infrastructure.AI;
 using Jomla.Infrastructure.Auth;
 using Jomla.Infrastructure.Jobs.Agents;
 using Jomla.Infrastructure.Jobs.Expiry;
+using Jomla.Infrastructure.Jobs.Fulfillment;
+using Jomla.Infrastructure.Jobs.JobDispatcher;
 using Jomla.Infrastructure.Persistance;
 using Jomla.Infrastructure.Persistance.Seeders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -51,6 +55,8 @@ namespace Jomla.Infrastructure
             // Job registrations
             services.AddScoped<ISupplierOfferExpiryJob, SupplierOfferExpiryJob>();
             services.AddScoped<IModerateSupplierOfferJob, ModerateSupplierOfferJob>();
+            services.AddScoped<IBatchCompletionJob, BatchCompletionJob>();
+            services.AddScoped<IBackgroundJobDispatcher, HangfireJobDispatcher>();
             #endregion
 
             #region Identity
