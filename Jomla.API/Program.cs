@@ -1,4 +1,5 @@
 
+using Google.Protobuf.WellKnownTypes;
 using Hangfire;
 using Jomla.API.Filters;
 using Jomla.API.Hubs;
@@ -7,9 +8,11 @@ using Jomla.API.Services;
 using Jomla.Application;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Infrastructure;
-using Jomla.Infrastructure.Persistance.Seeders;
-using System.Text.Json.Serialization;
 using Jomla.Infrastructure.Payments;
+using Jomla.Infrastructure.Persistance.Seeders;
+using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
+using System.Text.Json.Serialization;
 
 namespace Jomla.API
 {
@@ -47,7 +50,33 @@ namespace Jomla.API
                     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())); // This will serialize enums as strings in JSON responses
             builder.Services.AddOpenApi();
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(opt =>
+            {
+                opt.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "Enter your JWT access token."
+                });
+
+                opt.AddSecurityRequirement(new OpenApiSecurityRequirement
+                    {
+                        {
+                            new OpenApiSecurityScheme
+                            {
+                                Reference = new OpenApiReference
+                                {
+                                    Type = ReferenceType.SecurityScheme,
+                                    Id = "Bearer"
+                                }
+                            },
+                            Array.Empty<string>()
+                        }
+                    });
+            });
 
             //stripe services
             builder.Services.AddScoped<IStripePaymentService>(provider =>
