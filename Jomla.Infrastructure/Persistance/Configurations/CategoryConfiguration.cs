@@ -13,6 +13,9 @@ namespace Jomla.Infrastructure.Persistance.Configurations
             builder.Property(x => x.Name)
                 .IsRequired()
                 .HasMaxLength(255);
+
+            //MOW : Configure the self-referencing relationship for parent and child categories
+            builder.HasOne(c => c.Parent).WithMany(c => c.Children).HasForeignKey(c => c.ParentId).OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
