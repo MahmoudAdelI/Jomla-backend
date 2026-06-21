@@ -1,4 +1,5 @@
 ﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Features.Batches.Commands.CreateBatch;
 using Jomla.Application.Features.Notifications;
 using Jomla.Application.Jobs.Agents;
 using Jomla.Domain;
@@ -59,8 +60,8 @@ namespace Jomla.Infrastructure.Jobs.Agents
             await db.SaveChangesAsync(ct);
 
             // If approved, open first batch (stub — Sprint 2)
-            //if (result.IsApproved)
-            //    await _mediator.Send(new CreateBatchCommand(offer.Id, BatchNumber: 1), ct);
+            if (result.IsApproved)
+                await _mediator.Send(new CreateBatchCommand(offer.Id), ct);
 
             await _mediator.Publish(new NotificationCreatedEvent(notification.UserId, notification.Id), ct);
         }
