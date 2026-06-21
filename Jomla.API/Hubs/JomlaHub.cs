@@ -6,15 +6,11 @@ namespace Jomla.API.Hubs
     [Authorize]
     public class JomlaHub : Hub<IJomlaClient>
     {
-        public async Task JoinBatch(int batchId)
-        {
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"batch:{batchId}");
-        }
+        public async Task JoinOfferGroup(Guid offerId)
+            => await Groups.AddToGroupAsync(Context.ConnectionId, $"offer:{offerId}");
 
-        public async Task LeaveBatch(int batchId)
-        {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"batch:{batchId}");
-        }
+        public async Task LeaveOfferGroup(Guid offerId)
+            => await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroups.OfferGroup(offerId));
 
         public override async Task OnConnectedAsync()
         {
