@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using Jomla.Application.Features.Batches.Commands.CreateBatch;
+using MediatR;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +19,7 @@ namespace Jomla.Application.Features.Batches.Commands.OpenBatch
 
         public async Task Handle(OpenBatchCommand request, CancellationToken cancellationToken)
         {
-            await _mediator.Send(new CreateBatchCommand { OfferId = request.OfferId }, cancellationToken);
+            await _mediator.Send(new CreateBatchCommand(request.OfferId), cancellationToken);
         }
     }
 }
