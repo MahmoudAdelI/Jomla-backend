@@ -1,4 +1,4 @@
-﻿using Hangfire;
+using Hangfire;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Common.Settings;
 using Jomla.Application.Jobs.Agents;
@@ -61,7 +61,7 @@ namespace Jomla.Infrastructure
 
             #region Identity
             var jwtSettings = config.GetSection("Jwt").Get<JwtSettings>()!;
-            services.AddSingleton(jwtSettings);
+            services.Configure<JwtSettings>(config.GetSection("Jwt"));
 
             services.AddIdentityCore<AppUser>(opt =>
             {

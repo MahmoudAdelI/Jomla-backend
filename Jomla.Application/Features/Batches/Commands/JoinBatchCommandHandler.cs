@@ -1,4 +1,3 @@
-﻿using Jomla.Application.Common.Exceptions;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Jobs.Fulfillment;
 using Jomla.Application.Jobs.JobDispatcher;
@@ -33,17 +32,42 @@ namespace Jomla.Application.Features.Batches.Commands
                 .FirstOrDefaultAsync(b => b.Id == request.BatchId, cancellationToken);
 
             if (batch == null)
-                throw new NotFoundException(nameof(SupplierBatch), request.BatchId);
+            {
+                return new JoinBatchResponse
+                {
+                    Success = false,
+                    Error = $"SupplierBatch with ID '{request.BatchId}' was not found.",
+                    ErrorCode = "NOT_FOUND",
+                    StatusCode = 404
+                };
+            }
 
             // 2️⃣ Validate batch is Open
             if (batch.Status != BatchStatus.Open)
-                throw new ConflictException($"Batch is {batch.Status}. Cannot join.");
+            {
+                return new JoinBatchResponse
+                {
+                    Success = false,
+                    Error = $"Batch is {batch.Status}. Cannot join.",
+                    ErrorCode = "INVALID_BATCH_STATUS",
+                    StatusCode = 409
+                };
+            }
 
             // 3️⃣ Validate space available
             int spaceRemaining = batch.TargetQuantity - batch.CurrentQuantity;
 
             if (request.Quantity > spaceRemaining)
-                throw new ConflictException($"Only {spaceRemaining} slots available.");
+            {
+                return new JoinBatchResponse
+                {
+                    Success = false,
+                    Error = $"Only {spaceRemaining} slots available.",
+                    ErrorCode = "INSUFFICIENT_SLOTS",
+                    SlotsAvailable = spaceRemaining,
+                    StatusCode = 409
+                };
+            }
 
             // 4️⃣ Calculate total amount
             decimal totalAmount = request.Quantity * batch.Offer.UnitPrice;
@@ -53,10 +77,19 @@ namespace Jomla.Application.Features.Batches.Commands
                 request.BuyerId.ToString(),
                 request.BuyerEmail,
                 totalAmount,
-                request.BatchId);
+                request.BatchId,
+                cancellationToken: cancellationToken);
 
             if (!paymentResult.Success)
-                throw new ConflictException($"Payment hold failed: {paymentResult.Error}");
+            {
+                return new JoinBatchResponse
+                {
+                    Success = false,
+                    Error = $"Payment hold failed: {paymentResult.Error}",
+                    ErrorCode = paymentResult.ErrorCode ?? "PAYMENT_HOLD_FAILED",
+                    StatusCode = 409
+                };
+            }
 
             // 6️⃣ Create participant
             var participant = new BatchParticipant
@@ -75,7 +108,23 @@ namespace Jomla.Application.Features.Batches.Commands
             batch.CurrentQuantity += request.Quantity;
 
             // 8️⃣ Save changes
-            await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Rollback Stripe payment hold to prevent charging buyer when save fails
+                await _stripePaymentService.CancelPaymentAsync(paymentResult.PaymentIntentId, cancellationToken);
+
+                return new JoinBatchResponse
+                {
+                    Success = false,
+                    Error = "The batch was updated by another request. Please try again.",
+                    ErrorCode = "CONCURRENCY_CONFLICT",
+                    StatusCode = 409
+                };
+            }
 
             // 9️⃣ Trigger completion ONLY if batch is full
             if (batch.CurrentQuantity >= batch.TargetQuantity)

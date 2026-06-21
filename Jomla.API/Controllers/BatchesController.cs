@@ -1,5 +1,6 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Batches.Commands;
+using Jomla.Application.Features.Batches.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,12 +13,23 @@ namespace Jomla.Api.Controllers
     public class BatchesController : ControllerBase
     {
         private readonly IMediator _mediator;
-        private readonly IIdentityService _identityService;  // ← استخدم IIdentityService
+        private readonly IIdentityService _identityService;
 
         public BatchesController(IMediator mediator, IIdentityService identityService)
         {
             _mediator = mediator;
             _identityService = identityService;
+        }
+
+        /// <summary>
+        /// GET /api/batches/{batchId}
+        /// Get batch detail with participants
+        /// </summary>
+        [HttpGet("{batchId}")]
+        public async Task<IActionResult> GetBatch(Guid batchId)
+        {
+            var result = await _mediator.Send(new GetBatchDetailQuery(batchId));
+            return Ok(result);
         }
 
         /// <summary>

@@ -1,4 +1,4 @@
-﻿namespace Jomla.Domain.Entities
+namespace Jomla.Domain.Entities
 {
     public class SupplierBatch
     {
@@ -12,5 +12,6 @@
         public DateTime CreatedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
         public ICollection<BatchParticipant> Participants { get; set; } = [];
+        public byte[] RowVersion { get; set; } = null!;
     }
 }

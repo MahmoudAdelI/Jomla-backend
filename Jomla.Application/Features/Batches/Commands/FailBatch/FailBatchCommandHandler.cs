@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Domain;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -30,7 +30,7 @@ namespace Jomla.Application.Features.Batches.Commands.FailBatch
             {
                 try
                 {
-                    await _stripe.CancelPaymentAsync(participant.StripePaymentIntentId);
+                    await _stripe.CancelPaymentAsync(participant.StripePaymentIntentId, cancellationToken);
                 }
                 catch( Exception ex ) 
                 {

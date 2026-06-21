@@ -1,6 +1,7 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Common.Settings;
 using Jomla.Domain.Entities;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -9,8 +10,9 @@ using System.Text;
 
 namespace Jomla.Infrastructure.Auth
 {
-    public class TokenService(JwtSettings _jwtSettings) : ITokenService
+    public class TokenService(IOptions<JwtSettings> jwtOptions) : ITokenService
     {
+        private readonly JwtSettings _jwtSettings = jwtOptions.Value;
         public string GenerateToken(AppUser user, IList<string> roles)
         {
             var claims = new List<Claim>
