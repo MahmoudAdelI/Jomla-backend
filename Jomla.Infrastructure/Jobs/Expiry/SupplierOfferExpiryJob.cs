@@ -1,4 +1,6 @@
-﻿using Jomla.Application.Features.Notifications;
+﻿using Jomla.Application.Features.Batches.Commands.CompleteBatch;
+using Jomla.Application.Features.Batches.Commands.FailBatch;
+using Jomla.Application.Features.Notifications;
 using Jomla.Application.Jobs.Expiry;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
@@ -43,14 +45,14 @@ namespace Jomla.Infrastructure.Jobs.Expiry
             if (shouldCapture)
             {
                 // complete batch
-                //_mediator.Send(CompleteBatchCommand(batch.Id));
+                await _mediator.Send(new CompleteBatchCommand(batch.Id), ct);
 
                 offer.TotalQuantityAvailable -= batch.CurrentQuantity;
             }
             else
             {
                 // fail batch
-                //_mediator.Send(FailBatchCommand(batch.Id));
+                await _mediator.Send(new FailBatchCommand(batch.Id), ct);
             }
 
             offer.Status = SupplierOfferStatus.Expired;
