@@ -1,3 +1,5 @@
+
+using Google.Protobuf.WellKnownTypes;
 using Hangfire;
 using Jomla.API.Filters;
 using Jomla.API.Hubs;
@@ -6,7 +8,10 @@ using Jomla.API.Services;
 using Jomla.Application;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Infrastructure;
+using Jomla.Infrastructure.Payments;
 using Jomla.Infrastructure.Persistance.Seeders;
+using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
 using Jomla.Infrastructure.Payments;
 using Microsoft.OpenApi.Models;
@@ -48,15 +53,33 @@ namespace Jomla.API
                     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())); // This will serialize enums as strings in JSON responses
             builder.Services.AddOpenApi();
             builder.Services.AddEndpointsApiExplorer();
-            //builder.Services.AddSwaggerGen();
-            // Swagger configuration with JWT authentication -- MOW 
-            builder.Services.AddSwaggerGen(c =>
+            builder.Services.AddSwaggerGen(opt =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo
+                opt.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
-                    Title = "Jomla.API",
-                    Version = "v1"
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "Enter your JWT access token."
                 });
+
+                opt.AddSecurityRequirement(new OpenApiSecurityRequirement
+                    {
+                        {
+                            new OpenApiSecurityScheme
+                            {
+                                Reference = new OpenApiReference
+                                {
+                                    Type = ReferenceType.SecurityScheme,
+                                    Id = "Bearer"
+                                }
+                            },
+                            Array.Empty<string>()
+                        }
+                    });
+            });
 
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
