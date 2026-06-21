@@ -23,7 +23,6 @@ namespace Jomla.API.Controllers
             _mediator = mediator;
         }
 
-        [AllowAnonymous]
         [HttpPost]
         public async Task<IActionResult> Create(CreateCategoryCommand command)
         {
@@ -36,7 +35,6 @@ namespace Jomla.API.Controllers
             });
         }
 
-        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -45,7 +43,6 @@ namespace Jomla.API.Controllers
             return Ok(result);
         }
 
-        [AllowAnonymous]
 
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
@@ -60,7 +57,6 @@ namespace Jomla.API.Controllers
         }
 
 
-        [AllowAnonymous]
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update(Guid id,UpdateCategoryCommand command)
         {
@@ -78,7 +74,6 @@ namespace Jomla.API.Controllers
 
         }
 
-        [AllowAnonymous]
 
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid id)

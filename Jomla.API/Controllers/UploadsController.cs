@@ -22,7 +22,6 @@ namespace Jomla.API.Controllers
         }
 
 
-        [AllowAnonymous]
         [HttpPost("image")]
         public async Task<IActionResult> UploadImage(
             IFormFile file,

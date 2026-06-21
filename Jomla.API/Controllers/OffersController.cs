@@ -2,6 +2,7 @@
 using Jomla.Application.Features.Offers.Commands.DeleteOffer;
 using Jomla.Application.Features.Offers.Commands.UpdateOffer;
 using Jomla.Application.Features.Offers.Queries.GetAllOffers;
+using Jomla.Application.Features.Offers.Queries.GetMyOffers;
 using Jomla.Application.Features.Offers.Queries.GetOfferById;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -32,7 +33,6 @@ public class OffersController(IMediator mediator) : ControllerBase
 
 
     [HttpGet]
-    [AllowAnonymous]
     public async Task<IActionResult> GetAllOffers()
     {
         var result = await _mediator.Send(
@@ -42,7 +42,6 @@ public class OffersController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [AllowAnonymous]
     public async Task<IActionResult> GetById(Guid id)
     {
         var result = await mediator.Send(
@@ -78,5 +77,14 @@ public class OffersController(IMediator mediator) : ControllerBase
         {
             Success = result
         });
+    }
+
+    [HttpGet("my-offers")]
+    public async Task<IActionResult> GetMyOffers()
+    {
+        var result = await mediator.Send(
+            new GetMyOffersQuery());
+
+        return Ok(result);
     }
 }
