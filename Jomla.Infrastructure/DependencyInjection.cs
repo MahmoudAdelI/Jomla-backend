@@ -119,6 +119,7 @@ namespace Jomla.Infrastructure
 
             services.AddScoped<IModerationService, ModerationService>();
             services.AddScoped<IModerateSupplierOfferJob, ModerateSupplierOfferJob>();
+            services.AddScoped<ICategoryAgent, CategoryAgent>();
             #endregion
 
             services.AddScoped<DataSeeder>();
