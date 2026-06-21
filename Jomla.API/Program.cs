@@ -10,6 +10,8 @@ using Jomla.Infrastructure;
 using Jomla.Infrastructure.Persistance.Seeders;
 using System.Text.Json.Serialization;
 using Jomla.Infrastructure.Payments;
+using Microsoft.OpenApi.Models;
+
 
 namespace Jomla.API
 {
@@ -47,8 +49,41 @@ namespace Jomla.API
                     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())); // This will serialize enums as strings in JSON responses
             builder.Services.AddOpenApi();
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            //builder.Services.AddSwaggerGen();
+            // Swagger configuration with JWT authentication -- MOW 
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "Jomla.API",
+                    Version = "v1"
+                });
 
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme.",
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT"
+                });
+
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+            });
             //stripe services
             builder.Services.AddScoped<IStripePaymentService>(provider =>
              new StripePaymentService(

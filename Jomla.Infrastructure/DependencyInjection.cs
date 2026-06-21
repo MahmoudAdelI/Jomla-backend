@@ -22,6 +22,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.SemanticKernel;
 using System.Text;
+using Jomla.Infrastructure.Services;
+using Jomla.Application.Common.Settings;
 
 namespace Jomla.Infrastructure
 {
@@ -119,6 +121,17 @@ namespace Jomla.Infrastructure
 
             services.AddScoped<IModerationService, ModerationService>();
             services.AddScoped<IModerateSupplierOfferJob, ModerateSupplierOfferJob>();
+            #endregion
+
+
+            // MOW : Cloudinary dependancy ###
+            #region Cloudinary
+
+            services.Configure<CloudinarySettings>(config.GetSection("CloudinarySettings"));
+
+            services.AddScoped<IImageService,
+                CloudinaryImageService>();
+
             #endregion
 
             services.AddScoped<DataSeeder>();
