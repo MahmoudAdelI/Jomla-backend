@@ -120,7 +120,6 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
             {
                 var notification = new Notification
                 {
-                    Id = Guid.NewGuid(),
                     UserId = buyerId,
                     Type = NotificationType.BatchCompleted,
                     Title = "Batch Completed",

@@ -1,4 +1,5 @@
-﻿using Jomla.Application.Common.Interfaces;
+﻿using Jomla.Application.Common.Exceptions;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
@@ -21,73 +22,46 @@ namespace Jomla.Application.Features.Batches.Commands
 
         public async Task<LeaveBatchResponse> Handle(LeaveBatchCommand request, CancellationToken cancellationToken)
         {
-            try
+            // 1️⃣ Fetch batch with participants
+            var batch = await _context.SupplierBatches
+                .Include(b => b.Participants)
+                .FirstOrDefaultAsync(b => b.Id == request.BatchId, cancellationToken);
+
+            if (batch == null)
+                throw new NotFoundException(nameof(SupplierBatch), request.BatchId);
+
+            // 2️⃣ Find participant
+            var participant = batch.Participants
+                .FirstOrDefault(p =>
+                    p.BuyerId == request.BuyerId &&
+                    p.Status == BatchParticipantStatus.Active);
+
+            if (participant == null)
+                throw new ConflictException("You are not an active participant in this batch.");
+
+            // 3️⃣ Cancel Stripe hold
+            var cancelResult = await _stripePaymentService.CancelPaymentAsync(
+                participant.StripePaymentIntentId);
+
+            if (!cancelResult.Success)
+                throw new ConflictException($"Failed to cancel payment hold: {cancelResult.Error}");
+
+            // 4️⃣ Mark as left
+            participant.Status = BatchParticipantStatus.Left;
+
+            // 5️⃣ Decrement batch quantity
+            batch.CurrentQuantity -= participant.Quantity;
+
+            // 6️⃣ Save changes
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // 7️⃣ Return response
+            return new LeaveBatchResponse
             {
-                // Step 1: Fetch batch with participants
-                var batch = await _context.SupplierBatches
-                    .Include(b => b.Participants)
-                    .FirstOrDefaultAsync(b => b.Id == request.BatchId, cancellationToken);
-
-                if (batch == null)
-                {
-                    return new LeaveBatchResponse
-                    {
-                        Success = false,
-                        Error = "Batch not found."
-                    };
-                }
-
-                // Step 2: Find participant
-                var participant = batch.Participants
-                    .FirstOrDefault(p => p.BuyerId == request.BuyerId && p.Status == BatchParticipantStatus.Active);
-
-                if (participant == null)
-                {
-                    return new LeaveBatchResponse
-                    {
-                        Success = false,
-                        Error = "You are not an active participant in this batch."
-                    };
-                }
-
-                // Step 3: Cancel Stripe hold
-                var cancelResult = await _stripePaymentService.CancelPaymentAsync(
-                    participant.StripePaymentIntentId);
-
-                if (!cancelResult.Success)
-                {
-                    return new LeaveBatchResponse
-                    {
-                        Success = false,
-                        Error = $"Failed to cancel payment hold: {cancelResult.Error}"
-                    };
-                }
-
-                // Step 4: Mark as Left
-                participant.Status = BatchParticipantStatus.Left;
-
-                // Step 5: Decrement batch quantity
-                batch.CurrentQuantity -= participant.Quantity;
-
-                // Step 6: Save
-                await _context.SaveChangesAsync(cancellationToken);
-
-                // Step 7: Return response
-                return new LeaveBatchResponse
-                {
-                    Success = true,
-                    BatchId = request.BatchId,
-                    RemainingQuantity = batch.CurrentQuantity
-                };
-            }
-            catch (Exception ex)
-            {
-                return new LeaveBatchResponse
-                {
-                    Success = false,
-                    Error = $"Leave batch failed: {ex.Message}"
-                };
-            }
+                Success = true,
+                BatchId = request.BatchId,
+                RemainingQuantity = batch.CurrentQuantity
+            };
         }
     }
 }
