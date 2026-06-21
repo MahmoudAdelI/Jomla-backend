@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Stripe;
 
 namespace Jomla.Infrastructure.Payments
@@ -25,7 +25,8 @@ namespace Jomla.Infrastructure.Payments
             string buyerEmail,
             decimal amountInDollars,
             Guid batchId,
-            string currencyCode = "usd")
+            string currencyCode = "usd",
+            CancellationToken cancellationToken = default)
         {
             try
             {
@@ -50,7 +51,7 @@ namespace Jomla.Infrastructure.Payments
                 };
 
                 var service = new PaymentIntentService();
-                var intent = await service.CreateAsync(options);
+                var intent = await service.CreateAsync(options, cancellationToken: cancellationToken);
 
                 return new StripePaymentIntentResult
                 {
@@ -85,13 +86,15 @@ namespace Jomla.Infrastructure.Payments
         /// Capture a held PaymentIntent (charge the card).
         /// Called when batch completes and all participants are ready to be charged.
         /// </summary>
-        public async Task<StripePaymentIntentResult> CapturePaymentAsync(string paymentIntentId)
+        public async Task<StripePaymentIntentResult> CapturePaymentAsync(
+            string paymentIntentId,
+            CancellationToken cancellationToken = default)
         {
             try
             {
                 var options = new PaymentIntentCaptureOptions { };
                 var service = new PaymentIntentService();
-                var intent = await service.CaptureAsync(paymentIntentId, options);
+                var intent = await service.CaptureAsync(paymentIntentId, options, cancellationToken: cancellationToken);
 
                 return new StripePaymentIntentResult
                 {
@@ -125,7 +128,9 @@ namespace Jomla.Infrastructure.Payments
         /// Cancel a held PaymentIntent.
         /// Called when buyer leaves batch before completion, or batch fails.
         /// </summary>
-        public async Task<StripePaymentIntentResult> CancelPaymentAsync(string paymentIntentId)
+        public async Task<StripePaymentIntentResult> CancelPaymentAsync(
+            string paymentIntentId,
+            CancellationToken cancellationToken = default)
         {
             try
             {
@@ -134,7 +139,7 @@ namespace Jomla.Infrastructure.Payments
                     CancellationReason = "requested_by_customer"
                 };
                 var service = new PaymentIntentService();
-                var intent = await service.CancelAsync(paymentIntentId, options);
+                var intent = await service.CancelAsync(paymentIntentId, options, cancellationToken: cancellationToken);
 
                 return new StripePaymentIntentResult
                 {

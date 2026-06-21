@@ -1,4 +1,4 @@
-﻿using Jomla.Domain.Entities;
+using Jomla.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -46,6 +46,9 @@ namespace Jomla.Infrastructure.Persistance.Configurations
             builder.HasOne(x => x.Category)
                 .WithMany()
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Property(x => x.RowVersion)
+                .IsRowVersion();
         }
     }
 }

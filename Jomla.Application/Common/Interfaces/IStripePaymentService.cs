@@ -1,4 +1,4 @@
-﻿namespace Jomla.Application.Common.Interfaces
+namespace Jomla.Application.Common.Interfaces
 {
     /// <summary>
     /// IStripePaymentService: Stripe payment integration for batch joins.
@@ -15,19 +15,24 @@
             string buyerEmail,
             decimal amountInDollars,
             Guid batchId,
-            string currencyCode = "usd");
+            string currencyCode = "usd",
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Capture a held payment (charge the card).
         /// Called when batch completes.
         /// </summary>
-        Task<StripePaymentIntentResult> CapturePaymentAsync(string paymentIntentId);
+        Task<StripePaymentIntentResult> CapturePaymentAsync(
+            string paymentIntentId,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Cancel a held payment.
         /// Called when buyer leaves batch or batch fails.
         /// </summary>
-        Task<StripePaymentIntentResult> CancelPaymentAsync(string paymentIntentId);
+        Task<StripePaymentIntentResult> CancelPaymentAsync(
+            string paymentIntentId,
+            CancellationToken cancellationToken = default);
     }
 
     /// <summary>

@@ -1,4 +1,3 @@
-﻿using Jomla.Application.Common.Exceptions;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
@@ -28,7 +27,13 @@ namespace Jomla.Application.Features.Batches.Commands
                 .FirstOrDefaultAsync(b => b.Id == request.BatchId, cancellationToken);
 
             if (batch == null)
-                throw new NotFoundException(nameof(SupplierBatch), request.BatchId);
+            {
+                return new LeaveBatchResponse
+                {
+                    Success = false,
+                    Error = $"SupplierBatch with ID '{request.BatchId}' was not found."
+                };
+            }
 
             // 2️⃣ Find participant
             var participant = batch.Participants
@@ -37,14 +42,27 @@ namespace Jomla.Application.Features.Batches.Commands
                     p.Status == BatchParticipantStatus.Active);
 
             if (participant == null)
-                throw new ConflictException("You are not an active participant in this batch.");
+            {
+                return new LeaveBatchResponse
+                {
+                    Success = false,
+                    Error = "You are not an active participant in this batch."
+                };
+            }
 
             // 3️⃣ Cancel Stripe hold
             var cancelResult = await _stripePaymentService.CancelPaymentAsync(
-                participant.StripePaymentIntentId);
+                participant.StripePaymentIntentId,
+                cancellationToken: cancellationToken);
 
             if (!cancelResult.Success)
-                throw new ConflictException($"Failed to cancel payment hold: {cancelResult.Error}");
+            {
+                return new LeaveBatchResponse
+                {
+                    Success = false,
+                    Error = $"Failed to cancel payment hold: {cancelResult.Error}"
+                };
+            }
 
             // 4️⃣ Mark as left
             participant.Status = BatchParticipantStatus.Left;
@@ -53,7 +71,18 @@ namespace Jomla.Application.Features.Batches.Commands
             batch.CurrentQuantity -= participant.Quantity;
 
             // 6️⃣ Save changes
-            await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return new LeaveBatchResponse
+                {
+                    Success = false,
+                    Error = "The batch was updated by another request. Please try again."
+                };
+            }
 
             // 7️⃣ Return response
             return new LeaveBatchResponse

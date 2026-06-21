@@ -1,4 +1,4 @@
-﻿namespace Jomla.Domain.Entities
+namespace Jomla.Domain.Entities
 {
     public class SupplierOffer
     {
@@ -23,5 +23,6 @@
         public DateTime? ExpiresAt { get; set; }
         public string JobId { get; set; } = string.Empty;
         public ICollection<SupplierBatch> Batches { get; set; } = [];
+        public byte[] RowVersion { get; set; } = null!;
     }
 }

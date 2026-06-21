@@ -1,10 +1,11 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Batches.Commands.OpenBatch;
 using Jomla.Application.Features.Notifications;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,15 +19,18 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
         private readonly IAppDbContext _context;
         private readonly IStripePaymentService _stripePaymentService;
         private readonly IMediator _mediator;
+        private readonly ILogger<CompleteBatchCommandHandler> _logger;
 
         public CompleteBatchCommandHandler(
             IAppDbContext context,
             IStripePaymentService stripePaymentService,
-            IMediator mediator)
+            IMediator mediator,
+            ILogger<CompleteBatchCommandHandler> logger)
         {
             _context = context;
             _stripePaymentService = stripePaymentService;
             _mediator = mediator;
+            _logger = logger;
         }
 
         public async Task Handle(CompleteBatchCommand request, CancellationToken cancellationToken)
@@ -53,6 +57,7 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                 // Step 3: Lock batch immediately
                 batch.Status = BatchStatus.Completed;
                 batch.CompletedAt = DateTime.UtcNow;
+                batch.Offer.TotalQuantityAvailable  =  batch.Offer.TotalQuantityAvailable - batch.CurrentQuantity; 
                 await _context.SaveChangesAsync(cancellationToken);
             }
 
@@ -74,7 +79,7 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                     if (existingOrder != null && existingOrder.Status == OrderStatus.Paid)
                         continue;
 
-                    var captureResult = await _stripePaymentService.CapturePaymentAsync(participant.StripePaymentIntentId);
+                    var captureResult = await _stripePaymentService.CapturePaymentAsync(participant.StripePaymentIntentId, cancellationToken);
 
                     if (existingOrder != null)
                     {
@@ -104,7 +109,7 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Capture failed for buyer {participant.BuyerId}: {ex.Message}");
+                    _logger.LogError(ex, "Capture failed for buyer {BuyerId} in batch {BatchId}", participant.BuyerId, batch.Id);
                     hasFailure = true;
                 }
             }

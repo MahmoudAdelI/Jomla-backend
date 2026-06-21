@@ -1,4 +1,4 @@
-﻿using Jomla.Domain.Entities;
+using Jomla.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -16,6 +16,9 @@ namespace Jomla.Infrastructure.Persistance.Configurations
 
             builder.Property(x => x.CreatedAt)
                 .HasDefaultValueSql("getdate()");
+
+            builder.Property(x => x.RowVersion)
+                .IsRowVersion();
         }
     }
 }
