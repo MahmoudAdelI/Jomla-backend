@@ -23,7 +23,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.SemanticKernel;
 using System.Text;
 using Jomla.Infrastructure.Services;
-using Jomla.Application.Common.Settings;
 
 namespace Jomla.Infrastructure
 {
@@ -120,7 +119,6 @@ namespace Jomla.Infrastructure
                 apiKey: token);
 
             services.AddScoped<IModerationService, ModerationService>();
-            services.AddScoped<IModerateSupplierOfferJob, ModerateSupplierOfferJob>();
             services.AddScoped<ICategoryAgent, CategoryAgent>();
             #endregion
 

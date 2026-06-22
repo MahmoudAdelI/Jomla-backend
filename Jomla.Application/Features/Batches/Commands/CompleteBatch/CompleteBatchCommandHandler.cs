@@ -57,7 +57,11 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                 // Step 3: Lock batch immediately
                 batch.Status = BatchStatus.Completed;
                 batch.CompletedAt = DateTime.UtcNow;
-                batch.Offer.TotalQuantityAvailable  =  batch.Offer.TotalQuantityAvailable - batch.CurrentQuantity; 
+                batch.Offer.TotalQuantityAvailable = batch.Offer.TotalQuantityAvailable - batch.CurrentQuantity;
+                if (batch.Offer.TotalQuantityAvailable <= 0)
+                {
+                    batch.Offer.Status = SupplierOfferStatus.Inactive;
+                }
                 await _context.SaveChangesAsync(cancellationToken);
             }
 

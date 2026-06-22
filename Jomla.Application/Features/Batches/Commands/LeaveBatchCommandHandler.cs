@@ -3,6 +3,7 @@ using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Jomla.Application.Features.Batches.Commands
 {
@@ -10,13 +11,16 @@ namespace Jomla.Application.Features.Batches.Commands
     {
         private readonly IAppDbContext _context;
         private readonly IStripePaymentService _stripePaymentService;
+        private readonly ILogger<LeaveBatchCommandHandler> _logger;
 
         public LeaveBatchCommandHandler(
             IAppDbContext context,
-            IStripePaymentService stripePaymentService)
+            IStripePaymentService stripePaymentService,
+            ILogger<LeaveBatchCommandHandler> logger)
         {
             _context = context;
             _stripePaymentService = stripePaymentService;
+            _logger = logger;
         }
 
         public async Task<LeaveBatchResponse> Handle(LeaveBatchCommand request, CancellationToken cancellationToken)
@@ -50,19 +54,8 @@ namespace Jomla.Application.Features.Batches.Commands
                 };
             }
 
-            // 3️⃣ Cancel Stripe hold
-            var cancelResult = await _stripePaymentService.CancelPaymentAsync(
-                participant.StripePaymentIntentId,
-                cancellationToken: cancellationToken);
-
-            if (!cancelResult.Success)
-            {
-                return new LeaveBatchResponse
-                {
-                    Success = false,
-                    Error = $"Failed to cancel payment hold: {cancelResult.Error}"
-                };
-            }
+            // 3️⃣ Save the payment intent ID before modifying the entity
+            var paymentIntentId = participant.StripePaymentIntentId;
 
             // 4️⃣ Mark as left
             participant.Status = BatchParticipantStatus.Left;
@@ -70,7 +63,7 @@ namespace Jomla.Application.Features.Batches.Commands
             // 5️⃣ Decrement batch quantity
             batch.CurrentQuantity -= participant.Quantity;
 
-            // 6️⃣ Save changes
+            // 6️⃣ Save changes first - if concurrency fails, Stripe hold remains intact (safe)
             try
             {
                 await _context.SaveChangesAsync(cancellationToken);
@@ -84,7 +77,28 @@ namespace Jomla.Application.Features.Batches.Commands
                 };
             }
 
-            // 7️⃣ Return response
+            // 7️⃣ Cancel Stripe hold AFTER successful DB commit
+            // If this fails, the hold expires naturally (7 days) and buyer won't be charged
+            // since they are already marked as Left.
+            try
+            {
+                var cancelResult = await _stripePaymentService.CancelPaymentAsync(
+                    paymentIntentId,
+                    cancellationToken: cancellationToken);
+
+                if (!cancelResult.Success)
+                {
+                    _logger.LogWarning("Failed to cancel payment hold for payment intent {PaymentIntentId} on leave batch {BatchId}: {Error}",
+                        paymentIntentId, request.BatchId, cancelResult.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while cancelling payment hold for payment intent {PaymentIntentId} on leave batch {BatchId}",
+                    paymentIntentId, request.BatchId);
+            }
+
+            // 8️⃣ Return response
             return new LeaveBatchResponse
             {
                 Success = true,

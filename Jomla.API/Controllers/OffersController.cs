@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Features.Offers.Commands.CreateOffer;
+using Jomla.Application.Features.Offers.Commands.CreateOffer;
 using Jomla.Application.Features.Offers.Commands.DeleteOffer;
 using Jomla.Application.Features.Offers.Commands.UpdateOffer;
 using Jomla.Application.Features.Offers.Queries.GetAllOffers;
@@ -12,12 +12,13 @@ namespace Jomla.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Supplier")]
+[Authorize]
 public class OffersController(IMediator mediator) : ControllerBase
 {
     private readonly IMediator _mediator = mediator;
 
     [HttpPost]
+    [Authorize(Roles = "Supplier")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> Create(
         [FromForm] CreateOfferCommand command)
@@ -51,6 +52,7 @@ public class OffersController(IMediator mediator) : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Supplier")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> Update(
     Guid id,
@@ -68,6 +70,7 @@ public class OffersController(IMediator mediator) : ControllerBase
 
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Supplier")]
     public async Task<IActionResult> Delete(Guid id)
     {
         var result = await mediator.Send(
@@ -80,6 +83,7 @@ public class OffersController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("my-offers")]
+    [Authorize(Roles = "Supplier")]
     public async Task<IActionResult> GetMyOffers()
     {
         var result = await mediator.Send(

@@ -1,4 +1,4 @@
-﻿using Hangfire;
+using Hangfire;
 using Jomla.Application.Jobs.JobDispatcher;
 using System;
 using System.Collections.Generic;
@@ -15,5 +15,11 @@ namespace Jomla.Infrastructure.Jobs.JobDispatcher
         {
             BackgroundJob.Enqueue(methodCall);
         }
+
+        public string Schedule<TJob>(Expression<Func<TJob, Task>> methodCall, TimeSpan delay)
+            => BackgroundJob.Schedule(methodCall, delay);
+
+        public string Schedule<TJob>(Expression<Func<TJob, Task>> methodCall, DateTimeOffset enqueueAt)
+            => BackgroundJob.Schedule(methodCall, enqueueAt);
     }
 }

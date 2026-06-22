@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Offers.DTOs;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +8,8 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+
+using Jomla.Domain;
 
 namespace Jomla.Application.Features.Offers.Queries.GetAllOffers;
 
@@ -27,6 +29,8 @@ public sealed class GetAllOffersQueryHandler: IRequestHandler<GetAllOffersQuery,
         var offers = await _db.SupplierOffers
             .Include(x => x.Category)
             .Include(x => x.Supplier)
+            .Where(x => x.Status == SupplierOfferStatus.Active
+                     && x.ModerationStatus == ModerationStatus.Approved)
             .ToListAsync(cancellationToken);
 
         return offers.Select(x => new OfferDto(

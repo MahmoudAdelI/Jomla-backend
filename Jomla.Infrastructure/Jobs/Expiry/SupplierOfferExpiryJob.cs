@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Features.Batches.Commands.CompleteBatch;
+using Jomla.Application.Features.Batches.Commands.CompleteBatch;
 using Jomla.Application.Features.Batches.Commands.FailBatch;
 using Jomla.Application.Features.Notifications;
 using Jomla.Application.Jobs.Expiry;
@@ -47,7 +47,8 @@ namespace Jomla.Infrastructure.Jobs.Expiry
                 // complete batch
                 await _mediator.Send(new CompleteBatchCommand(batch.Id), ct);
 
-                offer.TotalQuantityAvailable -= batch.CurrentQuantity;
+                // Reload the offer to get the updated RowVersion after CompleteBatchCommand modified it
+                await db.Entry(offer).ReloadAsync(ct);
             }
             else
             {

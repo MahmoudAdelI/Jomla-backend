@@ -70,7 +70,7 @@ namespace Jomla.Application.Features.Batches.Commands
             }
 
             // 4️⃣ Calculate total amount
-            decimal totalAmount = request.Quantity * batch.Offer.UnitPrice;
+            decimal totalAmount = request.Quantity * batch.Offer.UnitPrice * (1 - batch.Offer.DiscountPercentage / 100m);
 
             // 5️⃣ Create Stripe Payment Hold
             var paymentResult = await _stripePaymentService.CreatePaymentHoldAsync(
