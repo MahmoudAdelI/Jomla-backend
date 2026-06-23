@@ -23,6 +23,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.SemanticKernel;
 using System.Text;
 using Jomla.Infrastructure.Services;
+using Jomla.Application.Jobs.Matching;
+using Jomla.Infrastructure.Jobs.Matching;
 
 namespace Jomla.Infrastructure
 {
@@ -58,6 +60,7 @@ namespace Jomla.Infrastructure
             services.AddScoped<IModerateSupplierOfferJob, ModerateSupplierOfferJob>();
             services.AddScoped<IBatchCompletionJob, BatchCompletionJob>();
             services.AddScoped<IBackgroundJobDispatcher, HangfireJobDispatcher>();
+            services.AddScoped<ISupplierMatchingJob, SupplierMatchingJob>();
             #endregion
 
             #region Identity
