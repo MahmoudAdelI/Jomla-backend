@@ -2,7 +2,6 @@
 {
     public interface IGroupRequestOfferExpiryJob
     {
-        // Write the signature later
-        Task ExcuteAsync();
+        Task ExcuteAsync(Guid offerId);
     }
 }

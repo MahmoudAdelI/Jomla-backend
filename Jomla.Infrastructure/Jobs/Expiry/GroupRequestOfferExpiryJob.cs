@@ -1,12 +1,15 @@
-﻿using Jomla.Application.Jobs.Expiry;
+﻿using Jomla.Application.Features.GroupRequests.Commands.ExpireGroupRequestOffer;
+using Jomla.Application.Jobs.Expiry;
+using MediatR;
 
 namespace Jomla.Infrastructure.Jobs.Expiry
 {
-    public class GroupRequestOfferExpiryJob : IGroupRequestOfferExpiryJob
+    public class GroupRequestOfferExpiryJob(ISender sender) : IGroupRequestOfferExpiryJob
     {
-        public Task ExcuteAsync()
+        private readonly ISender _sender = sender;
+        public async Task ExcuteAsync(Guid offerId)
         {
-            throw new NotImplementedException();
+            await _sender.Send(new ExpireGroupRequestOfferCommand(offerId));
         }
     }
 }

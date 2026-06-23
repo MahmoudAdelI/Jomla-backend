@@ -1,12 +1,15 @@
-﻿using Jomla.Application.Jobs.Closing;
+﻿using Jomla.Application.Features.GroupRequests.Commands.CloseGroupRequest;
+using Jomla.Application.Jobs.Closing;
+using MediatR;
 
 namespace Jomla.Infrastructure.Jobs.Closing
 {
-    public class GroupRequestAutoCloseJob : IGroupRequestAutoCloseJob
+    public class GroupRequestAutoCloseJob(ISender sender) : IGroupRequestAutoCloseJob
     {
-        public Task ExcuteAsync()
+        private readonly ISender _sender = sender;
+        public async Task ExcuteAsync(Guid groupRequestId)
         {
-            throw new NotImplementedException();
+            await _sender.Send(new CloseGroupRequestCommand(groupRequestId));
         }
     }
 }

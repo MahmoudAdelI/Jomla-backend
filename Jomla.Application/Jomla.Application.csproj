@@ -21,6 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Features\GroupRequests\DTOs\" />
+    <Folder Include="Features\GroupRequests\Queries\" />
     <Folder Include="Jobs\Closing\" />
     <Folder Include="Jobs\Sync\" />
   </ItemGroup>
