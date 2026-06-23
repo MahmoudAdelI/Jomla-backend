@@ -64,6 +64,7 @@ namespace Jomla.Infrastructure
             services.AddScoped<IBackgroundJobDispatcher, HangfireJobDispatcher>();
             services.AddScoped<ISupplierMatchingJob, SupplierMatchingJob>();
             services.AddScoped<IGroupRequestAutoCloseJob, GroupRequestAutoCloseJob>();
+            services.AddScoped<IGroupRequestOfferExpiryJob, GroupRequestOfferExpiryJob>();
             #endregion
 
             #region Identity
