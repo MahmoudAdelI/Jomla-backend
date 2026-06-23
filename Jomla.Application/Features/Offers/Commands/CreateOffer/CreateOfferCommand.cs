@@ -1,10 +1,4 @@
 ﻿using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MediatR;
 using Microsoft.AspNetCore.Http;
 
 namespace Jomla.Application.Features.Offers.Commands.CreateOffer;
@@ -18,6 +12,7 @@ public sealed record CreateOfferCommand(
     int BatchTargetQuantity,
     int TotalQuantityAvailable,
     int? MinFallbackQuantity,
+    string? VariantAttributes,
     DateTime? ExpiresAt,
     List<IFormFile>? Images
 ) : IRequest<Guid>;
