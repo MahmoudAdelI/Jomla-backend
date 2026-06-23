@@ -2,7 +2,6 @@
 {
     public interface IGroupRequestAutoCloseJob
     {
-        // Write the signature later
-        Task ExcuteAsync();
+        Task ExcuteAsync(Guid groupRequestId);
     }
 }
