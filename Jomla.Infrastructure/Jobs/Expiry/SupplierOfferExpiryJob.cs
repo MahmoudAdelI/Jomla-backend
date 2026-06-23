@@ -16,7 +16,7 @@ namespace Jomla.Infrastructure.Jobs.Expiry
     {
         private readonly IDbContextFactory<AppDbContext> _contextFactory = contextFactory;
         private readonly IMediator _mediator = mediator;
-        public async Task ExcuteAsync(Guid offerId, CancellationToken ct)
+        public async Task ExecuteAsync(Guid offerId, CancellationToken ct)
         {
             await using var db = await _contextFactory.CreateDbContextAsync(ct);
 
