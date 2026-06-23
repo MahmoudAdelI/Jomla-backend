@@ -2,6 +2,6 @@
 {
     public interface ISupplierOfferExpiryJob
     {
-        Task ExcuteAsync(Guid offerId, CancellationToken ct);
+        Task ExecuteAsync(Guid offerId, CancellationToken ct);
     }
 }
