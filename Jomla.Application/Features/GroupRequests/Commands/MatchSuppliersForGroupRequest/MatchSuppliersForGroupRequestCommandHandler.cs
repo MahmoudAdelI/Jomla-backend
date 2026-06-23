@@ -5,7 +5,7 @@ using Jomla.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Jomla.Application.Features.GroupRequests.Commands
+namespace Jomla.Application.Features.GroupRequests.Commands.MatchSuppliersForGroupRequest
 {
     public class MatchSuppliersForGroupRequestCommandHandler(
         IAppDbContext db,
