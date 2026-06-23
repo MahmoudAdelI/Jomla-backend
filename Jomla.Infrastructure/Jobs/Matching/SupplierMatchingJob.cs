@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Features.GroupRequests.Commands;
+﻿using Jomla.Application.Features.GroupRequests.Commands.MatchSuppliersForGroupRequest;
 using Jomla.Application.Jobs.Matching;
 using MediatR;
 
