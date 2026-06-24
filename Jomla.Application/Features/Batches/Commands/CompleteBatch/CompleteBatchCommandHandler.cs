@@ -58,7 +58,7 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                 batch.Status = BatchStatus.Completed;
                 batch.CompletedAt = DateTime.UtcNow;
                 batch.Offer.TotalQuantityAvailable = batch.Offer.TotalQuantityAvailable - batch.CurrentQuantity;
-                if (batch.Offer.TotalQuantityAvailable <= 0)
+                if (batch.Offer.Status == SupplierOfferStatus.Active && batch.Offer.TotalQuantityAvailable <= 0)
                 {
                     batch.Offer.Status = SupplierOfferStatus.Inactive;
                 }

@@ -1,4 +1,6 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequestOffer;
+using Jomla.Application.Features.GroupRequests.Commands.CancelGroupRequestOffer;
 using Jomla.Domain;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -36,11 +38,11 @@ namespace Jomla.Application.Features.GroupRequests.Commands.ExpireGroupRequestOf
                 acceptedQuantity >= offer.MinFallbackQuantity.Value;
             if (shouldCapture)
             {
-                //await _mediator.Send(new CompleteGroupRequestOfferCommand(offer.Id), cancellationToken);
+                await _sender.Send(new CompleteGroupRequestOfferCommand(offer.Id), cancellationToken);
             }
             else
             {
-                //await _mediator.Send(new CancelGroupRequestOfferCommand(offer.Id), cancellationToken);
+                await _sender.Send(new CancelGroupRequestOfferCommand(offer.Id), cancellationToken);
             }
 
             offer.Status = GroupRequestOfferStatus.Expired;

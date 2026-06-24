@@ -1,4 +1,4 @@
-using Jomla.Application.Common.Interfaces;
+﻿using Jomla.Application.Common.Interfaces;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
@@ -22,8 +22,8 @@ namespace Jomla.Application.Features.Offers.Commands.CreateOffer
         {
             var supplierId = _identityService.GetCurrentUserId();
 
-            //if (supplierId == Guid.Empty)
-            //    throw new UnauthorizedAccessException();
+            if (supplierId == Guid.Empty)
+                throw new UnauthorizedAccessException();
 
             var imageUrls = new List<string>();
 
@@ -61,9 +61,9 @@ namespace Jomla.Application.Features.Offers.Commands.CreateOffer
 
             await _db.SaveChangesAsync(cancellationToken);
 
-            // Trigger AI content moderation � approval will open the first batch and schedule expiry
+            // Trigger AI content moderation — approval will open the first batch and schedule expiry
             _jobDispatcher.Enqueue<IModerateSupplierOfferJob>(job =>
-                job.ExecuteAsync(offer.Id, cancellationToken));
+                job.ExecuteAsync(offer.Id, CancellationToken.None));
             // Trigger AI content moderation
             //jobDispatcher.Enqueue<IModerateSupplierOfferJob>(
             //    j => j.ExecuteAsync(offer.Id, CancellationToken.None));

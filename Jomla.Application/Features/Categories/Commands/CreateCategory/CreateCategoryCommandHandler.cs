@@ -1,4 +1,5 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Exceptions;
 using Jomla.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,16 @@ public sealed class CreateCategoryCommandHandler(IAppDbContext db)
                     c => c.Id == request.ParentId.Value,cancellationToken);
 
             if (!parentExists) throw new ArgumentException("Parent category not found.");
+        }
+
+        var normalizedName = request.Name.Trim().ToLower();
+        var categoryExists = await _db.Categories.AnyAsync(
+            c => c.Name.ToLower() == normalizedName && c.ParentId == request.ParentId,
+            cancellationToken);
+
+        if (categoryExists)
+        {
+            throw new ConflictException($"A category named '{request.Name.Trim()}' already exists under this parent.");
         }
 
         var category = new Category

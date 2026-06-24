@@ -39,6 +39,16 @@ namespace Jomla.Application.Features.Batches.Commands
                 };
             }
 
+            // Validate batch is Open
+            if (batch.Status != BatchStatus.Open)
+            {
+                return new LeaveBatchResponse
+                {
+                    Success = false,
+                    Error = $"Cannot leave a batch that is {batch.Status}."
+                };
+            }
+
             // 2️⃣ Find participant
             var participant = batch.Participants
                 .FirstOrDefault(p =>

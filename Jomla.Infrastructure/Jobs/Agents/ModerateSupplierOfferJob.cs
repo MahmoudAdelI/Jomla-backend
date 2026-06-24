@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Batches.Commands.CreateBatch;
 using Jomla.Application.Features.Notifications;
 using Jomla.Application.Jobs.Agents;
@@ -31,6 +31,19 @@ namespace Jomla.Infrastructure.Jobs.Agents
             var offer = await db.SupplierOffers
                 .FirstOrDefaultAsync(o => o.Id == offerId, ct);
             if (offer is null) return;
+
+            if (offer.ModerationStatus != ModerationStatus.Pending)
+            {
+                if (offer.ModerationStatus == ModerationStatus.Approved)
+                {
+                    var hasBatch = await db.SupplierBatches.AnyAsync(b => b.OfferId == offerId, ct);
+                    if (!hasBatch)
+                    {
+                        await _mediator.Send(new CreateBatchCommand(offer.Id), ct);
+                    }
+                }
+                return;
+            }
 
             var imageUrls = string.IsNullOrWhiteSpace(offer.ImageUrls)
                 ? []

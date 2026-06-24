@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Stripe.Forwarding;
@@ -25,15 +25,35 @@ public async Task<bool> Handle(DeleteCategoryCommand request,
                                   x => x.CategoryId == request.Id,
                                      cancellationToken);
 
-if (isUsedInPreferences)
-{
-    throw new InvalidOperationException(
-        "Cannot delete category because it is being used by supplier preferences.");
-}
+            if (isUsedInPreferences)
+            {
+                throw new InvalidOperationException(
+                    "Cannot delete category because it is being used by supplier preferences.");
+            }
 
-_db.Categories.Remove(category);
+            var isUsedInOffers = await _db.SupplierOffers.AnyAsync(
+                x => x.CategoryId == request.Id,
+                cancellationToken);
 
-await _db.SaveChangesAsync(cancellationToken);
+            if (isUsedInOffers)
+            {
+                throw new InvalidOperationException(
+                    "Cannot delete category because it is being used by supplier offers.");
+            }
+
+            var isUsedInRequests = await _db.GroupRequests.AnyAsync(
+                x => x.CategoryId == request.Id,
+                cancellationToken);
+
+            if (isUsedInRequests)
+            {
+                throw new InvalidOperationException(
+                    "Cannot delete category because it is being used by group requests.");
+            }
+
+            _db.Categories.Remove(category);
+
+            await _db.SaveChangesAsync(cancellationToken);
 
 return true;
     }

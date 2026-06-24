@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Notifications;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
@@ -27,7 +27,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.MatchSuppliersForGro
             var matchedSuppliers = await _db.SupplierCategoryPreferences
                 .Where(p =>
                     p.CategoryId == request.CategoryId &&
-                    p.MinQuantity >= request.CurrentQuantity &&
+                    p.MinQuantity <= request.CurrentQuantity &&
                     !alreadyAlertedSupplierIds.Contains(p.SupplierId))
                 .Select(p => p.SupplierId)
                 .ToListAsync(cancellationToken);
