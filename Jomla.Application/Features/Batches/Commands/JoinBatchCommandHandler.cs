@@ -141,6 +141,7 @@ namespace Jomla.Application.Features.Batches.Commands
                 ParticipantQuantity = request.Quantity,
                 TotalAmount = totalAmount,
                 PaymentIntentId = paymentResult.PaymentIntentId,
+                ClientSecret = paymentResult.ClientSecret,
                 BatchCurrentQuantity = batch.CurrentQuantity,
                 BatchTargetQuantity = batch.TargetQuantity
             };
