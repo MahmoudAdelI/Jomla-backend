@@ -5,7 +5,7 @@ namespace Jomla.Application.Common.Extensions
 {
     public static class FluentValidationExtensions
     {
-        public static IRuleBuilderOptions<T, string> IsValidJson<T>(this IRuleBuilder<T, string> ruleBuilder)
+        public static IRuleBuilderOptions<T, string?> IsValidJson<T>(this IRuleBuilder<T, string?> ruleBuilder)
         {
             return ruleBuilder.Must(jsonString =>
             {
