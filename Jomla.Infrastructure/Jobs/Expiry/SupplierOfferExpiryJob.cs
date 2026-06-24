@@ -25,6 +25,7 @@ namespace Jomla.Infrastructure.Jobs.Expiry
             if (offer is null) return;
 
             if (offer.Status == SupplierOfferStatus.Expired) return;
+            if (offer.Status != SupplierOfferStatus.Active) return;
 
             var batch = await db.SupplierBatches
                 .Include(b => b.Participants)
