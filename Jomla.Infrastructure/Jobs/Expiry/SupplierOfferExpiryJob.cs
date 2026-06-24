@@ -16,7 +16,7 @@ namespace Jomla.Infrastructure.Jobs.Expiry
     {
         private readonly IDbContextFactory<AppDbContext> _contextFactory = contextFactory;
         private readonly IMediator _mediator = mediator;
-        public async Task ExcuteAsync(Guid offerId, CancellationToken ct)
+        public async Task ExecuteAsync(Guid offerId, CancellationToken ct)
         {
             await using var db = await _contextFactory.CreateDbContextAsync(ct);
 
@@ -42,21 +42,19 @@ namespace Jomla.Infrastructure.Jobs.Expiry
                 offer.MinFallbackQuantity.HasValue
                 && batch.CurrentQuantity >= offer.MinFallbackQuantity.Value;
 
+            offer.Status = SupplierOfferStatus.Expired;
+            await db.SaveChangesAsync(ct);
+
             if (shouldCapture)
             {
                 // complete batch
                 await _mediator.Send(new CompleteBatchCommand(batch.Id), ct);
-
-                // Reload the offer to get the updated RowVersion after CompleteBatchCommand modified it
-                await db.Entry(offer).ReloadAsync(ct);
             }
             else
             {
                 // fail batch
                 await _mediator.Send(new FailBatchCommand(batch.Id), ct);
             }
-
-            offer.Status = SupplierOfferStatus.Expired;
 
             var notification = new Notification
             {

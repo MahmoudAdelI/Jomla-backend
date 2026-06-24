@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Jomla.Application.Common.Interfaces;
+using Jomla.Domain;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,6 +30,7 @@ public sealed class DeleteOfferCommandHandler: IRequestHandler<DeleteOfferComman
         var supplierId = _identityService.GetCurrentUserId();
 
         var offer = await _db.SupplierOffers
+            .Include(x => x.Batches)
             .FirstOrDefaultAsync(
                 x => x.Id == request.Id,
                 cancellationToken);
@@ -38,6 +40,11 @@ public sealed class DeleteOfferCommandHandler: IRequestHandler<DeleteOfferComman
 
         if (offer.SupplierId != supplierId)
             throw new UnauthorizedAccessException();
+
+        if (offer.Batches.Any(b => b.Status == BatchStatus.Open || b.Status == BatchStatus.Completed))
+        {
+            throw new InvalidOperationException("Cannot delete an offer with active (open or completed) batches.");
+        }
 
         _db.SupplierOffers.Remove(offer);
 

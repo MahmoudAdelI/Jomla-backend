@@ -91,18 +91,30 @@ namespace Jomla.Application.Features.Batches.Commands
                 };
             }
 
-            // 6️⃣ Create participant
-            var participant = new BatchParticipant
-            {
-                BatchId = request.BatchId,
-                BuyerId = request.BuyerId,
-                Quantity = request.Quantity,
-                StripePaymentIntentId = paymentResult.PaymentIntentId,
-                Status = BatchParticipantStatus.Active,
-                JoinedAt = DateTime.UtcNow
-            };
+            // 6️⃣ Create or update participant
+            var participant = await _context.BatchParticipants
+                .FirstOrDefaultAsync(p => p.BatchId == request.BatchId && p.BuyerId == request.BuyerId, cancellationToken);
 
-            _context.BatchParticipants.Add(participant);
+            if (participant != null)
+            {
+                participant.Quantity = request.Quantity;
+                participant.StripePaymentIntentId = paymentResult.PaymentIntentId;
+                participant.Status = BatchParticipantStatus.Active;
+                participant.JoinedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                participant = new BatchParticipant
+                {
+                    BatchId = request.BatchId,
+                    BuyerId = request.BuyerId,
+                    Quantity = request.Quantity,
+                    StripePaymentIntentId = paymentResult.PaymentIntentId,
+                    Status = BatchParticipantStatus.Active,
+                    JoinedAt = DateTime.UtcNow
+                };
+                _context.BatchParticipants.Add(participant);
+            }
 
             // 7️⃣ Update batch quantity
             batch.CurrentQuantity += request.Quantity;

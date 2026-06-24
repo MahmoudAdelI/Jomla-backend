@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Notifications;
 using Jomla.Application.Jobs.Agents;
 using Jomla.Domain;
@@ -28,6 +28,9 @@ namespace Jomla.Infrastructure.Jobs.Agents
                 .FirstOrDefaultAsync(r => r.Id == groupRequestId, ct);
 
             if (groupRequest is null) return;
+
+            if (groupRequest.ModerationStatus != ModerationStatus.Pending)
+                return;
 
             var imageUrls = string.IsNullOrWhiteSpace(groupRequest.ImageUrls)
                 ? []

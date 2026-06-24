@@ -2,18 +2,23 @@ using Hangfire;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Common.Settings;
 using Jomla.Application.Jobs.Agents;
+using Jomla.Application.Jobs.Closing;
 using Jomla.Application.Jobs.Expiry;
 using Jomla.Application.Jobs.Fulfillment;
 using Jomla.Application.Jobs.JobDispatcher;
+using Jomla.Application.Jobs.Matching;
 using Jomla.Domain.Entities;
 using Jomla.Infrastructure.AI;
 using Jomla.Infrastructure.Auth;
 using Jomla.Infrastructure.Jobs.Agents;
+using Jomla.Infrastructure.Jobs.Closing;
 using Jomla.Infrastructure.Jobs.Expiry;
 using Jomla.Infrastructure.Jobs.Fulfillment;
 using Jomla.Infrastructure.Jobs.JobDispatcher;
+using Jomla.Infrastructure.Jobs.Matching;
 using Jomla.Infrastructure.Persistance;
 using Jomla.Infrastructure.Persistance.Seeders;
+using Jomla.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +27,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.SemanticKernel;
 using System.Text;
-using Jomla.Infrastructure.Services;
 
 namespace Jomla.Infrastructure
 {
@@ -58,6 +62,9 @@ namespace Jomla.Infrastructure
             services.AddScoped<IModerateSupplierOfferJob, ModerateSupplierOfferJob>();
             services.AddScoped<IBatchCompletionJob, BatchCompletionJob>();
             services.AddScoped<IBackgroundJobDispatcher, HangfireJobDispatcher>();
+            services.AddScoped<ISupplierMatchingJob, SupplierMatchingJob>();
+            services.AddScoped<IGroupRequestAutoCloseJob, GroupRequestAutoCloseJob>();
+            services.AddScoped<IGroupRequestOfferExpiryJob, GroupRequestOfferExpiryJob>();
             #endregion
 
             #region Identity

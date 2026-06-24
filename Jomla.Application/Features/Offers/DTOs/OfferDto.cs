@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,6 +16,10 @@ namespace Jomla.Application.Features.Offers.DTOs
         string SupplierName,
         List<string> Images,
         DateTime CreatedAt,
-        DateTime? ExpiresAt
+        DateTime? ExpiresAt,
+        Guid? ActiveBatchId,
+        int CommittedUnits,
+        int HubTargetQuantity,
+        int BuyerCount
     );
 }
