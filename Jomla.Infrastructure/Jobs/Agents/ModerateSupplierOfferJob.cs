@@ -63,14 +63,15 @@ namespace Jomla.Infrastructure.Jobs.Agents
                 // Flip offer status from PendingReview to Active
                 offer.Status = SupplierOfferStatus.Active;
 
-                // Schedule expiry job if offer has an expiry date
                 if (offer.ExpiresAt.HasValue)
                 {
-                    var jobId = _jobDispatcher.Schedule<ISupplierOfferExpiryJob>(job=>
+                    offer.JobId = _jobDispatcher.Schedule<ISupplierOfferExpiryJob>(job =>
                         job.ExecuteAsync(offer.Id, CancellationToken.None),
                         new DateTimeOffset(offer.ExpiresAt.Value, TimeSpan.Zero));
-
-                    offer.JobId = jobId;
+                }
+                else
+                {
+                    offer.JobId = string.Empty;
                 }
             }
 

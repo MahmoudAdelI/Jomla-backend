@@ -12,5 +12,6 @@ namespace Jomla.Application.Jobs.JobDispatcher
         void Enqueue<TJob>(Expression<Func<TJob, Task>> methodCall);
         string Schedule<TJob>(Expression<Func<TJob, Task>> methodCall, TimeSpan delay);
         string Schedule<TJob>(Expression<Func<TJob, Task>> methodCall, DateTimeOffset enqueueAt);
+        void Delete(string jobId);
     }
 }
