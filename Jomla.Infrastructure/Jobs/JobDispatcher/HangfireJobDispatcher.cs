@@ -21,5 +21,13 @@ namespace Jomla.Infrastructure.Jobs.JobDispatcher
 
         public string Schedule<TJob>(Expression<Func<TJob, Task>> methodCall, DateTimeOffset enqueueAt)
             => BackgroundJob.Schedule(methodCall, enqueueAt);
+
+        public void Delete(string jobId)
+        {
+            if (string.IsNullOrWhiteSpace(jobId))
+                return;
+
+            BackgroundJob.Delete(jobId);
+        }
     }
 }
