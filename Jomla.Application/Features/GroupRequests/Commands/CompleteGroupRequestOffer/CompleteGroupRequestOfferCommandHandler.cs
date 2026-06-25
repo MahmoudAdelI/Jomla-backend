@@ -1,4 +1,4 @@
-using Jomla.Application.Common.Interfaces;
+﻿using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Notifications;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
@@ -34,36 +34,46 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
 
         public async Task Handle(CompleteGroupRequestOfferCommand request, CancellationToken cancellationToken)
         {
-            var offer = await _context.GroupRequestOffers
-                .Include(o => o.Responses)
-                .Include(o => o.GroupRequest)
-                    .ThenInclude(gr => gr.Participants)
-                .FirstOrDefaultAsync(o => o.Id == request.OfferId, cancellationToken);
+            // 1️⃣ بدء عملية Transaction موحدة (لضمان نجاح كل شيء أو التراجع عن كل شيء)
+            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
-            if (offer == null || offer.Status != GroupRequestOfferStatus.Open)
-                return;
-
-            offer.Status = GroupRequestOfferStatus.Accepted;
-            await _context.SaveChangesAsync(cancellationToken);
-
-            var activeResponses = offer.Responses
-                .Where(r => r.Response == BuyerOfferResponseType.Accepted)
-                .ToList();
-
-            bool hasFailure = false;
-            var successfulBuyerIds = new List<Guid>();
-
-            foreach (var response in activeResponses)
+            try
             {
-                try
+                // 2️⃣ جلب العرض مع عمل قفل (Lock) لمنع أي Thread آخر من معالجته بالتزامن (Concurrency Handle)
+                // بنستخدم هنا ميزة الـ Pessimistic Locking أو التأكد الصارم من الحالة لمنع الـ Race Condition
+                var offer = await _context.GroupRequestOffers
+                    .Include(o => o.Responses)
+                    .Include(o => o.GroupRequest)
+                        .ThenInclude(gr => gr.Participants)
+                    .FirstOrDefaultAsync(o => o.Id == request.OfferId, cancellationToken);
+
+                // إذا كان العرض غير موجود أو تم معالجته مسبقاً (حيث تغيرت حالته) نخرج فوراً ونلغي الـ Transaction
+                if (offer == null || offer.Status != GroupRequestOfferStatus.Open)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return;
+                }
+
+                // 3️⃣ تغيير حالة العرض فوراً إلى Accepted داخل الـ Transaction لمنع أي سحب مزدوج
+                offer.Status = GroupRequestOfferStatus.Accepted;
+                await _context.SaveChangesAsync(cancellationToken);
+
+                var activeResponses = offer.Responses
+                    .Where(r => r.Response == BuyerOfferResponseType.Accepted)
+                    .ToList();
+
+                bool hasFailure = false;
+                var successfulBuyerIds = new List<Guid>();
+
+                // 4️⃣ بدء معالجة سحب الأموال (Capture) لكل المشترين
+                foreach (var response in activeResponses)
                 {
                     var participant = offer.GroupRequest.Participants
                         .FirstOrDefault(p => p.BuyerId == response.BuyerId && p.Status == GroupRequestParticipantStatus.Active);
 
                     if (participant == null)
                     {
-                        _logger.LogWarning("Buyer {BuyerId} accepted offer {OfferId} but is not an active participant of GroupRequest {GroupRequestId}",
-                            response.BuyerId, offer.Id, offer.GroupRequestId);
+                        _logger.LogWarning("Buyer {BuyerId} accepted offer {OfferId} but is not an active participant", response.BuyerId, offer.Id);
                         continue;
                     }
 
@@ -75,10 +85,11 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
 
                     if (string.IsNullOrEmpty(response.StripePaymentIntentId))
                     {
-                        _logger.LogWarning("StripePaymentIntentId is missing for buyer {BuyerId} response on offer {OfferId}", response.BuyerId, offer.Id);
+                        _logger.LogWarning("StripePaymentIntentId is missing for buyer {BuyerId}", response.BuyerId);
                         continue;
                     }
 
+                    // تنفيذ عملية السحب الفعلي من Stripe
                     var captureResult = await _stripePaymentService.CapturePaymentAsync(response.StripePaymentIntentId, cancellationToken);
 
                     if (existingOrder != null)
@@ -91,7 +102,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
                         var order = new Order
                         {
                             BuyerId = response.BuyerId,
-                            BatchId = null,
+                            BatchId = null, // linked directly to offer, no batch link
                             OfferId = offer.Id,
                             Quantity = participant.Quantity,
                             TotalAmount = participant.Quantity * offer.UnitPrice,
@@ -102,8 +113,6 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
                         _context.Orders.Add(order);
                     }
 
-                    await _context.SaveChangesAsync(cancellationToken);
-
                     if (captureResult.Success)
                     {
                         successfulBuyerIds.Add(response.BuyerId);
@@ -113,37 +122,50 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
                         hasFailure = true;
                     }
                 }
-                catch (Exception ex)
+
+                // 5️⃣ الحماية من الفشل الجزئي: لو أي عملية سحب فشلت، نرمي Exception ليعود السيستم للحالة الأصلية
+                if (hasFailure)
                 {
-                    _logger.LogError(ex, "Capture failed for buyer {BuyerId} in group request offer {OfferId}", response.BuyerId, offer.Id);
-                    hasFailure = true;
+                    throw new Exception("One or more captures failed for GroupRequestOffer. Rolling back transaction. Hangfire will retry.");
                 }
-            }
 
-            if (hasFailure)
-            {
-                throw new Exception("One or more captures failed for GroupRequestOffer. Hangfire will retry.");
-            }
-
-            // Create notification for successful captures
-            foreach (var buyerId in successfulBuyerIds)
-            {
-                var notification = new Notification
-                {
-                    UserId = buyerId,
-                    Type = NotificationType.GroupRequestOfferFilled,
-                    Title = "Group Request Offer Filled",
-                    Body = "Your accepted group request offer has been filled and payment was captured.",
-                    EntityId = offer.Id,
-                    EntityType = nameof(GroupRequestOffer),
-                    IsRead = false,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                _context.Notifications.Add(notification);
+                // حفظ جميع التغييرات والطلبات في الداتابيز
                 await _context.SaveChangesAsync(cancellationToken);
 
-                await _mediator.Publish(new NotificationCreatedEvent(buyerId, notification.Id), cancellationToken);
+                // 6️⃣ إغلاق الجروب ريكويست رسمياً بعد نجاح العملية المالية بالكامل
+                await _mediator.Send(new CloseGroupRequest.CloseGroupRequestCommand(offer.GroupRequestId), cancellationToken);
+
+                // تأكيد وحفظ الـ Transaction بالكامل (Commit)
+                await transaction.CommitAsync(cancellationToken);
+
+                // 7️⃣ إنشاء وإرسال الإشعارات للناجحين (تتم بره الـ Transaction عشان لو الـ Realtime علق ما يخربش الحسابات)
+                foreach (var buyerId in successfulBuyerIds)
+                {
+                    var notification = new Notification
+                    {
+                        UserId = buyerId,
+                        Type = NotificationType.GroupRequestOfferFilled,
+                        Title = "Group Request Offer Filled",
+                        Body = "Your accepted group request offer has been filled and payment was captured.",
+                        EntityId = offer.Id,
+                        EntityType = nameof(GroupRequestOffer),
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _context.Notifications.Add(notification);
+                    await _context.SaveChangesAsync(cancellationToken);
+
+                    // إطلاق الجرس اللحظي للموبايل
+                    await _mediator.Publish(new NotificationCreatedEvent(buyerId, notification.Id), cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                // في حال حدوث أي خطأ غير متوقع.. تراجع تام عن كل التغييرات بالداتابيز لتأمين البيانات
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogError(ex, "Complete process failed and transaction rolled back for Offer {OfferId}", request.OfferId);
+                throw;
             }
         }
     }

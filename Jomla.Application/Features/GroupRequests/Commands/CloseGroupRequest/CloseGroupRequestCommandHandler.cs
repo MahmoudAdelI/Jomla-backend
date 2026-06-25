@@ -13,7 +13,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CloseGroupRequest
         {
             var groupRequest = await _db.GroupRequests
                 .FirstOrDefaultAsync(gr => gr.Id == request.GroupRequestId, cancellationToken);
-            if (groupRequest is null || groupRequest.Status != GroupRequestStatus.Inactive)
+            if (groupRequest is null || groupRequest.Status != GroupRequestStatus.Closed)
                 return;
 
             groupRequest.Status = GroupRequestStatus.Closed;
