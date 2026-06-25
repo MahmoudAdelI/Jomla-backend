@@ -1,0 +1,66 @@
+﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Features.GroupRequests.Dtos;
+using Jomla.Domain;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Jomla.Application.Features.GroupRequests.Queries.GetGroupRequests
+{
+    public sealed class GetGroupRequestsQueryHandler : IRequestHandler<GetGroupRequestsQuery, PagedResult<GroupRequestListItemDto>>
+    {
+        private readonly IAppDbContext _context;
+
+        public GetGroupRequestsQueryHandler(IAppDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<PagedResult<GroupRequestListItemDto>> Handle(GetGroupRequestsQuery request, CancellationToken cancellationToken)
+        {
+            var query = _context.GroupRequests
+                .Include(r => r.Category)
+                .Include(r => r.Participants)
+                .Where(r => r.Status == GroupRequestStatus.Active
+                         && r.ModerationStatus == ModerationStatus.Approved)
+                .AsQueryable();
+
+            // Filtering
+            if (request.CategoryId.HasValue)
+                query = query.Where(r => r.CategoryId == request.CategoryId.Value);
+
+            if (!string.IsNullOrWhiteSpace(request.TitleSearch))
+                query = query.Where(r => r.Title.Contains(request.TitleSearch));
+
+            if (!string.IsNullOrWhiteSpace(request.Status) &&
+                Enum.TryParse<GroupRequestStatus>(request.Status, out var status))
+                query = query.Where(r => r.Status == status);
+
+            // Total count
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            // Sorting + Pagination
+            var items = await query
+                .OrderByDescending(r => r.CurrentQuantity)
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .Select(r => new GroupRequestListItemDto(
+                    r.Id,
+                    r.Title,
+                    r.Description,
+                    r.CurrentQuantity,
+                    r.Status.ToString(),
+                    r.Category.Name,
+                    r.CreatedAt,
+                    r.Participants.Count(p => p.Status == GroupRequestParticipantStatus.Active)
+                ))
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<GroupRequestListItemDto>(items, totalCount, request.Page, request.PageSize);
+        }
+    }
+}

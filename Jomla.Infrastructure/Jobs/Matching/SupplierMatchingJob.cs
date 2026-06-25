@@ -7,7 +7,7 @@ namespace Jomla.Infrastructure.Jobs.Matching
     public class SupplierMatchingJob(ISender sender) : ISupplierMatchingJob
     {
         private readonly ISender _sender = sender;
-        public async Task ExcuteAsync(Guid groupRequestId, Guid categoryId, int currentQuantity)
+        public async Task ExecuteAsync(Guid groupRequestId, Guid categoryId, int currentQuantity)
         {
             var command = new MatchSuppliersForGroupRequestCommand(groupRequestId, categoryId, currentQuantity);
             await _sender.Send(command);
