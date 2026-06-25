@@ -17,6 +17,7 @@ using Jomla.Infrastructure.Jobs.Fulfillment;
 using Jomla.Infrastructure.Jobs.JobDispatcher;
 using Jomla.Infrastructure.Jobs.Matching;
 using Jomla.Infrastructure.Persistance;
+using Jomla.Infrastructure.Persistance.Qdrant;
 using Jomla.Infrastructure.Persistance.Seeders;
 using Jomla.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -26,6 +27,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.SemanticKernel;
+using OpenAI;
+using Qdrant.Client;
+using System.ClientModel;
 using System.Text;
 
 namespace Jomla.Infrastructure
@@ -125,8 +129,19 @@ namespace Jomla.Infrastructure
                 endpoint: new Uri(config["AI:Endpoint"]!),
                 apiKey: token);
 
+            #pragma warning disable CS0618
+            services.AddOpenAITextEmbeddingGeneration(
+                modelId: config["AI:EmbeddingModelId"]!,
+                openAIClient: new OpenAIClient(
+                    new ApiKeyCredential(token),
+                    new OpenAIClientOptions { Endpoint = new Uri(config["AI:Endpoint"]!) }
+                ));
+            #pragma warning restore CS0618
+
             services.AddScoped<IModerationService, ModerationService>();
             services.AddScoped<ICategoryAgent, CategoryAgent>();
+            services.AddScoped<INegotiationRoundIndexer, NegotiationRoundIndexer>();
+            services.AddScoped<INegotiationAgent, NegotiationAgent>();
             #endregion
 
 
@@ -138,6 +153,14 @@ namespace Jomla.Infrastructure
             services.AddScoped<IImageService,
                 CloudinaryImageService>();
 
+            #endregion
+
+            #region Qdrant
+            // Qdrant
+            var qdrantOptions = config.GetSection("Qdrant").Get<QdrantSettings>()!;
+            services.AddSingleton(new QdrantClient(qdrantOptions.Host, qdrantOptions.Port));
+
+            services.AddScoped<NegotiationRoundsCollectionInitializer>();
             #endregion
 
             services.AddScoped<DataSeeder>();
