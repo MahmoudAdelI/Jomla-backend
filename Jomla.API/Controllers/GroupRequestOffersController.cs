@@ -1,0 +1,67 @@
+﻿using Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOffer;
+using Jomla.Application.Features.GroupRequests.Commands.CancelGroupRequestOffer;
+using Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequestOffer;
+using Jomla.Application.Features.GroupRequests.Commands.ExpireGroupRequestOffer;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
+
+namespace Jomla.API.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class GroupRequestOffersController(IMediator mediator) : ControllerBase
+{
+    private readonly IMediator _mediator = mediator;
+
+    [HttpPost("{id:guid}/accept")]
+    [Produces("application/json")]
+    [EndpointSummary("Buyer accepts a merchant's offer and creates a payment hold via Stripe.")]
+    [ProducesResponseType(typeof(AcceptGroupRequestOfferResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> AcceptOffer(Guid id)
+    {
+        var buyerId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var buyerEmail = User.FindFirstValue(ClaimTypes.Email)!;
+
+        var result = await _mediator.Send(
+            new AcceptGroupRequestOfferCommand(id, buyerId, buyerEmail));
+
+        return Ok(result);
+    }
+
+    [HttpPost("{id:guid}/complete")]
+    [Produces("application/json")]
+    [EndpointSummary("Manually trigger the completion of an offer and capture payments.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> CompleteOffer(Guid id)
+    {
+        await _mediator.Send(new CompleteGroupRequestOfferCommand(id));
+        return Ok(new { Success = true });
+    }
+
+    [HttpPost("{id:guid}/cancel")]
+    [Produces("application/json")]
+    [EndpointSummary("Manually cancel an offer and release all Stripe payment holds.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> CancelOffer(Guid id)
+    {
+        await _mediator.Send(new CancelGroupRequestOfferCommand(id));
+        return Ok(new { Success = true });
+    }
+
+    [HttpPost("{id:guid}/expire")]
+    [Produces("application/json")]
+    [EndpointSummary("Manually trigger the expiration process for a timed-out offer.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ExpireOffer(Guid id)
+    {
+        await _mediator.Send(new ExpireGroupRequestOfferCommand(id));
+        return Ok(new { Success = true });
+    }
+}
