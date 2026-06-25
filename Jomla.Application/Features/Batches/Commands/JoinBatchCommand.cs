@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,6 +23,7 @@ namespace Jomla.Application.Features.Batches.Commands
             public int? ParticipantQuantity { get; set; }
             public decimal? TotalAmount { get; set; }
             public string PaymentIntentId { get; set; }
+            public string ClientSecret { get; set; }
             public int? BatchCurrentQuantity { get; set; }
             public int? BatchTargetQuantity { get; set; }
             //public bool BatchComplete { get; set; }

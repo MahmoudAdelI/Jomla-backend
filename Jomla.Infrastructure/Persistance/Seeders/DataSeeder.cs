@@ -1,4 +1,4 @@
-﻿using Bogus;
+using Bogus;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -96,7 +96,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             var offers = SeedSupplierOffers(suppliers, categories);
             await _db.SaveChangesAsync();
 
-            SeedSupplierBatchesAndParticipants(offers, buyers);
+            var (batches, batchParticipants) = SeedSupplierBatchesAndParticipants(offers, buyers);
             await _db.SaveChangesAsync();
 
             var (groupRequests, groupRequestParticipants) = SeedGroupRequestsAndParticipants(buyers, categories);
@@ -108,7 +108,10 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             var groupRequestOffers = SeedGroupRequestOffers(groupRequests, preferences, categories);
             await _db.SaveChangesAsync();
 
-            SeedBuyerOfferResponses(groupRequestOffers, groupRequestParticipants);
+            var responses = SeedBuyerOfferResponses(groupRequestOffers, groupRequestParticipants);
+            await _db.SaveChangesAsync();
+
+            SeedOrders(batches, batchParticipants, groupRequestOffers, responses, groupRequestParticipants);
             await _db.SaveChangesAsync();
         }
 
@@ -332,7 +335,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             return offers;
         }
 
-        private void SeedSupplierBatchesAndParticipants(List<SupplierOffer> offers, List<AppUser> buyers)
+        private (List<SupplierBatch> batches, List<BatchParticipant> participants) SeedSupplierBatchesAndParticipants(List<SupplierOffer> offers, List<AppUser> buyers)
         {
             var random = new Random(46);
             var batches = new List<SupplierBatch>();
@@ -388,6 +391,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                     {
                         Id = Guid.NewGuid(),
                         OfferId = offer.Id,
+                        Offer = offer,
                         BatchNumber = b + 1,
                         TargetQuantity = targetQuantity,
                         Status = status,
@@ -398,33 +402,42 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                     // Generate participants whose quantities sum toward currentQuantity
                     var qtyToAllocate = currentQuantity;
                     var batchParticipants = new List<BatchParticipant>();
-                    var participantPool = buyers.OrderBy(_ => random.Next()).Take(random.Next(1, 6)).ToList();
-
-                    foreach (var buyer in participantPool)
+                    
+                    if (qtyToAllocate > 0)
                     {
-                        if (qtyToAllocate <= 0) break;
-                        var qty = Math.Min(qtyToAllocate, random.Next(1, 11));
-                        qtyToAllocate -= qty;
+                        var shuffledBuyers = buyers.OrderBy(_ => random.Next()).ToList();
+                        int buyerIndex = 0;
 
-                        // Status reflects whether the payment hold is still in place,
-                        // independent of batch outcome (Active = hold in place/captured, Left = hold cancelled)
-                        BatchParticipantStatus participantStatus = status switch
+                        while (qtyToAllocate > 0 && buyerIndex < shuffledBuyers.Count)
                         {
-                            BatchStatus.Completed => random.Next(0, 10) == 0 ? BatchParticipantStatus.Left : BatchParticipantStatus.Active,
-                            BatchStatus.Failed => BatchParticipantStatus.Left,
-                            BatchStatus.Open => random.Next(0, 10) == 0 ? BatchParticipantStatus.Left : BatchParticipantStatus.Active,
-                            _ => BatchParticipantStatus.Active
-                        };
+                            var buyer = shuffledBuyers[buyerIndex++];
+                            var qty = Math.Min(qtyToAllocate, random.Next(1, 11));
+                            
+                            // If we are at the last available buyer, take all remaining to satisfy the target
+                            if (buyerIndex == shuffledBuyers.Count)
+                            {
+                                qty = qtyToAllocate;
+                            }
+                            qtyToAllocate -= qty;
 
-                        batchParticipants.Add(new BatchParticipant
-                        {
-                            BatchId = batch.Id,
-                            BuyerId = buyer.Id,
-                            Quantity = qty,
-                            Status = participantStatus,
-                            StripePaymentIntentId = $"pi_{Guid.NewGuid():N}"[..27],
-                            JoinedAt = batchCreatedAt.AddHours(random.Next(1, 96))
-                        });
+                            BatchParticipantStatus participantStatus = status switch
+                            {
+                                BatchStatus.Completed => BatchParticipantStatus.Active,
+                                BatchStatus.Failed => BatchParticipantStatus.Left,
+                                BatchStatus.Open => random.Next(0, 10) == 0 ? BatchParticipantStatus.Left : BatchParticipantStatus.Active,
+                                _ => BatchParticipantStatus.Active
+                            };
+
+                            batchParticipants.Add(new BatchParticipant
+                            {
+                                BatchId = batch.Id,
+                                BuyerId = buyer.Id,
+                                Quantity = qty,
+                                Status = participantStatus,
+                                StripePaymentIntentId = $"pi_{Guid.NewGuid():N}"[..27],
+                                JoinedAt = batchCreatedAt.AddHours(random.Next(1, 96))
+                            });
+                        }
                     }
 
                     // CurrentQuantity reflects only participants whose hold is still active
@@ -435,12 +448,24 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                     batches.Add(batch);
                     participants.AddRange(batchParticipants);
 
+                    // Decrement available quantity and mark inactive if stock is depleted
+                    if (status == BatchStatus.Completed)
+                    {
+                        offer.TotalQuantityAvailable = Math.Max(0, offer.TotalQuantityAvailable - batch.CurrentQuantity);
+                        if (offer.TotalQuantityAvailable <= 0)
+                        {
+                            offer.Status = SupplierOfferStatus.Inactive;
+                        }
+                    }
+
                     remaining -= targetQuantity;
                 }
             }
 
             _db.SupplierBatches.AddRange(batches);
             _db.BatchParticipants.AddRange(participants);
+
+            return (batches, participants);
         }
 
         private (List<GroupRequest> groupRequests, List<GroupRequestParticipant> participants) SeedGroupRequestsAndParticipants(
@@ -646,7 +671,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             return offers;
         }
 
-        private void SeedBuyerOfferResponses(List<GroupRequestOffer> offers, List<GroupRequestParticipant> allParticipants)
+        private List<BuyerOfferResponse> SeedBuyerOfferResponses(List<GroupRequestOffer> offers, List<GroupRequestParticipant> allParticipants)
         {
             var random = new Random(50);
             var responses = new List<BuyerOfferResponse>();
@@ -685,6 +710,84 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             }
 
             _db.BuyerOfferResponses.AddRange(responses);
+            return responses;
+        }
+
+        private void SeedOrders(
+            List<SupplierBatch> batches,
+            List<BatchParticipant> batchParticipants,
+            List<GroupRequestOffer> groupRequestOffers,
+            List<BuyerOfferResponse> responses,
+            List<GroupRequestParticipant> groupRequestParticipants)
+        {
+            var orders = new List<Order>();
+
+            // 1. Orders for completed batches
+            var completedBatches = batches.Where(b => b.Status == BatchStatus.Completed).ToList();
+            foreach (var batch in completedBatches)
+            {
+                var activeParticipants = batchParticipants
+                    .Where(p => p.BatchId == batch.Id && p.Status == BatchParticipantStatus.Active)
+                    .ToList();
+
+                foreach (var participant in activeParticipants)
+                {
+                    var offer = batch.Offer;
+                    if (offer == null) continue;
+
+                    var unitPrice = offer.UnitPrice;
+                    var discount = offer.DiscountPercentage;
+                    var totalAmount = participant.Quantity * unitPrice * (1 - discount / 100m);
+
+                    orders.Add(new Order
+                    {
+                        Id = Guid.NewGuid(),
+                        BuyerId = participant.BuyerId,
+                        BatchId = batch.Id,
+                        OfferId = null,
+                        Quantity = participant.Quantity,
+                        TotalAmount = Math.Round(totalAmount, 2),
+                        Status = OrderStatus.Paid,
+                        PaidAt = batch.CompletedAt ?? batch.CreatedAt.AddDays(2),
+                        CreatedAt = batch.CompletedAt ?? batch.CreatedAt.AddDays(2)
+                    });
+                }
+            }
+
+            // 2. Orders for accepted group request offers
+            var acceptedOffers = groupRequestOffers.Where(o => o.Status == GroupRequestOfferStatus.Accepted).ToList();
+            foreach (var offer in acceptedOffers)
+            {
+                var acceptedResponses = responses
+                    .Where(r => r.OfferId == offer.Id && r.Response == BuyerOfferResponseType.Accepted)
+                    .ToList();
+
+                foreach (var response in acceptedResponses)
+                {
+                    var participant = groupRequestParticipants
+                        .FirstOrDefault(p => p.GroupRequestId == offer.GroupRequestId && p.BuyerId == response.BuyerId && p.Status == GroupRequestParticipantStatus.Active);
+
+                    if (participant != null)
+                    {
+                        var totalAmount = participant.Quantity * offer.UnitPrice;
+
+                        orders.Add(new Order
+                        {
+                            Id = Guid.NewGuid(),
+                            BuyerId = response.BuyerId,
+                            BatchId = null,
+                            OfferId = offer.Id,
+                            Quantity = participant.Quantity,
+                            TotalAmount = Math.Round(totalAmount, 2),
+                            Status = OrderStatus.Paid,
+                            PaidAt = response.RespondedAt,
+                            CreatedAt = response.RespondedAt
+                        });
+                    }
+                }
+            }
+
+            _db.Orders.AddRange(orders);
         }
 
         private static string? GenerateVariantAttributes(string categoryName, Random random, double chance = 0.7)
