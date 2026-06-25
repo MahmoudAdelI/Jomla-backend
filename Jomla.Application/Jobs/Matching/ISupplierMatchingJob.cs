@@ -2,6 +2,6 @@
 {
     public interface ISupplierMatchingJob
     {
-        Task ExcuteAsync(Guid groupRequestId, Guid categoryId, int currentQuantity);
+        Task ExecuteAsync(Guid groupRequestId, Guid categoryId, int currentQuantity);
     }
 }
