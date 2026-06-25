@@ -2,7 +2,7 @@
 {
     public class QdrantSettings
     {
-        public string Host { get; init; } = "localhost";
-        public int Port { get; init; } = 6334;
+        public string Url { get; init; } = string.Empty;
+        public string ApiKey { get; init; } = string.Empty;
     }
 }
