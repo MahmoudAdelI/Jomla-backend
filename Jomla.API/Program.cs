@@ -1,5 +1,3 @@
-
-using Google.Protobuf.WellKnownTypes;
 using Hangfire;
 using Jomla.API.Filters;
 using Jomla.API.Hubs;
@@ -9,12 +7,10 @@ using Jomla.Application;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Infrastructure;
 using Jomla.Infrastructure.Payments;
+using Jomla.Infrastructure.Persistance.Qdrant;
 using Jomla.Infrastructure.Persistance.Seeders;
-using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
-using Jomla.Infrastructure.Payments;
-using Microsoft.OpenApi.Models;
 
 
 namespace Jomla.API
@@ -80,10 +76,11 @@ namespace Jomla.API
                         }
                     });
             });
+
             //stripe services
             builder.Services.AddScoped<IStripePaymentService>(provider =>
              new StripePaymentService(
-                 builder.Configuration["Stripe:SecretKey"]
+                 builder.Configuration["Stripe:SecretKey"]!
              )
              );
         
@@ -110,6 +107,15 @@ namespace Jomla.API
                 Authorization = [new HangfireDashboardAuthFilter()]
             });
             app.MapHangfireDashboard();
+
+
+            // Initialize Qdrant collections
+            using (var scope = app.Services.CreateScope())
+            {
+                var initializer = scope.ServiceProvider
+                    .GetRequiredService<NegotiationRoundsCollectionInitializer>();
+                await initializer.InitializeAsync();
+            }
 
             app.UseHttpsRedirection();
 
