@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,20 +16,21 @@ namespace Jomla.Application.Features.Batches.Commands
             public int Quantity { get; set; }
         }
 
-    public class JoinBatchResponse
-    {
-        public bool Success { get; set; }
-        public Guid? BatchId { get; set; }
-        public int? ParticipantQuantity { get; set; }
-        public decimal? TotalAmount { get; set; }
-        public string PaymentIntentId { get; set; }
-        public string ClientSecret { get; set; } // ← ضيفي دي
-        public int? BatchCurrentQuantity { get; set; }
-        public int? BatchTargetQuantity { get; set; }
-        public string Error { get; set; }
-        public string ErrorCode { get; set; }
-        public int? SlotsAvailable { get; set; }
-        public int? StatusCode { get; set; }
-    }
-
+        public class JoinBatchResponse
+        {
+            public bool Success { get; set; }
+            public Guid? BatchId { get; set; }
+            public int? ParticipantQuantity { get; set; }
+            public decimal? TotalAmount { get; set; }
+            public string PaymentIntentId { get; set; }
+            public string ClientSecret { get; set; }
+            public int? BatchCurrentQuantity { get; set; }
+            public int? BatchTargetQuantity { get; set; }
+            //public bool BatchComplete { get; set; }
+            public string Error { get; set; }
+            public string ErrorCode { get; set; }
+            public int? SlotsAvailable { get; set; }
+            public int? StatusCode { get; set; }
+        }
+    
 }
