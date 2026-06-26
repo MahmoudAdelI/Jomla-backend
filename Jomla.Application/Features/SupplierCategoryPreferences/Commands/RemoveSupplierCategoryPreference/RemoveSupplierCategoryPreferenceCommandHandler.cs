@@ -1,15 +1,17 @@
+using Jomla.Application.Common.Exceptions;
 using Jomla.Application.Common.Interfaces;
+using Jomla.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Jomla.Application.Features.SupplierCategoryPreferences.Commands.RemoveSupplierCategoryPreference;
 
 public sealed class RemoveSupplierCategoryPreferenceCommandHandler(IAppDbContext db)
-    : IRequestHandler<RemoveSupplierCategoryPreferenceCommand, RemoveSupplierCategoryPreferenceResult>
+    : IRequestHandler<RemoveSupplierCategoryPreferenceCommand, bool>
 {
     private readonly IAppDbContext _db = db;
 
-    public async Task<RemoveSupplierCategoryPreferenceResult> Handle(
+    public async Task<bool> Handle(
         RemoveSupplierCategoryPreferenceCommand request,
         CancellationToken cancellationToken)
     {
@@ -18,12 +20,12 @@ public sealed class RemoveSupplierCategoryPreferenceCommandHandler(IAppDbContext
 
         if (preference == null)
         {
-            return new RemoveSupplierCategoryPreferenceResult(false, "Category preference not found.");
+            throw new NotFoundException(nameof(SupplierCategoryPreference), $"{request.SupplierId}-{request.CategoryId}");
         }
 
         _db.SupplierCategoryPreferences.Remove(preference);
         await _db.SaveChangesAsync(cancellationToken);
 
-        return new RemoveSupplierCategoryPreferenceResult(true);
+        return true;
     }
 }

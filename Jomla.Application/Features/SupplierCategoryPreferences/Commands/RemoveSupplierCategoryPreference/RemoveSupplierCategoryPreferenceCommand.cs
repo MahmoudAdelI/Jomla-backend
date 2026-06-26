@@ -5,6 +5,4 @@ namespace Jomla.Application.Features.SupplierCategoryPreferences.Commands.Remove
 public sealed record RemoveSupplierCategoryPreferenceCommand(
     Guid SupplierId,
     Guid CategoryId
-) : IRequest<RemoveSupplierCategoryPreferenceResult>;
-
-public sealed record RemoveSupplierCategoryPreferenceResult(bool Success, string? Error = null);
+) : IRequest<bool>;

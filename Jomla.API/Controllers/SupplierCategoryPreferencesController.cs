@@ -41,9 +41,10 @@ public class SupplierCategoryPreferencesController(IMediator mediator, IIdentity
     [HttpPut]
     [Produces("application/json")]
     [EndpointSummary("Save or update a category preference")]
-    [ProducesResponseType(typeof(SaveSupplierCategoryPreferenceResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SavePreference([FromBody] SavePreferenceRequest request)
     {
         var supplierId = _identityService.GetCurrentUserId();
@@ -51,9 +52,6 @@ public class SupplierCategoryPreferencesController(IMediator mediator, IIdentity
 
         var command = new SaveSupplierCategoryPreferenceCommand(supplierId, request.CategoryId, request.MinQuantity);
         var result = await _mediator.Send(command);
-
-        if (!result.Success)
-            return BadRequest(new { result.Error });
 
         return Ok(result);
     }
@@ -64,9 +62,10 @@ public class SupplierCategoryPreferencesController(IMediator mediator, IIdentity
     [HttpDelete("{categoryId:guid}")]
     [Produces("application/json")]
     [EndpointSummary("Remove a category preference")]
-    [ProducesResponseType(typeof(RemoveSupplierCategoryPreferenceResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemovePreference(Guid categoryId)
     {
         var supplierId = _identityService.GetCurrentUserId();
@@ -74,9 +73,6 @@ public class SupplierCategoryPreferencesController(IMediator mediator, IIdentity
 
         var command = new RemoveSupplierCategoryPreferenceCommand(supplierId, categoryId);
         var result = await _mediator.Send(command);
-
-        if (!result.Success)
-            return BadRequest(new { result.Error });
 
         return Ok(result);
     }
