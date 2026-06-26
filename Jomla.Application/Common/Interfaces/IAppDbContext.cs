@@ -21,5 +21,6 @@ namespace Jomla.Application.Common.Interfaces
         DbSet<Order> Orders { get; }
         DatabaseFacade Database { get; }
         Task<int> SaveChangesAsync(CancellationToken ct = default);
+        Task<GroupRequest?> GetGroupRequestWithLockAsync(Guid id, CancellationToken ct);
     }
 }
