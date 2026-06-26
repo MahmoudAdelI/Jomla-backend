@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.DTOs;
+using Jomla.Application.Common.DTOs;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.GroupRequests.Commands.CreateGroupRequest;
 using Jomla.Application.Jobs.Agents;
@@ -55,7 +55,7 @@ public class CreateGroupRequestCommandHandler : IRequestHandler<CreateGroupReque
                 ? JsonSerializer.Serialize(request.ImageUrls)
                 : null,
             CurrentQuantity = request.Quantity,
-            Status = GroupRequestStatus.Active,
+            Status = GroupRequestStatus.PendingReview,
             ModerationStatus = ModerationStatus.Pending,
             CreatedAt = DateTime.UtcNow
         };

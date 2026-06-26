@@ -142,7 +142,7 @@ namespace Jomla.Infrastructure
                 ));
             #pragma warning restore CS0618
 
-            services.AddScoped<IModerationService, ModerationService>();
+            services.AddScoped<IModerationAgent, ModerationAgent>();
             services.AddScoped<ICategoryAgent, CategoryAgent>();
             services.AddScoped<INegotiationRoundIndexer, NegotiationRoundIndexer>();
             services.AddScoped<INegotiationAgent, NegotiationAgent>();
