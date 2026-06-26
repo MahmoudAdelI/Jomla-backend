@@ -42,8 +42,8 @@ namespace Jomla.Api.Controllers
             if (request?.Quantity <= 0)
                 return BadRequest(new { success = false, error = "Quantity must be greater than 0." });
 
-            var buyerId = _identityService.GetCurrentUserId();  // ← استخدم الـ service
-            var buyerEmail = _identityService.GetCurrentUserEmail();  // ← استخدم الـ service
+            var buyerId = _identityService.GetCurrentUserId();  
+            var buyerEmail = _identityService.GetCurrentUserEmail();  
 
             if (buyerId == Guid.Empty)
                 return Unauthorized();
