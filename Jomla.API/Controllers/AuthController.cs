@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Features.Auth.Commands.Login;
+using Jomla.Application.Features.Auth.Commands.Login;
 using Jomla.Application.Features.Auth.Commands.Logout;
 using Jomla.Application.Features.Auth.Commands.RefreshToken;
 using Jomla.Application.Features.Auth.Commands.Register;
@@ -82,7 +82,15 @@ namespace Jomla.API.Controllers
 
         private void ClearRefreshTokenCookie()
         {
-            Response.Cookies.Delete(RefreshTokenCookieName);
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = DateTime.UtcNow.AddDays(-1),
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Path = "/"
+            };
+            Response.Cookies.Delete(RefreshTokenCookieName, cookieOptions);
         }
         private void SetRefreshTokenCookie(string refreshToken, DateTime expiresOn)
         {
@@ -92,6 +100,7 @@ namespace Jomla.API.Controllers
                 Expires = expiresOn.ToUniversalTime(),
                 Secure = true,
                 SameSite = SameSiteMode.None,
+                Path = "/"
             };
             Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
         }
