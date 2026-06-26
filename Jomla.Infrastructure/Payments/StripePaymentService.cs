@@ -1,4 +1,4 @@
-using Jomla.Application.Common.Interfaces;
+﻿using Jomla.Application.Common.Interfaces;
 using Stripe;
 
 namespace Jomla.Infrastructure.Payments
@@ -32,7 +32,7 @@ namespace Jomla.Infrastructure.Payments
             {
                 // Convert dollars to cents (Stripe works with smallest currency unit)
                 var amountInCents = (long)(amountInDollars * 100);
-
+                //PaymentIntentCreateOptions ورقة الطلب اللي بتكتب فيها اللي محتجاه
                 var options = new PaymentIntentCreateOptions
                 {
                     Amount = amountInCents,
@@ -49,10 +49,10 @@ namespace Jomla.Infrastructure.Payments
                     // Automatic confirmation not required yet
                     // Buyer confirms on frontend with clientSecret
                 };
-
+                //PaymentIntentService هي اللي بتاخد مني ورقة الطلب تديها ل استرايب علشان تنفذها 
                 var service = new PaymentIntentService();
                 var intent = await service.CreateAsync(options, cancellationToken: cancellationToken);
-
+                // وهنا ترجعلي ب ال id والكي بعد ما تعمل الطلب
                 return new StripePaymentIntentResult
                 {
                     Success = true,

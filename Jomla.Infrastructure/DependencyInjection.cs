@@ -158,7 +158,10 @@ namespace Jomla.Infrastructure
             #region Qdrant
             // Qdrant
             var qdrantOptions = config.GetSection("Qdrant").Get<QdrantSettings>()!;
-            services.AddSingleton(new QdrantClient(qdrantOptions.Host, qdrantOptions.Port));
+            services.AddSingleton(new QdrantClient(
+                host: qdrantOptions.Url,
+                https:true,
+                apiKey: qdrantOptions.ApiKey));
 
             services.AddScoped<NegotiationRoundsCollectionInitializer>();
             #endregion

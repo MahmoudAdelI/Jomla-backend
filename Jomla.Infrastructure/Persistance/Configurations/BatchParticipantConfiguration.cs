@@ -13,6 +13,10 @@ namespace Jomla.Infrastructure.Persistance.Configurations
 
             builder.HasKey(x => new { x.BatchId, x.BuyerId });
 
+            builder.Property(x => x.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
             builder.Property(x => x.StripePaymentIntentId)
                 .HasMaxLength(255);
 
