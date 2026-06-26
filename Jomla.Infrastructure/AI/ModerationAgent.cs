@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Jomla.Application.Common.Interfaces;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel;
@@ -6,7 +6,7 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace Jomla.Infrastructure.AI;
 
-public class ModerationService(IChatCompletionService chat) : IModerationService
+public class ModerationAgent(IChatCompletionService chat) : IModerationAgent
 {
     private readonly IChatCompletionService _chat = chat;
 
