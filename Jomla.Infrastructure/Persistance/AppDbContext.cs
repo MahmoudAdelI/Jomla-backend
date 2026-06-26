@@ -51,5 +51,12 @@ namespace Jomla.Infrastructure.Persistance
 
             builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         }
+
+        public async Task<GroupRequest?> GetGroupRequestWithLockAsync(Guid id, CancellationToken ct)
+        {
+            return await GroupRequests
+                .FromSql($"SELECT * FROM group_requests WITH (UPDLOCK) WHERE Id = {id}")
+                .FirstOrDefaultAsync(ct);
+        }
     }
 }
