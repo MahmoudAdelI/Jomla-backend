@@ -28,10 +28,8 @@ namespace Jomla.Application.Features.GroupRequests.Commands.JoinGroupRequest
 
         public async Task<JoinGroupRequestResponse> Handle(JoinGroupRequestCommand request, CancellationToken cancellationToken)
         {
-            
-            var groupRequest = await _context.GroupRequests
-                .FromSqlInterpolated($"SELECT * FROM group_requests WITH (UPDLOCK) WHERE Id = {request.GroupRequestId}")
-                .FirstOrDefaultAsync(cancellationToken);
+
+            var groupRequest = await _context.GetGroupRequestWithLockAsync(request.GroupRequestId, cancellationToken);
 
             if (groupRequest == null)
                 return new JoinGroupRequestResponse(false, "Group request not found.");
