@@ -1,4 +1,4 @@
-﻿namespace Jomla.Domain
+namespace Jomla.Domain
 {
     public enum UserRole { Buyer, Supplier }
     public enum SupplierOfferStatus { PendingReview, Active, Inactive, Expired }
@@ -22,6 +22,7 @@
         OfferFlagged,
         GroupRequestFlagged,
         BatchOpenedWithReducedQuantity,  
+        OfferCountered,
     }
     public enum ModerationStatus { Pending, Approved, Flagged }
 }
