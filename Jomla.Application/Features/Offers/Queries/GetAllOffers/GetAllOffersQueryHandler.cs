@@ -57,7 +57,8 @@ public sealed class GetAllOffersQueryHandler: IRequestHandler<GetAllOffersQuery,
                 activeBatch?.Id,
                 committedUnits,
                 targetQuantity,
-                buyerCount
+                buyerCount,
+                x.MinFallbackQuantity
             );
         }).ToList();
     }

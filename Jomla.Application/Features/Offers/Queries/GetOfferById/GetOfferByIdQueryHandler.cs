@@ -59,7 +59,8 @@ public sealed class GetOfferByIdQueryHandler: IRequestHandler<GetOfferByIdQuery,
             activeBatch?.Id,
             committedUnits,
             targetQuantity,
-            buyerCount
+            buyerCount,
+            offer.MinFallbackQuantity
         );
     }
 }

@@ -20,6 +20,7 @@ namespace Jomla.Application.Features.Offers.DTOs
         Guid? ActiveBatchId,
         int CommittedUnits,
         int HubTargetQuantity,
-        int BuyerCount
+        int BuyerCount,
+        int? MinFallbackQuantity
     );
 }
