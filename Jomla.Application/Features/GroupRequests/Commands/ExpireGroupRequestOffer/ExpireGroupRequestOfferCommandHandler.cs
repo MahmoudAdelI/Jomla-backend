@@ -1,7 +1,9 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.GroupRequests.Commands.CancelGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupRequestOffer;
+using Jomla.Application.Jobs.JobDispatcher;
+using Jomla.Application.Jobs.Sync;
 using Jomla.Domain;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -11,13 +13,13 @@ namespace Jomla.Application.Features.GroupRequests.Commands.ExpireGroupRequestOf
     public class ExpireGroupRequestOfferCommandHandler(
         IAppDbContext db, 
         ISender sender,
-        INegotiationRoundIndexer roundIndexer
+        IBackgroundJobDispatcher jobDispatcher
         )
         : IRequestHandler<ExpireGroupRequestOfferCommand>
     {
         private readonly IAppDbContext _db = db;
         private readonly ISender _sender = sender;
-        private readonly INegotiationRoundIndexer _roundIndexer = roundIndexer;
+        private readonly IBackgroundJobDispatcher _jobDispatcher = jobDispatcher;
 
         public async Task Handle(ExpireGroupRequestOfferCommand request, CancellationToken cancellationToken)
         {
@@ -50,7 +52,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.ExpireGroupRequestOf
             if (shouldCapture)
             {
                 await _sender.Send(new CompleteGroupRequestOfferCommand(offer.Id), cancellationToken);
-                await _roundIndexer.IndexAsync(offer, categoryName, totalParticipants);
+                _jobDispatcher.Enqueue<INegotiationRoundIndexJob>(j => j.ExcuteAsync(offer.Id));
                 return;
             }
          
@@ -62,13 +64,13 @@ namespace Jomla.Application.Features.GroupRequests.Commands.ExpireGroupRequestOf
                 await _sender.Send(new CancelGroupRequestOfferCommand(offer.Id), cancellationToken);
                 offer.Status = GroupRequestOfferStatus.Expired;
                 await _db.SaveChangesAsync(cancellationToken);
-                await _roundIndexer.IndexAsync(offer, categoryName, totalParticipants);
+                _jobDispatcher.Enqueue<INegotiationRoundIndexJob>(j => j.ExcuteAsync(offer.Id));
                 return;
             }
 
             // path C — negotiation → counter current round, create child offer
             await _sender.Send(new NegotiateGroupRequestOfferCommand(offer.Id, categoryName), cancellationToken);
-            await _roundIndexer.IndexAsync(offer, categoryName, totalParticipants);
+            _jobDispatcher.Enqueue<INegotiationRoundIndexJob>(j => j.ExcuteAsync(offer.Id));
 
         }
     }
