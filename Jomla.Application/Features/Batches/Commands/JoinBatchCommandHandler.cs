@@ -5,6 +5,9 @@ using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Jomla.Application.Features.Batches.Commands
 {
@@ -54,7 +57,25 @@ namespace Jomla.Application.Features.Batches.Commands
                 };
             }
 
-            // 3️⃣ Validate space available
+            // 🔥 3️⃣ حماية السيستم: التشييك لمنع المشترك الحالي من الدخول هنا (لازم يروح للـ Edit)
+            // 🔥 3️⃣ البديل الذكي والأمن: بنجيب الـ Id والـ Quantities بس بدون ما نلمس الـ Status في الـ Query
+            var existingParticipantId = await _context.BatchParticipants
+                .Where(p => p.BatchId == request.BatchId && p.BuyerId == request.BuyerId)
+                .Select(p => p.BatchId) // هيرجع الـ Id بس كـ Guid أو int
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (existingParticipantId != default) // لو لقى له Id يبقى موجود فعلاً في الباتش ده
+            {
+                return new JoinBatchResponse
+                {
+                    Success = false,
+                    Error = "You are already a participant in this batch. Please use the Edit option to update your quantity.",
+                    ErrorCode = "ALREADY_PARTICIPANT",
+                    StatusCode = 400
+                };
+            }
+
+            // 4️⃣ Validate space available
             int spaceRemaining = batch.TargetQuantity - batch.CurrentQuantity;
 
             if (request.Quantity > spaceRemaining)
@@ -69,10 +90,10 @@ namespace Jomla.Application.Features.Batches.Commands
                 };
             }
 
-            // 4️⃣ Calculate total amount
+            // 5️⃣ Calculate total amount
             decimal totalAmount = request.Quantity * batch.Offer.UnitPrice * (1 - batch.Offer.DiscountPercentage / 100m);
 
-            // 5️⃣ Create Stripe Payment Hold
+            // 6️⃣ Create Stripe Payment Hold
             var paymentResult = await _stripePaymentService.CreatePaymentHoldAsync(
                 request.BuyerId.ToString(),
                 request.BuyerEmail,
@@ -91,35 +112,22 @@ namespace Jomla.Application.Features.Batches.Commands
                 };
             }
 
-            // 6️⃣ Create or update participant
-            var participant = await _context.BatchParticipants
-                .FirstOrDefaultAsync(p => p.BatchId == request.BatchId && p.BuyerId == request.BuyerId, cancellationToken);
-
-            if (participant != null)
+            // 7️⃣ Create new participant 
+            var participant = new BatchParticipant
             {
-                participant.Quantity = request.Quantity;
-                participant.StripePaymentIntentId = paymentResult.PaymentIntentId;
-                participant.Status = BatchParticipantStatus.Active;
-                participant.JoinedAt = DateTime.UtcNow;
-            }
-            else
-            {
-                participant = new BatchParticipant
-                {
-                    BatchId = request.BatchId,
-                    BuyerId = request.BuyerId,
-                    Quantity = request.Quantity,
-                    StripePaymentIntentId = paymentResult.PaymentIntentId,
-                    Status = BatchParticipantStatus.Active,
-                    JoinedAt = DateTime.UtcNow
-                };
-                _context.BatchParticipants.Add(participant);
-            }
+                BatchId = request.BatchId,
+                BuyerId = request.BuyerId,
+                Quantity = request.Quantity,
+                StripePaymentIntentId = paymentResult.PaymentIntentId,
+                Status =BatchParticipantStatus.Active,
+                JoinedAt = DateTime.UtcNow
+            };
+            _context.BatchParticipants.Add(participant);
 
-            // 7️⃣ Update batch quantity
+            // 8️⃣ Update batch quantity
             batch.CurrentQuantity += request.Quantity;
 
-            // 8️⃣ Save changes
+            // 9️⃣ Save changes
             try
             {
                 await _context.SaveChangesAsync(cancellationToken);
@@ -138,14 +146,14 @@ namespace Jomla.Application.Features.Batches.Commands
                 };
             }
 
-            // 9️⃣ Trigger completion ONLY if batch is full
+            // 🔟 Trigger completion ONLY if batch is full
             if (batch.CurrentQuantity >= batch.TargetQuantity)
             {
                 _jobDispatcher.Enqueue<IBatchCompletionJob>(
                     j => j.ExecuteAsync(batch.Id));
             }
 
-            // 🔟 Return response
+            // 1️⃣1️⃣ Return response
             return new JoinBatchResponse
             {
                 Success = true,
