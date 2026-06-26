@@ -7,6 +7,7 @@ using Jomla.Application.Jobs.Expiry;
 using Jomla.Application.Jobs.Fulfillment;
 using Jomla.Application.Jobs.JobDispatcher;
 using Jomla.Application.Jobs.Matching;
+using Jomla.Application.Jobs.Sync;
 using Jomla.Domain.Entities;
 using Jomla.Infrastructure.AI;
 using Jomla.Infrastructure.Auth;
@@ -16,6 +17,7 @@ using Jomla.Infrastructure.Jobs.Expiry;
 using Jomla.Infrastructure.Jobs.Fulfillment;
 using Jomla.Infrastructure.Jobs.JobDispatcher;
 using Jomla.Infrastructure.Jobs.Matching;
+using Jomla.Infrastructure.Jobs.Sync;
 using Jomla.Infrastructure.Persistance;
 using Jomla.Infrastructure.Persistance.Qdrant;
 using Jomla.Infrastructure.Persistance.Seeders;
@@ -69,6 +71,8 @@ namespace Jomla.Infrastructure
             services.AddScoped<ISupplierMatchingJob, SupplierMatchingJob>();
             services.AddScoped<IGroupRequestAutoCloseJob, GroupRequestAutoCloseJob>();
             services.AddScoped<IGroupRequestOfferExpiryJob, GroupRequestOfferExpiryJob>();
+            services.AddScoped<INegotiationRoundIndexJob, NegotiationRoundIndexJob>();
+            services.AddScoped<INegotiationRoundSyncJob, NegotiationRoundSyncJob>();
             #endregion
 
             #region Identity
