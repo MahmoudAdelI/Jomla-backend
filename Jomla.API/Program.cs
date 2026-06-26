@@ -5,6 +5,7 @@ using Jomla.API.Middleware;
 using Jomla.API.Services;
 using Jomla.Application;
 using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Jobs.Sync;
 using Jomla.Infrastructure;
 using Jomla.Infrastructure.Payments;
 using Jomla.Infrastructure.Persistance.Qdrant;
@@ -107,6 +108,17 @@ namespace Jomla.API
                 Authorization = [new HangfireDashboardAuthFilter()]
             });
             app.MapHangfireDashboard();
+
+            // Schedule recurring sync job daily at midnight
+            using (var scope = app.Services.CreateScope())
+            {
+                var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
+                recurringJobManager.AddOrUpdate<INegotiationRoundSyncJob>(
+                    "negotiation-round-sync",
+                    job => job.ExcuteAsync(),
+                    Cron.Daily(0) // Runs every day at 12:00 AM (midnight)
+                );
+            }
 
 
             // Initialize Qdrant collections
