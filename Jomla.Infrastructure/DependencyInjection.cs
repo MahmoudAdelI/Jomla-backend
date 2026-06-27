@@ -66,6 +66,7 @@ namespace Jomla.Infrastructure
             // Job registrations
             services.AddScoped<ISupplierOfferExpiryJob, SupplierOfferExpiryJob>();
             services.AddScoped<IModerateSupplierOfferJob, ModerateSupplierOfferJob>();
+            services.AddScoped<IModerateGroupRequestJob, ModerateGroupRequestJob>();
             services.AddScoped<IBatchCompletionJob, BatchCompletionJob>();
             services.AddScoped<IBackgroundJobDispatcher, HangfireJobDispatcher>();
             services.AddScoped<ISupplierMatchingJob, SupplierMatchingJob>();

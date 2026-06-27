@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +13,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CreateGroupRequest
      string Title,
      int Quantity,
      string? Description,
-     List<string>? ImageUrls
+    List<IFormFile>? Images
      ) : IRequest<CreateGroupRequestResponse>;
 
 

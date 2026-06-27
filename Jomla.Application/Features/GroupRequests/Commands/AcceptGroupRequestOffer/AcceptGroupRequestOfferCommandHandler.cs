@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Domain.Entities;
 using Jomla.Domain;
 using MediatR;
@@ -59,17 +59,25 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 .FirstOrDefault(p => p.BuyerId == request.BuyerId && p.Status == GroupRequestParticipantStatus.Active);
 
             if (participant == null)
-                return new AcceptGroupRequestOfferResponse { Success = false, Error = "You are not a participant" };
+                return new AcceptGroupRequestOfferResponse { Success = false, Error = "You are not an active participant in this group request" };
 
             // Step 5: Check if already accepted
             var existingResponse = offer.Responses
                 .FirstOrDefault(r => r.BuyerId == request.BuyerId);
 
             if (existingResponse != null && existingResponse.Response == BuyerOfferResponseType.Accepted)
-                return new AcceptGroupRequestOfferResponse { Success = false, Error = "Already accepted" };
+                return new AcceptGroupRequestOfferResponse { Success = false, Error = "You have already accepted this offer" };
+
+            //  FIX 1: Check available quantity BEFORE processing payment
+            var currentAcceptedQuantity = offer.AcceptedQuantity;
+
+            if (currentAcceptedQuantity + participant.Quantity > offer.QuantityAvailable)
+            {
+                return new AcceptGroupRequestOfferResponse { Success = false, Error = "Offer does not have enough remaining capacity for your requested quantity" };
+            }
 
             // Step 6: Calculate payment amount
-            decimal totalAmount = participant.Quantity * offer.UnitPrice;
+            decimal totalAmount = participant.Quantity * offer.CurrentUnitPrice;
 
             // Step 7: Create Stripe payment hold
             var paymentResult = await _stripePaymentService.CreatePaymentHoldAsync(
@@ -85,42 +93,52 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 return new AcceptGroupRequestOfferResponse { Success = false, Error = "Payment hold failed" };
             }
 
-            // Step 8: Create or update buyer response
-            if (existingResponse == null)
+            //  FIX 2: Wrap DB operations in try-catch to cancel payment hold if DB fails
+            try
             {
-                existingResponse = new BuyerOfferResponse
+                // Step 8: Create or update buyer response
+                if (existingResponse == null)
                 {
-                    OfferId = request.OfferId,
-                    BuyerId = request.BuyerId,
-                    Response = BuyerOfferResponseType.Accepted,
-                    StripePaymentIntentId = paymentResult.PaymentIntentId,
-                    RespondedAt = DateTime.UtcNow
-                };
-                _context.BuyerOfferResponses.Add(existingResponse);
+                    existingResponse = new BuyerOfferResponse
+                    {
+                        OfferId = request.OfferId,
+                        BuyerId = request.BuyerId,
+                        Response = BuyerOfferResponseType.Accepted,
+                        StripePaymentIntentId = paymentResult.PaymentIntentId,
+                        RespondedAt = DateTime.UtcNow
+                    };
+                    _context.BuyerOfferResponses.Add(existingResponse);
+                    offer.Responses.Add(existingResponse); // Fix in-memory collection tracking
+                }
+                else
+                {
+                    existingResponse.Response = BuyerOfferResponseType.Accepted;
+                    existingResponse.StripePaymentIntentId = paymentResult.PaymentIntentId;
+                    existingResponse.RespondedAt = DateTime.UtcNow;
+                }
+
+                // Update the persisted AcceptedQuantity counter
+                offer.AcceptedQuantity = currentAcceptedQuantity + participant.Quantity;
+
+                // Step 9: Save Changes
+                await _context.SaveChangesAsync(cancellationToken);
             }
-            else
+            catch (Exception ex)
             {
-                existingResponse.Response = BuyerOfferResponseType.Accepted;
-                existingResponse.StripePaymentIntentId = paymentResult.PaymentIntentId;
+                _logger.LogError(ex, "Failed to save buyer offer response for buyer {BuyerId}. Cancelling payment hold {PaymentIntentId}",
+                    request.BuyerId, paymentResult.PaymentIntentId);
+
+                // Revert/Cancel Stripe Payment Hold if DB save failed
+                await _stripePaymentService.CancelPaymentAsync(paymentResult.PaymentIntentId);
+
+                return new AcceptGroupRequestOfferResponse { Success = false, Error = "An error occurred while saving your response. Payment hold was released." };
             }
 
-            // Step 9: Save
-            await _context.SaveChangesAsync(cancellationToken);
-
-            // Step 10: Calculate total accepted quantity
-            var acceptedBuyerIds = offer.Responses
-                .Where(r => r.Response == BuyerOfferResponseType.Accepted)
-                .Select(r => r.BuyerId)
-                .ToHashSet();
-
-            var acceptedQuantity = offer.GroupRequest.Participants
-                .Where(p =>
-                    acceptedBuyerIds.Contains(p.BuyerId) &&
-                    p.Status == GroupRequestParticipantStatus.Active)
-                .Sum(p => p.Quantity);
+            // Step 10: Calculate updated total accepted quantity
+            var updatedAcceptedQuantity = offer.AcceptedQuantity;
 
             // Step 11: Check if offer is complete
-            bool isComplete = acceptedQuantity >= offer.QuantityAvailable;
+            bool isComplete = updatedAcceptedQuantity >= offer.QuantityAvailable;
 
             if (isComplete)
             {
@@ -136,15 +154,12 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 OfferId = request.OfferId,
                 GroupRequestId = offer.GroupRequestId,
                 PaymentIntentId = paymentResult.PaymentIntentId,
-                AcceptedQuantity = acceptedQuantity,
+                AcceptedQuantity = updatedAcceptedQuantity,
                 TotalAmount = totalAmount,
                 Message = isComplete
                     ? "Offer accepted! All slots filled, processing..."
-                    : $"Offer accepted! {acceptedQuantity}/{offer.QuantityAvailable} slots filled"
+                    : $"Offer accepted! {updatedAcceptedQuantity}/{offer.QuantityAvailable} slots filled"
             };
         }
     }
-
-   
 }
-

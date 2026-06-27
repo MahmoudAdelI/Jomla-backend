@@ -25,7 +25,7 @@ namespace Jomla.Infrastructure.Jobs.Sync
                     .ThenInclude(gr => gr.Category)
                 .ToListAsync();
 
-            foreach (var offer in offers)
+            var tasks = offers.Select(async offer =>
             {
                 var categoryName = offer.GroupRequest?.Category?.Name ?? "General";
                 var totalParticipants = offer.GroupRequest?.Participants
@@ -39,7 +39,9 @@ namespace Jomla.Infrastructure.Jobs.Sync
                 {
                     // Continue indexing others even if one fails
                 }
-            }
+            });
+
+            await Task.WhenAll(tasks);
         }
     }
 }

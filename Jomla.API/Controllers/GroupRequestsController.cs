@@ -28,12 +28,13 @@ namespace Jomla.API.Controllers
         }
 
         [HttpPost]
+        [Consumes("multipart/form-data")]
         [Produces("application/json")]
         [EndpointSummary("Create a new group request with AI category resolution and background moderation")]
         [ProducesResponseType(typeof(CreateGroupRequestResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> CreateGroupRequest([FromBody] CreateGroupRequestRequest request)
+        public async Task<IActionResult> CreateGroupRequest([FromForm] CreateGroupRequestRequest request)
         {
             var buyerId = _identityService.GetCurrentUserId();
             if (buyerId == Guid.Empty) return Unauthorized();
@@ -43,7 +44,7 @@ namespace Jomla.API.Controllers
                 request.Title,
                 request.Quantity,
                 request.Description,
-                request.ImageUrls);
+                request.Images);
 
             var result = await _mediator.Send(command);
 
@@ -149,7 +150,7 @@ namespace Jomla.API.Controllers
         public string Title { get; set; } = string.Empty;
         public int Quantity { get; set; }
         public string? Description { get; set; }
-        public List<string>? ImageUrls { get; set; }
+        public List<IFormFile>? Images { get; set; }
     }
 
     public class JoinGroupRequestRequest

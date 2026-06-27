@@ -15,22 +15,25 @@ public class CreateGroupRequestCommandHandler : IRequestHandler<CreateGroupReque
     private readonly IMediator _mediator;
     private readonly ICategoryAgent _categoryAgent;
     private readonly IBackgroundJobDispatcher _jobDispatcher;
+    private readonly IImageService _imageService;
 
     public CreateGroupRequestCommandHandler(
         IAppDbContext context,
         IMediator mediator,
         ICategoryAgent categoryAgent,
-        IBackgroundJobDispatcher jobDispatcher)
+        IBackgroundJobDispatcher jobDispatcher,
+        IImageService imageService)
     {
         _context = context;
         _mediator = mediator;
         _categoryAgent = categoryAgent;
         _jobDispatcher = jobDispatcher;
+        _imageService = imageService;
     }
 
     public async Task<CreateGroupRequestResponse> Handle(CreateGroupRequestCommand request, CancellationToken cancellationToken)
     {
-        // Step 1: جيب الـcategories من الـDB وبعتهم للـCategoryAgent
+        // Step 1: Get all categories and resolve the category ID using the CategoryAgent 
         var categories = await _context.Categories
             .Include( C => C.Parent)
             .ToListAsync(cancellationToken);
@@ -43,7 +46,22 @@ public class CreateGroupRequestCommandHandler : IRequestHandler<CreateGroupReque
 
         var categoryId = await _categoryAgent.ResolveCategoryAsync(request.Title, categoryDtos, cancellationToken);
 
-        // Step 2: عمل الـGroupRequest
+        var imageUrls = new List<string>();
+
+        // Step 1.5: Upload images and get their URLs
+        if (request.Images is not null)
+        {
+            foreach (var image in request.Images)
+            {
+                var url = await _imageService.UploadImageAsync(
+                    image,
+                    cancellationToken);
+
+                imageUrls.Add(url);
+            }
+        }
+
+        // Step 2: Create GroupRequest
         var groupRequest = new GroupRequest
         {
             Id = Guid.NewGuid(),
@@ -51,9 +69,7 @@ public class CreateGroupRequestCommandHandler : IRequestHandler<CreateGroupReque
             CategoryId = categoryId,
             Title = request.Title,
             Description = request.Description,
-            ImageUrls = request.ImageUrls != null
-                ? JsonSerializer.Serialize(request.ImageUrls)
-                : null,
+            ImageUrls = imageUrls.Count > 0 ? JsonSerializer.Serialize(imageUrls) : null,
             CurrentQuantity = request.Quantity,
             Status = GroupRequestStatus.PendingReview,
             ModerationStatus = ModerationStatus.Pending,
@@ -62,7 +78,7 @@ public class CreateGroupRequestCommandHandler : IRequestHandler<CreateGroupReque
 
         _context.GroupRequests.Add(groupRequest);
 
-        // Step 3: عمل الـParticipant للـinitiator في نفس الـtransaction
+        // Step 3: Create GroupRequestParticipant for the initiator
         var participant = new GroupRequestParticipant
         {
             GroupRequestId = groupRequest.Id,
@@ -74,10 +90,10 @@ public class CreateGroupRequestCommandHandler : IRequestHandler<CreateGroupReque
 
         _context.GroupRequestParticipants.Add(participant);
 
-        // Step 4: Save الاتنين في نفس الـtransaction
+        // Step 4: Save transactions to the database
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Step 5: Fire الـModerateGroupRequestJob في الـbackground
+        // Step 5: Fire the moderation job for the newly created group request
         _jobDispatcher.Enqueue<IModerateGroupRequestJob>(j =>
             j.ExecuteAsync(groupRequest.Id, CancellationToken.None));
 
