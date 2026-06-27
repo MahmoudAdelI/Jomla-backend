@@ -1,14 +1,16 @@
 using System.Text.Json;
 using Jomla.Application.Common.Interfaces;
+using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace Jomla.Infrastructure.AI;
 
-public class ModerationAgent(IChatCompletionService chat) : IModerationAgent
+public class ModerationAgent(IChatCompletionService chat, ILogger<ModerationAgent> logger) : IModerationAgent
 {
     private readonly IChatCompletionService _chat = chat;
+    private readonly ILogger<ModerationAgent> _logger = logger;
 
     private const string SystemPrompt = """
         You are a content moderation assistant for a B2B group-buying marketplace.
@@ -53,10 +55,11 @@ public class ModerationAgent(IChatCompletionService chat) : IModerationAgent
         };
 
         var response = await _chat.GetChatMessageContentAsync(history, executionSettings, cancellationToken: ct);
+        _logger.LogInformation("Moderation agent raw response: {ResponseContent}", response.Content);
         return Parse(response.Content ?? string.Empty);
     }
 
-    private static ModerationResult Parse(string raw)
+    private ModerationResult Parse(string raw)
     {
         try
         {
@@ -64,12 +67,17 @@ public class ModerationAgent(IChatCompletionService chat) : IModerationAgent
                 raw,
                 _jsonOptions);
 
-            return json is null
-                ? Fallback()
-                : new ModerationResult(json.Approved, json.Reason);
+            if (json is null)
+            {
+                _logger.LogWarning("Moderation agent response was deserialized to null. Raw response: {RawResponse}", raw);
+                return Fallback();
+            }
+
+            return new ModerationResult(json.Approved, json.Reason);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Moderation agent failed to parse response JSON. Raw response: {RawResponse}", raw);
             return Fallback();
         }
     }
