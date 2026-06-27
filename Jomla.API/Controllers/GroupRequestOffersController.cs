@@ -81,6 +81,6 @@ public class GroupRequestOffersController(IMediator mediator,
         _backgroundJobClient.Enqueue<ISender>(sender =>
             sender.Send(new LeaveGroupRequestOfferCommand(id, buyerId), CancellationToken.None));
 
-        return Ok(new { Success = true });
+        return Accepted(new { Success = true });
     }
 }
