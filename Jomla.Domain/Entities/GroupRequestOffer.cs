@@ -1,4 +1,4 @@
-﻿namespace Jomla.Domain.Entities
+namespace Jomla.Domain.Entities
 {
     public class GroupRequestOffer
     {
@@ -14,6 +14,7 @@
         public int? MinFallbackQuantity { get; set; }
         public string? VariantAttributes { get; set; }   // JSON
         public int RoundNumber { get; set; } = 1; // For tracking negotiation rounds
+        public int AcceptedQuantity { get; set; }
         public GroupRequestOfferStatus Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime ExpiresAt { get; set; }
