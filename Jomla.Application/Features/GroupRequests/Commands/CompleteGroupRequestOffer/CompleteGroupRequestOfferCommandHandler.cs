@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Notifications;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
@@ -105,7 +105,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
                             BatchId = null, // linked directly to offer, no batch link
                             OfferId = offer.Id,
                             Quantity = participant.Quantity,
-                            TotalAmount = participant.Quantity * offer.UnitPrice,
+                            TotalAmount = participant.Quantity * offer.CurrentUnitPrice,
                             Status = captureResult.Success ? OrderStatus.Paid : OrderStatus.Failed,
                             PaidAt = captureResult.Success ? DateTime.UtcNow : null,
                             CreatedAt = DateTime.UtcNow

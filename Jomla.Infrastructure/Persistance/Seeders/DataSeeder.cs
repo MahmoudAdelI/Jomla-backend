@@ -11,21 +11,12 @@ namespace Jomla.Infrastructure.Persistance.Seeders
     {
         private static readonly Dictionary<string, string[]> ProductTitlesByCategory = new()
         {
-            ["Refrigerators"] = new[] { "Double-Door Refrigerator 450L", "Compact Mini Fridge 90L", "Side-by-Side Refrigerator 600L" },
-            ["Freezers"] = new[] { "Chest Freezer 200L", "Upright Freezer 300L" },
-            ["Washing Machines"] = new[] { "Front-Load Washing Machine 8kg", "Top-Load Washing Machine 10kg" },
-            ["Dishwashers"] = new[] { "Built-In Dishwasher 12 Place Settings", "Freestanding Dishwasher 14 Place Settings" },
-            ["Microwaves"] = new[] { "Digital Microwave Oven 25L", "Convection Microwave Oven 30L" },
-            ["Coffee Makers"] = new[] { "Automatic Drip Coffee Maker", "Espresso Machine with Grinder" },
-            ["Blenders"] = new[] { "Heavy-Duty Countertop Blender", "Commercial Smoothie Blender" },
-            ["Air Conditioners"] = new[] { "Split Air Conditioner 1.5 Ton", "Window Air Conditioner 1 Ton" },
+            ["Large Appliances"] = new[] { "Double-Door Refrigerator 450L", "Compact Mini Fridge 90L", "Side-by-Side Refrigerator 600L", "Chest Freezer 200L", "Upright Freezer 300L", "Front-Load Washing Machine 8kg", "Top-Load Washing Machine 10kg", "Built-In Dishwasher 12 Place Settings", "Freestanding Dishwasher 14 Place Settings", "Split Air Conditioner 1.5 Ton", "Window Air Conditioner 1 Ton" },
+            ["Small Appliances"] = new[] { "Digital Microwave Oven 25L", "Convection Microwave Oven 30L", "Automatic Drip Coffee Maker", "Espresso Machine with Grinder", "Heavy-Duty Countertop Blender", "Commercial Smoothie Blender" },
             ["Laptops"] = new[] { "Business Laptop 14-inch Core i5", "Ultrabook 13-inch Core i7" },
-            ["Laptop Bags"] = new[] { "Padded Laptop Backpack 15.6-inch", "Laptop Sleeve Case 14-inch" },
-            ["Computer Accessories"] = new[] { "Wireless Mouse and Keyboard Combo", "USB-C Docking Station" },
-            ["Smartphones"] = new[] { "Android Smartphone 128GB", "Smartphone 256GB Dual SIM" },
-            ["Tablets"] = new[] { "10-inch Android Tablet", "Tablet with Stylus 11-inch" },
-            ["Cameras"] = new[] { "Digital DSLR Camera Kit", "4K Action Camera" },
-            ["Mobile & Tablet Accessories"] = new[] { "Tempered Glass Screen Protector Pack", "Fast Charging Power Bank 20000mAh" },
+            ["Computer Accessories"] = new[] { "Wireless Mouse and Keyboard Combo", "USB-C Docking Station", "Padded Laptop Backpack 15.6-inch", "Laptop Sleeve Case 14-inch" },
+            ["Smartphones"] = new[] { "Android Smartphone 128GB", "Smartphone 256GB Dual SIM", "10-inch Android Tablet", "Tablet with Stylus 11-inch" },
+            ["Cameras"] = new[] { "Digital DSLR Camera Kit", "4K Action Camera", "Tempered Glass Screen Protector Pack", "Fast Charging Power Bank 20000mAh" },
             ["Paper Products"] = new[] { "A4 Copy Paper Ream Pack (5x500)", "Sticky Notes Bulk Pack" },
             ["Writing Instruments"] = new[] { "Ballpoint Pens Box of 50", "Whiteboard Markers Set of 12" },
             ["Office Furniture"] = new[] { "Ergonomic Office Chair", "Adjustable Standing Desk" },
@@ -33,54 +24,66 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             ["Furniture"] = new[] { "3-Seater Fabric Sofa", "Dining Table Set (6-Seater)" },
             ["Bedding"] = new[] { "Queen Size Bedsheet Set", "Microfiber Comforter Set" },
             ["Home Decor"] = new[] { "Wall Art Canvas Set of 3", "Decorative Throw Pillow Set" },
+            // Supermarket & Groceries
+            ["Beverages"] = new[] { "Mineral Water 1.5L Case (12 Pack)", "Organic Orange Juice 1L Case (6 Pack)", "Premium Espresso Coffee Beans 1kg", "Assorted Soft Drinks Cans 330ml (24 Pack)" },
+            ["Snacks & Sweets"] = new[] { "Assorted Protein Bars Box (12 Pack)", "Organic Dark Chocolate Bars (10 Pack)", "Bulk Roasted Mixed Nuts Bag 1kg", "Salted Potato Chips Family Pack (15 Pack)" },
+            ["Pantry Staples"] = new[] { "Extra Virgin Olive Oil 5L Bottle", "Premium Basmati Rice 10kg Bag", "Canned Tomato Paste Bulk Case (24 Pack)", "Organic Penne Rigate Pasta 500g (12 Pack)" },
+            ["Baby Care"] = new[] { "Premium Baby Diapers Pack (Size 4)", "Sensitive Baby Wipes Bulk (12x80 Pack)", "Organic Baby Formula Stage 1 800g" },
+            // Home & Kitchen / Cookware & Dining
+            ["Cookware & Dining"] = new[] { "Non-Stick Cookware Set (10-Piece)", "Stainless Steel Cutlery Set (24-Piece)", "Ceramic Dinnerware Set (16-Piece)", "Insulated Stainless Steel Water Bottle" },
+            // Fashion & Apparel
+            ["Clothing"] = new[] { "Unisex 100% Cotton Crewneck T-Shirt", "Corporate Polo Shirt Bulk Pack (5-Pack)", "Premium Denim Jeans Straight Fit", "Heavyweight Fleece Hoodie" },
+            ["Footwear"] = new[] { "Ergonomic Leather Safety Shoes", "Casual Canvas Lace-Up Sneakers", "Classic Leather Dress Shoes", "Lightweight Running Athletic Shoes" },
+            ["Bags & Accessories"] = new[] { "Waterproof Travel Duffle Bag", "Classic Leather Wallet & Belt Gift Set", "Hard Shell Spinner Suitcase (3-Piece Set)" }
         };
+
         private static readonly Dictionary<string, string[]> GroupRequestTitlesByCategory = new()
         {
-            ["Refrigerators"] = new[] { "Mini fridges for office break rooms", "Double-door refrigerators for branch offices" },
-            ["Freezers"] = new[] { "Chest freezers for restaurant supply" },
-            ["Washing Machines"] = new[] { "Front-load washing machines for staff housing" },
-            ["Dishwashers"] = new[] { "Commercial dishwashers for cafeteria" },
-            ["Microwaves"] = new[] { "Microwaves for office pantry" },
-            ["Coffee Makers"] = new[] { "Coffee machines for office branches" },
-            ["Blenders"] = new[] { "Blenders for juice bar chain" },
-            ["Air Conditioners"] = new[] { "Split ACs for new office building" },
+            ["Large Appliances"] = new[] { "Double-door refrigerators for branch offices", "Chest freezers for restaurant supply", "Front-load washing machines for staff housing", "Commercial dishwashers for cafeteria", "Split ACs for new office building" },
+            ["Small Appliances"] = new[] { "Microwaves for office pantry", "Coffee machines for office branches", "Blenders for juice bar chain" },
             ["Laptops"] = new[] { "Business laptops for new hires", "Laptops for training center" },
-            ["Laptop Bags"] = new[] { "Laptop backpacks for onboarding kits" },
-            ["Computer Accessories"] = new[] { "Wireless mouse and keyboard sets for office" },
-            ["Smartphones"] = new[] { "Company phones for sales team" },
-            ["Tablets"] = new[] { "Tablets for retail checkout stations" },
-            ["Cameras"] = new[] { "Security cameras for warehouse" },
-            ["Mobile & Tablet Accessories"] = new[] { "Power banks for field staff" },
+            ["Computer Accessories"] = new[] { "Wireless mouse and keyboard sets for office", "Laptop backpacks for onboarding kits" },
+            ["Smartphones"] = new[] { "Company phones for sales team", "Tablets for retail checkout stations" },
+            ["Cameras"] = new[] { "Security cameras for warehouse", "Power banks and accessories for field staff" },
             ["Paper Products"] = new[] { "A4 paper reams for office restock" },
             ["Writing Instruments"] = new[] { "Pens and markers for branches" },
             ["Office Furniture"] = new[] { "Office chairs for new branch", "Standing desks for HQ renovation" },
             ["Printing Supplies"] = new[] { "Toner cartridges for office printers" },
-            ["Furniture"] = new[] { "Sofas for office lounge" },
+            ["Furniture"] = new[] { "Sofas for office lounge", "Dining tables for cafeteria" },
             ["Bedding"] = new[] { "Bedsheets for staff dormitory" },
-            ["Home Decor"] = new[] { "Wall art for office decoration" },
+            ["Home Decor"] = new[] { "Wall art for office decoration", "Throw pillows for lounge area" },
+            ["Beverages"] = new[] { "Bottled water and juices for offices", "Espresso coffee beans for office coffee machines" },
+            ["Snacks & Sweets"] = new[] { "Snack bars and dark chocolates for pantry", "Mixed nuts bulk supply for kitchen" },
+            ["Pantry Staples"] = new[] { "Bulk olive oil and basmati rice for restaurant", "Pasta and tomato paste cases for cafeteria" },
+            ["Baby Care"] = new[] { "Diapers and wipes for daycare center restock", "Organic baby formula for nurseries" },
+            ["Cookware & Dining"] = new[] { "Dinnerware and cutlery sets for office kitchen", "Non-stick cookware for staff cooking classes" },
+            ["Clothing"] = new[] { "Uniform crewneck t-shirts for staff", "Corporate polo shirts for event" },
+            ["Footwear"] = new[] { "Safety boots for logistics warehouse", "Casual sneakers for event staff" },
+            ["Bags & Accessories"] = new[] { "Waterproof duffle bags for fitness club", "Travel suitcases for sales team trips" }
         };
+
         private static readonly Dictionary<string, Func<Random, Dictionary<string, string>>> VariantGeneratorsByCategory = new()
         {
-            ["Refrigerators"] = r => new() { ["color"] = Pick(r, "White", "Silver", "Black"), ["capacity"] = Pick(r, "350L", "450L", "600L") },
-            ["Freezers"] = r => new() { ["capacity"] = Pick(r, "150L", "200L", "300L") },
-            ["Washing Machines"] = r => new() { ["color"] = Pick(r, "White", "Silver"), ["capacity"] = Pick(r, "7kg", "8kg", "10kg") },
-            ["Dishwashers"] = r => new() { ["color"] = Pick(r, "White", "Silver", "Black") },
-            ["Microwaves"] = r => new() { ["color"] = Pick(r, "Black", "White", "Silver") },
-            ["Coffee Makers"] = r => new() { ["color"] = Pick(r, "Black", "Silver", "Red") },
-            ["Blenders"] = r => new() { ["color"] = Pick(r, "Black", "Red", "White") },
-            ["Air Conditioners"] = r => new() { ["capacity"] = Pick(r, "1 Ton", "1.5 Ton", "2 Ton") },
+            ["Large Appliances"] = r => new() { ["color"] = Pick(r, "Silver", "White", "Black"), ["capacity"] = Pick(r, "350L", "450L", "600L", "10kg", "1.5 Ton") },
+            ["Small Appliances"] = r => new() { ["color"] = Pick(r, "Black", "Silver", "Red"), ["capacity"] = Pick(r, "25L", "30L") },
             ["Laptops"] = r => new() { ["color"] = Pick(r, "Silver", "Black", "Gray"), ["storage"] = Pick(r, "256GB", "512GB", "1TB"), ["ram"] = Pick(r, "8GB", "16GB") },
-            ["Laptop Bags"] = r => new() { ["color"] = Pick(r, "Black", "Gray", "Navy") },
-            ["Computer Accessories"] = r => new() { ["color"] = Pick(r, "Black", "White") },
+            ["Computer Accessories"] = r => new() { ["color"] = Pick(r, "Black", "Gray", "Navy") },
             ["Smartphones"] = r => new() { ["color"] = Pick(r, "Black", "White", "Blue", "Gold"), ["storage"] = Pick(r, "64GB", "128GB", "256GB") },
-            ["Tablets"] = r => new() { ["color"] = Pick(r, "Black", "Silver", "Gray"), ["storage"] = Pick(r, "64GB", "128GB") },
             ["Cameras"] = r => new() { ["color"] = Pick(r, "Black", "Silver") },
-            ["Mobile & Tablet Accessories"] = r => new() { ["color"] = Pick(r, "Black", "White", "Blue") },
             ["Office Furniture"] = r => new() { ["color"] = Pick(r, "Black", "Gray", "Brown"), ["material"] = Pick(r, "Mesh", "Leather", "Fabric") },
             ["Furniture"] = r => new() { ["color"] = Pick(r, "Gray", "Beige", "Brown"), ["material"] = Pick(r, "Fabric", "Leather") },
             ["Bedding"] = r => new() { ["color"] = Pick(r, "White", "Gray", "Blue"), ["size"] = Pick(r, "Twin", "Queen", "King") },
             ["Home Decor"] = r => new() { ["color"] = Pick(r, "Multicolor", "Beige", "Gray") },
+            ["Beverages"] = r => new() { ["flavor"] = Pick(r, "Natural", "Orange", "Espresso", "Cola"), ["size"] = Pick(r, "1.5L", "1L", "1kg", "330ml") },
+            ["Snacks & Sweets"] = r => new() { ["type"] = Pick(r, "Protein", "Dark Chocolate", "Mixed Roasted", "Salted Chips") },
+            ["Pantry Staples"] = r => new() { ["volume/weight"] = Pick(r, "5L", "10kg", "Case of 24", "Pack of 12") },
+            ["Baby Care"] = r => new() { ["size/type"] = Pick(r, "Diapers Size 4", "Wipes Bulk Case", "Formula Stage 1") },
+            ["Cookware & Dining"] = r => new() { ["material"] = Pick(r, "Non-Stick", "Stainless Steel", "Ceramic") },
+            ["Clothing"] = r => new() { ["color"] = Pick(r, "Black", "Navy", "White", "Heather Gray"), ["size"] = Pick(r, "S", "M", "L", "XL") },
+            ["Footwear"] = r => new() { ["color"] = Pick(r, "Black", "Brown", "White", "Navy"), ["size"] = Pick(r, "40", "41", "42", "43", "44") },
+            ["Bags & Accessories"] = r => new() { ["color"] = Pick(r, "Black", "Navy", "Charcoal") }
         };
+
         public async Task SeedAsync()
         {
             if (await _db.Users.AnyAsync())
@@ -117,60 +120,53 @@ namespace Jomla.Infrastructure.Persistance.Seeders
 
         private List<Category> SeedCategories()
         {
-            #region Electronics
-            var electronicsAndAppliances = new Category { Id = Guid.NewGuid(), Name = "Electronics & Appliances" };
-
-            // Large Appliances
-            var largeAppliances = new Category { Id = Guid.NewGuid(), Name = "Large Appliances", ParentId = electronicsAndAppliances.Id };
-            var refrigerators = new Category { Id = Guid.NewGuid(), Name = "Refrigerators", ParentId = largeAppliances.Id };
-            var freezers = new Category { Id = Guid.NewGuid(), Name = "Freezers", ParentId = largeAppliances.Id };
-            var washingMachines = new Category { Id = Guid.NewGuid(), Name = "Washing Machines", ParentId = largeAppliances.Id };
-            var dishwashers = new Category { Id = Guid.NewGuid(), Name = "Dishwashers", ParentId = largeAppliances.Id };
-
-            // Small Appliances
-            var smallAppliances = new Category { Id = Guid.NewGuid(), Name = "Small Appliances", ParentId = electronicsAndAppliances.Id };
-            var microwaves = new Category { Id = Guid.NewGuid(), Name = "Microwaves", ParentId = smallAppliances.Id };
-            var coffeeMakers = new Category { Id = Guid.NewGuid(), Name = "Coffee Makers", ParentId = smallAppliances.Id };
-            var blenders = new Category { Id = Guid.NewGuid(), Name = "Blenders", ParentId = smallAppliances.Id };
-            var airConditioners = new Category { Id = Guid.NewGuid(), Name = "Air Conditioners", ParentId = smallAppliances.Id };
-
-            // Laptops & PCs
-            var laptopsAndPCs = new Category { Id = Guid.NewGuid(), Name = "Laptops & PCs", ParentId = electronicsAndAppliances.Id };
-            var laptops = new Category { Id = Guid.NewGuid(), Name = "Laptops", ParentId = laptopsAndPCs.Id };
-            var laptopBags = new Category { Id = Guid.NewGuid(), Name = "Laptop Bags", ParentId = laptopsAndPCs.Id };
-            var computerAccessories = new Category { Id = Guid.NewGuid(), Name = "Computer Accessories", ParentId = laptopsAndPCs.Id };
-
-            // Other Electronics
-            var smartphones = new Category { Id = Guid.NewGuid(), Name = "Smartphones", ParentId = electronicsAndAppliances.Id };
-            var tablets = new Category { Id = Guid.NewGuid(), Name = "Tablets", ParentId = electronicsAndAppliances.Id };
-            var cameras = new Category { Id = Guid.NewGuid(), Name = "Cameras", ParentId = electronicsAndAppliances.Id };
-            var mobileAndTabletAccessories = new Category { Id = Guid.NewGuid(), Name = "Mobile & Tablet Accessories", ParentId = electronicsAndAppliances.Id };
-            #endregion
-
-            #region Office Supplies
+            // Level 1 Departments
+            var electronics = new Category { Id = Guid.NewGuid(), Name = "Electronics & Appliances" };
+            var supermarket = new Category { Id = Guid.NewGuid(), Name = "Supermarket & Groceries" };
+            var homeKitchen = new Category { Id = Guid.NewGuid(), Name = "Home & Kitchen" };
             var officeSupplies = new Category { Id = Guid.NewGuid(), Name = "Office Supplies" };
+            var fashion = new Category { Id = Guid.NewGuid(), Name = "Fashion & Apparel" };
+
+            // Level 2 Subcategories under Electronics & Appliances
+            var laptops = new Category { Id = Guid.NewGuid(), Name = "Laptops", ParentId = electronics.Id };
+            var smartphones = new Category { Id = Guid.NewGuid(), Name = "Smartphones", ParentId = electronics.Id };
+            var largeAppliances = new Category { Id = Guid.NewGuid(), Name = "Large Appliances", ParentId = electronics.Id };
+            var smallAppliances = new Category { Id = Guid.NewGuid(), Name = "Small Appliances", ParentId = electronics.Id };
+            var computerAccessories = new Category { Id = Guid.NewGuid(), Name = "Computer Accessories", ParentId = electronics.Id };
+            var cameras = new Category { Id = Guid.NewGuid(), Name = "Cameras", ParentId = electronics.Id };
+
+            // Level 2 Subcategories under Supermarket & Groceries
+            var beverages = new Category { Id = Guid.NewGuid(), Name = "Beverages", ParentId = supermarket.Id };
+            var snacksSweets = new Category { Id = Guid.NewGuid(), Name = "Snacks & Sweets", ParentId = supermarket.Id };
+            var pantryStaples = new Category { Id = Guid.NewGuid(), Name = "Pantry Staples", ParentId = supermarket.Id };
+            var babyCare = new Category { Id = Guid.NewGuid(), Name = "Baby Care", ParentId = supermarket.Id };
+
+            // Level 2 Subcategories under Home & Kitchen
+            var furniture = new Category { Id = Guid.NewGuid(), Name = "Furniture", ParentId = homeKitchen.Id };
+            var bedding = new Category { Id = Guid.NewGuid(), Name = "Bedding", ParentId = homeKitchen.Id };
+            var homeDecor = new Category { Id = Guid.NewGuid(), Name = "Home Decor", ParentId = homeKitchen.Id };
+            var cookwareDining = new Category { Id = Guid.NewGuid(), Name = "Cookware & Dining", ParentId = homeKitchen.Id };
+
+            // Level 2 Subcategories under Office Supplies
             var paperProducts = new Category { Id = Guid.NewGuid(), Name = "Paper Products", ParentId = officeSupplies.Id };
             var writingInstruments = new Category { Id = Guid.NewGuid(), Name = "Writing Instruments", ParentId = officeSupplies.Id };
             var officeFurniture = new Category { Id = Guid.NewGuid(), Name = "Office Furniture", ParentId = officeSupplies.Id };
             var printingSupplies = new Category { Id = Guid.NewGuid(), Name = "Printing Supplies", ParentId = officeSupplies.Id };
-            #endregion
 
-            #region Home Supplies
-            var homeSupplies = new Category { Id = Guid.NewGuid(), Name = "Home Supplies" };
-            var furniture = new Category { Id = Guid.NewGuid(), Name = "Furniture", ParentId = homeSupplies.Id };
-            var bedding = new Category { Id = Guid.NewGuid(), Name = "Bedding", ParentId = homeSupplies.Id };
-            var homeDecor = new Category { Id = Guid.NewGuid(), Name = "Home Decor", ParentId = homeSupplies.Id };
-            #endregion
+            // Level 2 Subcategories under Fashion & Apparel
+            var clothing = new Category { Id = Guid.NewGuid(), Name = "Clothing", ParentId = fashion.Id };
+            var footwear = new Category { Id = Guid.NewGuid(), Name = "Footwear", ParentId = fashion.Id };
+            var bagsAccessories = new Category { Id = Guid.NewGuid(), Name = "Bags & Accessories", ParentId = fashion.Id };
 
             var categories = new List<Category>
-                {
-                    electronicsAndAppliances, largeAppliances, refrigerators, freezers, washingMachines, dishwashers,
-                    smallAppliances, microwaves, coffeeMakers, blenders, airConditioners,
-                    laptopsAndPCs, laptops, laptopBags, computerAccessories,
-                    smartphones, tablets, cameras, mobileAndTabletAccessories,
-                    officeSupplies, paperProducts, writingInstruments, officeFurniture, printingSupplies,
-                    homeSupplies, furniture, bedding, homeDecor
-                };
+            {
+                electronics, supermarket, homeKitchen, officeSupplies, fashion,
+                laptops, smartphones, largeAppliances, smallAppliances, computerAccessories, cameras,
+                beverages, snacksSweets, pantryStaples, babyCare,
+                furniture, bedding, homeDecor, cookwareDining,
+                paperProducts, writingInstruments, officeFurniture, printingSupplies,
+                clothing, footwear, bagsAccessories
+            };
 
             _db.Categories.AddRange(categories);
             return categories;
@@ -479,7 +475,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             var groupRequests = new List<GroupRequest>();
             var allParticipants = new List<GroupRequestParticipant>();
 
-            const int requestCount = 20;
+            const int requestCount = 60;
 
             for (int i = 0; i < requestCount; i++)
             {
@@ -619,8 +615,10 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             var candidates = groupRequests
                 .Where(gr => gr.Status != GroupRequestStatus.Inactive)
                 .OrderBy(_ => random.Next())
-                .Take(10);
+                .Take(35)
+                .ToList();
 
+            int candidateIndex = 0;
             foreach (var request in candidates)
             {
                 var matchingSupplierIds = preferences
@@ -633,38 +631,102 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                     continue; // no supplier interested in this category/quantity
 
                 var supplierId = matchingSupplierIds[random.Next(matchingSupplierIds.Count)];
-
                 var unitPrice = Math.Round((decimal)(random.NextDouble() * 480 + 20), 2);
-                var hasNegotiationAgent = random.Next(0, 2) == 0; // 50% chance
-                decimal? minUnitPrice = hasNegotiationAgent
-                    ? Math.Round(unitPrice * 0.85m, 2) // floor is 15% below opening price
-                    : null;
-
-                var createdAt = request.CreatedAt.AddDays(random.Next(1, 5));
-
-                var status = request.Status == GroupRequestStatus.Closed
-                    ? GroupRequestOfferStatus.Accepted
-                    : GroupRequestOfferStatus.Open;
-
                 var categoryName = categoryById[request.CategoryId].Name;
 
-                offers.Add(new GroupRequestOffer
+                // Simulate multi-round negotiations (1 to 4 rounds) with varying final statuses
+                int totalRounds = 1;
+                GroupRequestOfferStatus finalStatus = GroupRequestOfferStatus.Open;
+
+                if (request.Status == GroupRequestStatus.Closed)
                 {
-                    Id = Guid.NewGuid(),
-                    GroupRequestId = request.Id,
-                    SupplierId = supplierId,
-                    UnitPrice = unitPrice,
-                    MinUnitPrice = minUnitPrice,
-                    CurrentUnitPrice = unitPrice, // no negotiation yet, so current == opening
-                    QuantityAvailable = request.CurrentQuantity + random.Next(0, 11),
-                    MinFallbackQuantity = random.Next(0, 2) == 1 ? (int)(request.CurrentQuantity * 0.6) : null,
-                    VariantAttributes = GenerateVariantAttributes(categoryName, random),
-                    RoundNumber = 1,
-                    ParentId = null,
-                    Status = status,
-                    CreatedAt = createdAt,
-                    ExpiresAt = createdAt.AddDays(random.Next(5, 15))
-                });
+                    // Closed request means final round ended in Accepted
+                    finalStatus = GroupRequestOfferStatus.Accepted;
+                    totalRounds = (candidateIndex % 4) + 1; // 1, 2, 3, or 4 rounds
+                }
+                else
+                {
+                    // Active request: can end in Open or Expired after 1-4 rounds
+                    var typeRoll = candidateIndex % 3;
+                    if (typeRoll == 0)
+                    {
+                        totalRounds = (candidateIndex % 3) + 1; // 1, 2, or 3 rounds
+                        finalStatus = GroupRequestOfferStatus.Open;
+                    }
+                    else if (typeRoll == 1)
+                    {
+                        totalRounds = (candidateIndex % 3) + 2; // 2, 3, or 4 rounds
+                        finalStatus = GroupRequestOfferStatus.Expired;
+                    }
+                    else
+                    {
+                        totalRounds = (candidateIndex % 4) + 1; // 1, 2, 3, or 4 rounds
+                        finalStatus = GroupRequestOfferStatus.Open;
+                    }
+                }
+
+                Guid? parentId = null;
+                var currentPrice = unitPrice;
+                var floor = Math.Round(unitPrice * 0.80m, 2); // floor is 20% below opening price
+                var date = request.CreatedAt.AddDays(random.Next(1, 3));
+
+                for (int round = 1; round <= totalRounds; round++)
+                {
+                    var isLastRound = round == totalRounds;
+                    var roundStatus = isLastRound ? finalStatus : GroupRequestOfferStatus.Countered;
+                    
+                    if (round > 1)
+                    {
+                        // drop price for revised rounds
+                        var step = (unitPrice - floor) / (totalRounds - 1 + 0.1m);
+                        currentPrice = Math.Round(unitPrice - (step * (round - 1)), 2);
+                        currentPrice = Math.Max(currentPrice, floor);
+                    }
+
+                    var offerId = Guid.NewGuid();
+                    var expiresAt = date.AddDays(5);
+
+                    var offer = new GroupRequestOffer
+                    {
+                        Id = offerId,
+                        GroupRequestId = request.Id,
+                        SupplierId = supplierId,
+                        UnitPrice = unitPrice,
+                        MinUnitPrice = floor,
+                        CurrentUnitPrice = currentPrice,
+                        QuantityAvailable = request.CurrentQuantity + random.Next(0, 11),
+                        MinFallbackQuantity = random.Next(0, 2) == 1 ? (int)(request.CurrentQuantity * 0.6) : null,
+                        VariantAttributes = GenerateVariantAttributes(categoryName, random),
+                        RoundNumber = round,
+                        ParentId = parentId,
+                        Status = roundStatus,
+                        CreatedAt = date,
+                        ExpiresAt = expiresAt
+                    };
+
+                    offers.Add(offer);
+
+                    // Add negotiation log for rounds > 1 (the counter step)
+                    if (round > 1)
+                    {
+                        var previousRoundPrice = offers.First(o => o.Id == parentId).CurrentUnitPrice;
+                        var log = new NegotiationLog
+                        {
+                            Id = Guid.NewGuid(),
+                            OfferId = offerId,
+                            PreviousPrice = previousRoundPrice,
+                            NewPrice = currentPrice,
+                            ReasoningSummary = $"AI Agent countered with a discounted price of {currentPrice:C} (Round {round}) based on market response and a floor of {floor:C}.",
+                            ActedAt = date
+                        };
+                        _db.NegotiationLogs.Add(log);
+                    }
+
+                    parentId = offerId;
+                    date = expiresAt.AddHours(random.Next(1, 12)); // next round starts after previous round expires/counters
+                }
+
+                candidateIndex++;
             }
 
             _db.GroupRequestOffers.AddRange(offers);
@@ -689,6 +751,13 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                     if (offer.Status == GroupRequestOfferStatus.Accepted)
                     {
                         response = BuyerOfferResponseType.Accepted;
+                    }
+                    else if (offer.Status == GroupRequestOfferStatus.Countered)
+                    {
+                        // Countered offers were rejected/ignored, let's seed mostly rejections
+                        var roll = random.Next(0, 10);
+                        if (roll < 6) response = BuyerOfferResponseType.Rejected;
+                        else continue; // no response (ignored)
                     }
                     else
                     {
@@ -769,7 +838,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
 
                     if (participant != null)
                     {
-                        var totalAmount = participant.Quantity * offer.UnitPrice;
+                        var totalAmount = participant.Quantity * offer.CurrentUnitPrice; // FIX: use CurrentUnitPrice
 
                         orders.Add(new Order
                         {

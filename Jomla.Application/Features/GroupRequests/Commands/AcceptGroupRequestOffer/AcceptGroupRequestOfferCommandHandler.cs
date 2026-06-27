@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Domain.Entities;
 using Jomla.Domain;
 using MediatR;
@@ -69,7 +69,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 return new AcceptGroupRequestOfferResponse { Success = false, Error = "Already accepted" };
 
             // Step 6: Calculate payment amount
-            decimal totalAmount = participant.Quantity * offer.UnitPrice;
+            decimal totalAmount = participant.Quantity * offer.CurrentUnitPrice;
 
             // Step 7: Create Stripe payment hold
             var paymentResult = await _stripePaymentService.CreatePaymentHoldAsync(
