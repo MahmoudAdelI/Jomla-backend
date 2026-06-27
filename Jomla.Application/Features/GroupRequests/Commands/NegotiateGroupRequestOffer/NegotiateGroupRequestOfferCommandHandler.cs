@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Notifications;
 using Jomla.Application.Jobs.Expiry;
 using Jomla.Application.Jobs.JobDispatcher;
@@ -65,10 +65,21 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
 
             _db.GroupRequestOffers.Add(childOffer);
 
+            // 6b. log the negotiation step
+            var log = new NegotiationLog
+            {
+                OfferId = childOffer.Id,
+                PreviousPrice = offer.CurrentUnitPrice,
+                NewPrice = newPrice,
+                ReasoningSummary = $"AI Agent countered with a new price of {newPrice:C}.",
+                ActedAt = DateTime.UtcNow
+            };
+            _db.NegotiationLogs.Add(log);
+
             // 7. notify all active participants about the new offer
             var participantIds = offer.GroupRequest.Participants
-            .Where(p => p.Status == GroupRequestParticipantStatus.Active)
-            .Select(p => p.BuyerId);
+                .Where(p => p.Status == GroupRequestParticipantStatus.Active)
+                .Select(p => p.BuyerId);
 
             var notifications = participantIds.Select(buyerId => new Notification
             {
@@ -79,7 +90,21 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
                 EntityId = offer.GroupRequestId,
                 EntityType = nameof(GroupRequest),
                 CreatedAt = DateTime.UtcNow
-            });
+            }).ToList();
+
+            // 7b. notify the supplier about the AI agent counter-offer
+            var supplierNotification = new Notification
+            {
+                UserId = offer.SupplierId,
+                Type = NotificationType.OfferCountered,
+                Title = "AI Counter-Offer Created",
+                Body = $"Your agent countered with a new price of {newPrice:C} for {offer.GroupRequest.Title}.",
+                EntityId = childOffer.Id,
+                EntityType = nameof(GroupRequestOffer),
+                CreatedAt = DateTime.UtcNow
+            };
+            notifications.Add(supplierNotification);
+
             _db.Notifications.AddRange(notifications);
 
             await _db.SaveChangesAsync(cancellationToken);

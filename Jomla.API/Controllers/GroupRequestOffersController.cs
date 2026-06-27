@@ -1,7 +1,9 @@
-﻿using Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOffer;
+﻿using Hangfire;
+using Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.CancelGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.ExpireGroupRequestOffer;
+using Jomla.Application.Features.GroupRequests.Commands.LeaveGroupRequestOffer;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -10,14 +12,17 @@ using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
+
 namespace Jomla.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class GroupRequestOffersController(IMediator mediator) : ControllerBase
+public class GroupRequestOffersController(IMediator mediator,
+ IBackgroundJobClient backgroundJobClient ) : ControllerBase
 {
     private readonly IMediator _mediator = mediator;
+    private readonly IBackgroundJobClient _backgroundJobClient= backgroundJobClient;
 
     [HttpPost("{id:guid}/accept")]
     [Produces("application/json")]
@@ -62,6 +67,20 @@ public class GroupRequestOffersController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> ExpireOffer(Guid id)
     {
         await _mediator.Send(new ExpireGroupRequestOfferCommand(id));
+        return Ok(new { Success = true });
+    }
+    [HttpPost("{id:guid}/leave")]
+    [Produces("application/json")]
+    [EndpointSummary("Buyer leaves the offer, triggering an asynchronous Stripe release and database update.")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    public IActionResult LeaveOffer(Guid id)
+    {
+        
+        var buyerId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+ 
+        _backgroundJobClient.Enqueue<ISender>(sender =>
+            sender.Send(new LeaveGroupRequestOfferCommand(id, buyerId), CancellationToken.None));
+
         return Ok(new { Success = true });
     }
 }

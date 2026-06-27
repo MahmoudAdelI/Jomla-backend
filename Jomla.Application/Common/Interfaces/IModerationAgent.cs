@@ -1,6 +1,6 @@
-﻿namespace Jomla.Application.Common.Interfaces
+namespace Jomla.Application.Common.Interfaces
 {
-    public interface IModerationService
+    public interface IModerationAgent
     {
         Task<ModerationResult> ModerateAsync(ModerationInput input, CancellationToken ct = default);
     }
