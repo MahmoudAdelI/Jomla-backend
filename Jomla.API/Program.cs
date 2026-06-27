@@ -89,6 +89,7 @@ namespace Jomla.API
             var app = builder.Build();
             app.UseExceptionHandler();
             // Configure the HTTP request pipeline.
+            bool didSeed = false;
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
@@ -98,7 +99,7 @@ namespace Jomla.API
                 using (var scope = app.Services.CreateScope())
                 {
                     var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
-                    await seeder.SeedAsync();
+                    didSeed = await seeder.SeedAsync();
                 }
             }
 
@@ -128,7 +129,7 @@ namespace Jomla.API
                     .GetRequiredService<NegotiationRoundsCollectionInitializer>();
                 await initializer.InitializeAsync();
 
-                if (app.Environment.IsDevelopment())
+                if (app.Environment.IsDevelopment() && didSeed)
                 {
                     _ = Task.Run(async () =>
                     {

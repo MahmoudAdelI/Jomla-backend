@@ -84,10 +84,10 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             ["Bags & Accessories"] = r => new() { ["color"] = Pick(r, "Black", "Navy", "Charcoal") }
         };
 
-        public async Task SeedAsync()
+        public async Task<bool> SeedAsync()
         {
             if (await _db.Users.AnyAsync())
-                return; // DB has been seeded
+                return false; // DB has been seeded
             await SeedRolesAsync();
             var categories = SeedCategories();
             await _db.SaveChangesAsync();
@@ -116,6 +116,8 @@ namespace Jomla.Infrastructure.Persistance.Seeders
 
             SeedOrders(batches, batchParticipants, groupRequestOffers, responses, groupRequestParticipants);
             await _db.SaveChangesAsync();
+
+            return true;
         }
 
         private List<Category> SeedCategories()
