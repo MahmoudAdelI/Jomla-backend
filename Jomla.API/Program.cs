@@ -127,6 +127,25 @@ namespace Jomla.API
                 var initializer = scope.ServiceProvider
                     .GetRequiredService<NegotiationRoundsCollectionInitializer>();
                 await initializer.InitializeAsync();
+
+                if (app.Environment.IsDevelopment())
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            using var bgScope = app.Services.CreateScope();
+                            var syncJob = bgScope.ServiceProvider.GetRequiredService<INegotiationRoundSyncJob>();
+                            await syncJob.ExcuteAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            using var bgScope = app.Services.CreateScope();
+                            var logger = bgScope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                            logger.LogWarning(ex, "Background task failed to sync negotiation rounds to Qdrant.");
+                        }
+                    });
+                }
             }
 
             app.UseHttpsRedirection();
