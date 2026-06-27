@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Domain.Entities;
 using Jomla.Domain;
 using MediatR;
@@ -69,14 +69,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 return new AcceptGroupRequestOfferResponse { Success = false, Error = "You have already accepted this offer" };
 
             //  FIX 1: Check available quantity BEFORE processing payment
-            var acceptedBuyerIds = offer.Responses
-                .Where(r => r.Response == BuyerOfferResponseType.Accepted)
-                .Select(r => r.BuyerId)
-                .ToHashSet();
-
-            var currentAcceptedQuantity = offer.GroupRequest.Participants
-                .Where(p => acceptedBuyerIds.Contains(p.BuyerId) && p.Status == GroupRequestParticipantStatus.Active)
-                .Sum(p => p.Quantity);
+            var currentAcceptedQuantity = offer.AcceptedQuantity;
 
             if (currentAcceptedQuantity + participant.Quantity > offer.QuantityAvailable)
             {
@@ -121,8 +114,11 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 {
                     existingResponse.Response = BuyerOfferResponseType.Accepted;
                     existingResponse.StripePaymentIntentId = paymentResult.PaymentIntentId;
-                    existingResponse.RespondedAt = DateTime.UtcNow; // 🌟 FIX 4: Update timestamp
+                    existingResponse.RespondedAt = DateTime.UtcNow;
                 }
+
+                // Update the persisted AcceptedQuantity counter
+                offer.AcceptedQuantity = currentAcceptedQuantity + participant.Quantity;
 
                 // Step 9: Save Changes
                 await _context.SaveChangesAsync(cancellationToken);
@@ -139,7 +135,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
             }
 
             // Step 10: Calculate updated total accepted quantity
-            var updatedAcceptedQuantity = currentAcceptedQuantity + participant.Quantity;
+            var updatedAcceptedQuantity = offer.AcceptedQuantity;
 
             // Step 11: Check if offer is complete
             bool isComplete = updatedAcceptedQuantity >= offer.QuantityAvailable;

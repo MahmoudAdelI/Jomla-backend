@@ -112,6 +112,24 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             await _db.SaveChangesAsync();
 
             var responses = SeedBuyerOfferResponses(groupRequestOffers, groupRequestParticipants);
+            
+            // Calculate and assign AcceptedQuantity for each group request offer
+            foreach (var offer in groupRequestOffers)
+            {
+                var acceptedBuyerIds = responses
+                    .Where(r => r.OfferId == offer.Id && r.Response == BuyerOfferResponseType.Accepted)
+                    .Select(r => r.BuyerId)
+                    .ToHashSet();
+
+                var acceptedQuantity = groupRequestParticipants
+                    .Where(p => p.GroupRequestId == offer.GroupRequestId &&
+                                acceptedBuyerIds.Contains(p.BuyerId) &&
+                                p.Status == GroupRequestParticipantStatus.Active)
+                    .Sum(p => p.Quantity);
+
+                offer.AcceptedQuantity = acceptedQuantity;
+            }
+
             await _db.SaveChangesAsync();
 
             SeedOrders(batches, batchParticipants, groupRequestOffers, responses, groupRequestParticipants);

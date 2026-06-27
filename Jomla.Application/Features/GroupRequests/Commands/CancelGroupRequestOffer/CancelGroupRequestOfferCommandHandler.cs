@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Domain;
 // باستخدام الـ Enum بتاعك مباشرة
 using MediatR;
@@ -79,6 +79,8 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CancelGroupRequestOf
                     // تحويل حالة رد المشتري لملغي
                     response.Response = BuyerOfferResponseType.Cancelled;
                 }
+
+                offer.AcceptedQuantity = 0;
 
                 // 5️⃣ حفظ التغييرات في الداتابيز وعمل Commit للـ Transaction
                 await _context.SaveChangesAsync(cancellationToken);

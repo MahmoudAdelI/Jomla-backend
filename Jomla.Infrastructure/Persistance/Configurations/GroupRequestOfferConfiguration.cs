@@ -1,4 +1,4 @@
-﻿using Jomla.Domain.Entities;
+using Jomla.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -21,6 +21,9 @@ namespace Jomla.Infrastructure.Persistance.Configurations
 
             builder.Property(x => x.VariantAttributes)
                 .HasColumnType("nvarchar(max)");
+
+            builder.Property(x => x.AcceptedQuantity)
+                .HasDefaultValue(0);
 
             builder.Property(x => x.Status)
                 .HasConversion<string>()
