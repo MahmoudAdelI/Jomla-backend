@@ -111,14 +111,34 @@ public class GroupRequestOffersController(IMediator mediator,
         });
     }
 
-    [HttpGet("{id:guid}/offers")]
+    //[HttpGet("{id:guid}/offers")]
+    //[Authorize]
+    //[Produces("application/json")]
+    //[EndpointSummary("Retrieve offers for a group request.")]
+    //[ProducesResponseType(typeof(List<BuyerGroupRequestOfferDto>), StatusCodes.Status200OK)]
+    //public async Task<IActionResult> GetGroupRequestOffers(Guid requestId,[FromQuery] GroupRequestOfferStatus? status)
+    //{
+    //    var result = await _mediator.Send(new GetGroupRequestOffersQuery
+    //    {
+    //        GroupRequestId = requestId,
+    //        Status = status
+    //    });
+
+    //    return Ok(result);
+    //}
+
+
+    [HttpGet("{requestId:guid}/offers")]
     [Authorize]
     [Produces("application/json")]
     [EndpointSummary("Retrieve offers for a group request.")]
     [ProducesResponseType(typeof(List<BuyerGroupRequestOfferDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetGroupRequestOffers(Guid requestId,[FromQuery] GroupRequestOfferStatus? status)
+
+    public async Task<IActionResult> GetGroupRequestOffers(
+    Guid requestId,
+    [FromQuery] GroupRequestOfferStatus? status)
     {
-        var result = await _mediator.Send(new GetGroupRequestOffersQuery
+        var result = await mediator.Send(new GetGroupRequestOffersQuery
         {
             GroupRequestId = requestId,
             Status = status
@@ -126,6 +146,5 @@ public class GroupRequestOffersController(IMediator mediator,
 
         return Ok(result);
     }
-
 
 }
