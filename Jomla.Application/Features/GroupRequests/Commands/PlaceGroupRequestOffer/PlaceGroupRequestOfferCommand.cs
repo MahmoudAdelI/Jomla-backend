@@ -4,6 +4,8 @@ namespace Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOff
 
 public sealed record PlaceGroupRequestOfferCommand : IRequest<Guid>
 {
+    public Guid SupplierId { get; set; }
+
     public Guid GroupRequestId { get; set; }
 
     public decimal UnitPrice { get; init; }

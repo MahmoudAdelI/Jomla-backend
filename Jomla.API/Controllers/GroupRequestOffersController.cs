@@ -100,6 +100,7 @@ public class GroupRequestOffersController(IMediator mediator,
     [Authorize(Roles = nameof(UserRole.Supplier))]
     public async Task<IActionResult> PlaceOffer(Guid requestId,[FromBody] PlaceGroupRequestOfferCommand command)
     {
+        command.SupplierId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         command.GroupRequestId = requestId;
 
         var offerId = await _mediator.Send(command);
