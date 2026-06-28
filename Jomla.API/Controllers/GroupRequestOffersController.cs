@@ -1,13 +1,15 @@
 using Hangfire;
 using Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.CancelGroupRequestOffer;
+using Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.RejectGroupRequestOffer;
+using Jomla.Application.Features.GroupRequests.Dtos;
+using Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestOfferDetail;
+using Jomla.Domain;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using Jomla.Domain;
-using Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOffer;
 
 namespace Jomla.API.Controllers;
 
@@ -108,4 +110,25 @@ public class GroupRequestOffersController(IMediator mediator,
     }
 
 
+
+
+
+    [HttpGet("{id:guid}")]
+    [Authorize(Roles = nameof(UserRole.Supplier))]
+    [Produces("application/json")]
+    [EndpointSummary("Retrieve detailed information about a supplier's offer.")]
+    [ProducesResponseType(typeof(SupplierGroupRequestOfferDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetOfferDetails(Guid id)
+    {
+        var supplierId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var result = await mediator.Send(
+            new GetGroupRequestOfferDetailQuery(
+                id,
+                supplierId));
+
+        return Ok(result);
+    }
 }
