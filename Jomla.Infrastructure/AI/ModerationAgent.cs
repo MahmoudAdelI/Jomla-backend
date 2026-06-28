@@ -43,9 +43,13 @@ public class ModerationAgent(IChatCompletionService chat, ILogger<ModerationAgen
             text += $"\nDescription: {input.Description}";
 
         parts.Add(new TextContent(text));
-
         foreach (var url in input.ImageUrls)
-            parts.Add(new ImageContent(new Uri(url)));
+        {
+            if (!string.IsNullOrWhiteSpace(url) && Uri.TryCreate(url, UriKind.Absolute, out var uri))
+                parts.Add(new ImageContent(uri));
+            else
+                _logger.LogWarning("Invalid image URL skipped: {Url}", url);
+        }
 
         history.Add(new ChatMessageContent(AuthorRole.User, parts));
 
