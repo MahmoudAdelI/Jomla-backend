@@ -60,7 +60,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
                 ExpiresAt = DateTime.UtcNow.Add(duration)
             };
 
-            // 5b. copy active acceptances from parent to child
+            // 5b. copy active acceptances from parent to child, and seal the parent responses
             var activeAcceptances = offer.Responses.Where(r => r.Response == BuyerOfferResponseType.Accepted).ToList();
             foreach (var parentResponse in activeAcceptances)
             {
@@ -73,6 +73,10 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
                     RespondedAt = parentResponse.RespondedAt
                 };
                 _db.BuyerOfferResponses.Add(childResponse);
+
+                // Mark the parent response as superseded so it is never treated as a live
+                // Accepted response again (prevents double-counting and double-cancellation).
+                parentResponse.Response = BuyerOfferResponseType.MovedToNextRound;
             }
 
             // 6. schedule expiry job for child offer
