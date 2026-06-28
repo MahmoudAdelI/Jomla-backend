@@ -95,4 +95,21 @@ public class GroupRequestOffersController(IMediator mediator,
 
         return Accepted(new { Success = true });
     }
+
+    [HttpPost("{id:guid}/offers")]
+    [Authorize(Roles = nameof(UserRole.Supplier))]
+    public async Task<IActionResult> PlaceOffer(Guid requestId,[FromBody] PlaceGroupRequestOfferCommand command)
+    {
+        command.GroupRequestId = requestId;
+
+        var offerId = await _mediator.Send(command);
+
+        return Ok(new
+        {
+            Success = true,
+            OfferId = offerId
+        });
+    }
+
+
 }
