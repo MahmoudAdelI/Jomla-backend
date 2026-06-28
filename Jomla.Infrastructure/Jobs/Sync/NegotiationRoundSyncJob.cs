@@ -18,6 +18,7 @@ namespace Jomla.Infrastructure.Jobs.Sync
         public async Task ExcuteAsync()
         {
             var offers = await _db.GroupRequestOffers
+                .AsSplitQuery()
                 .Include(o => o.Responses)
                 .Include(o => o.GroupRequest)
                     .ThenInclude(gr => gr.Participants)

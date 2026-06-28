@@ -60,7 +60,18 @@ public sealed class GetOfferByIdQueryHandler: IRequestHandler<GetOfferByIdQuery,
             committedUnits,
             targetQuantity,
             buyerCount,
-            offer.MinFallbackQuantity
+            offer.MinFallbackQuantity,
+            offer.Batches
+                .OrderByDescending(b => b.BatchNumber)
+                .Select(b => new OfferBatchDto(
+                    b.Id,
+                    b.BatchNumber,
+                    b.TargetQuantity,
+                    b.CurrentQuantity,
+                    b.Status.ToString(),
+                    b.CreatedAt,
+                    b.CompletedAt
+                )).ToList()
         );
     }
 }
