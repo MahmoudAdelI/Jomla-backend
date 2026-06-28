@@ -6,11 +6,6 @@ using Jomla.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
 {
@@ -35,7 +30,7 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
 
         public async Task Handle(CompleteBatchCommand request, CancellationToken cancellationToken)
         {
-            // Step 1: Fetch batch
+            // Step 1: Fetch batch with offer and participants
             var batch = await _context.SupplierBatches
                 .Include(b => b.Offer)
                 .Include(b => b.Participants)
@@ -43,7 +38,7 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
 
             if (batch == null) return;
 
-            // Step 2: Idempotency check
+            // Step 2: Idempotency check — if already completed, only retry failed orders
             if (batch.Status == BatchStatus.Completed)
             {
                 var hasFailedOrders = await _context.Orders
@@ -54,18 +49,18 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
             }
             else
             {
-                // Step 3: Lock batch immediately
+                // Step 3: Lock batch immediately to prevent concurrent processing
                 batch.Status = BatchStatus.Completed;
                 batch.CompletedAt = DateTime.UtcNow;
-                batch.Offer.TotalQuantityAvailable = batch.Offer.TotalQuantityAvailable - batch.CurrentQuantity;
+                batch.Offer.TotalQuantityAvailable -= batch.CurrentQuantity;
+
                 if (batch.Offer.Status == SupplierOfferStatus.Active && batch.Offer.TotalQuantityAvailable <= 0)
-                {
                     batch.Offer.Status = SupplierOfferStatus.Inactive;
-                }
+
                 await _context.SaveChangesAsync(cancellationToken);
             }
 
-            // Step 4: Resilient capture loop
+            // Step 4: Resilient capture loop — each participant captured and saved individually
             var activeParticipants = batch.Participants
                 .Where(p => p.Status == BatchParticipantStatus.Active)
                 .ToList();
@@ -77,22 +72,29 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
             {
                 try
                 {
+                    // Skip if already paid (retry safety)
                     var existingOrder = await _context.Orders
                         .FirstOrDefaultAsync(o => o.BatchId == batch.Id && o.BuyerId == participant.BuyerId, cancellationToken);
 
                     if (existingOrder != null && existingOrder.Status == OrderStatus.Paid)
                         continue;
 
-                    var captureResult = await _stripePaymentService.CapturePaymentAsync(participant.StripePaymentIntentId, cancellationToken);
+                    // Capture payment from Stripe with idempotency key to prevent double charging on retry
+                    var captureResult = await _stripePaymentService.CapturePaymentAsync(
+                        participant.StripePaymentIntentId,
+                        idempotencyKey: $"capture-{request.BatchId}-{participant.BuyerId}",
+                        cancellationToken: cancellationToken);
 
                     if (existingOrder != null)
                     {
+                        // Update existing failed order
                         existingOrder.Status = captureResult.Success ? OrderStatus.Paid : OrderStatus.Failed;
                         existingOrder.PaidAt = captureResult.Success ? DateTime.UtcNow : null;
                     }
                     else
                     {
-                        var order = new Order
+                        // Create new order
+                        _context.Orders.Add(new Order
                         {
                             BuyerId = participant.BuyerId,
                             BatchId = batch.Id,
@@ -102,47 +104,66 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                             Status = captureResult.Success ? OrderStatus.Paid : OrderStatus.Failed,
                             PaidAt = captureResult.Success ? DateTime.UtcNow : null,
                             CreatedAt = DateTime.UtcNow
-                        };
-                        _context.Orders.Add(order);
+                        });
                     }
 
+                    // Save each result immediately so retries can resume from where they stopped
                     await _context.SaveChangesAsync(cancellationToken);
 
                     if (captureResult.Success)
                         successfulBuyerIds.Add(participant.BuyerId);
+                    else
+                        hasFailure = true;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Capture failed for buyer {BuyerId} in batch {BatchId}", participant.BuyerId, batch.Id);
+                    _logger.LogError(ex, "Capture failed for buyer {BuyerId} in batch {BatchId}",
+                        participant.BuyerId, batch.Id);
                     hasFailure = true;
                 }
             }
 
+            // If any capture failed, throw so Hangfire retries the whole job
             if (hasFailure)
                 throw new Exception("One or more captures failed. Hangfire will retry.");
 
-            // Step 5: Open next batch
+            // Step 5: Open next batch for the same offer
             await _mediator.Send(new OpenBatchCommand(batch.OfferId), cancellationToken);
 
-            // Step 6: Send notifications
-            foreach (var buyerId in successfulBuyerIds)
+            // Step 6: Send notifications in bulk — single DB round trip
+            var notifications = successfulBuyerIds.Select(buyerId => new Notification
             {
-                var notification = new Notification
-                {
-                    UserId = buyerId,
-                    Type = NotificationType.BatchCompleted,
-                    Title = "Batch Completed",
-                    Body = "Your payment was captured and your order has been created successfully.",
-                    EntityId = batch.Id,
-                    EntityType = "SupplierBatch",
-                    IsRead = false,
-                    CreatedAt = DateTime.UtcNow
-                };
+                UserId = buyerId,
+                Type = NotificationType.BatchCompleted,
+                Title = "Batch Completed",
+                Body = "Your payment was captured and your order has been created successfully.",
+                EntityId = batch.Id,
+                EntityType = "SupplierBatch",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            }).ToList();
 
-                _context.Notifications.Add(notification);
+            if (notifications.Any())
+            {
+                _context.Notifications.AddRange(notifications);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                await _mediator.Publish(new NotificationCreatedEvent(buyerId, notification.Id), cancellationToken);
+                // Fire real-time event for each buyer — failure here does not affect financials
+                foreach (var notification in notifications)
+                {
+                    try
+                    {
+                        await _mediator.Publish(
+                            new NotificationCreatedEvent(notification.UserId, notification.Id),
+                            cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex,
+                            "Real-time notification failed for buyer {BuyerId} — financials unaffected",
+                            notification.UserId);
+                    }
+                }
             }
         }
     }

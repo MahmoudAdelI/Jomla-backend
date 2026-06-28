@@ -87,14 +87,22 @@ namespace Jomla.Infrastructure.Payments
         /// Called when batch completes and all participants are ready to be charged.
         /// </summary>
         public async Task<StripePaymentIntentResult> CapturePaymentAsync(
-            string paymentIntentId,
-            CancellationToken cancellationToken = default)
+      string paymentIntentId,
+      string? idempotencyKey = null,
+      CancellationToken cancellationToken = default)
         {
             try
             {
                 var options = new PaymentIntentCaptureOptions { };
+                var requestOptions = idempotencyKey is not null
+                    ? new RequestOptions { IdempotencyKey = idempotencyKey }
+                    : null;
                 var service = new PaymentIntentService();
-                var intent = await service.CaptureAsync(paymentIntentId, options, cancellationToken: cancellationToken);
+                var intent = await service.CaptureAsync(
+                    paymentIntentId,
+                    options,
+                    requestOptions,
+                    cancellationToken: cancellationToken);
 
                 return new StripePaymentIntentResult
                 {
@@ -123,7 +131,45 @@ namespace Jomla.Infrastructure.Payments
                 };
             }
         }
+        public async Task<StripePaymentIntentResult> RefundPaymentAsync(
+    string paymentIntentId,
+    CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var options = new RefundCreateOptions
+                {
+                    PaymentIntent = paymentIntentId
+                };
+                var service = new RefundService();
+                var refund = await service.CreateAsync(options, cancellationToken: cancellationToken);
 
+                return new StripePaymentIntentResult
+                {
+                    Success = true,
+                    PaymentIntentId = paymentIntentId,
+                    Status = refund.Status
+                };
+            }
+            catch (StripeException ex)
+            {
+                return new StripePaymentIntentResult
+                {
+                    Success = false,
+                    Error = ex.Message,
+                    ErrorCode = ex.StripeError?.Code ?? "unknown_error"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new StripePaymentIntentResult
+                {
+                    Success = false,
+                    Error = $"Unexpected error: {ex.Message}",
+                    ErrorCode = "internal_error"
+                };
+            }
+        }
         /// <summary>
         /// Cancel a held PaymentIntent.
         /// Called when buyer leaves batch before completion, or batch fails.
