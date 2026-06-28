@@ -25,6 +25,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
         {
             // 1. load offer with what the agent needs
             var offer = await _db.GroupRequestOffers
+                .Include(o => o.Responses)
                 .Include(o => o.GroupRequest)
                     .ThenInclude(gr => gr.Participants)
                 .FirstOrDefaultAsync(o => o.Id == request.OfferId, cancellationToken);
@@ -55,8 +56,24 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
                 RoundNumber = offer.RoundNumber + 1,
                 ParentId = offer.Id,
                 Status = GroupRequestOfferStatus.Open,
+                AcceptedQuantity = offer.AcceptedQuantity,
                 ExpiresAt = DateTime.UtcNow.Add(duration)
             };
+
+            // 5b. copy active acceptances from parent to child
+            var activeAcceptances = offer.Responses.Where(r => r.Response == BuyerOfferResponseType.Accepted).ToList();
+            foreach (var parentResponse in activeAcceptances)
+            {
+                var childResponse = new BuyerOfferResponse
+                {
+                    Offer = childOffer,
+                    BuyerId = parentResponse.BuyerId,
+                    Response = BuyerOfferResponseType.Accepted,
+                    StripePaymentIntentId = parentResponse.StripePaymentIntentId,
+                    RespondedAt = parentResponse.RespondedAt
+                };
+                _db.BuyerOfferResponses.Add(childResponse);
+            }
 
             // 6. schedule expiry job for child offer
             childOffer.JobId = _jobDispatcher.Schedule<IGroupRequestOfferExpiryJob>(job =>
