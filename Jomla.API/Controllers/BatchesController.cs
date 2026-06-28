@@ -130,7 +130,7 @@ public class BatchesController(IMediator mediator) : ControllerBase
     /// <summary>
     /// DELETE /api/batches/{batchId}/leave
     /// </summary>
-    [HttpDelete("{batchId:guid}/leave")]
+    [HttpPost("{batchId:guid}/leave")]
     [EndpointSummary("Buyer leaves a batch and releases the Stripe payment hold.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
