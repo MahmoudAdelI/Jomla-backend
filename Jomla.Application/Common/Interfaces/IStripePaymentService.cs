@@ -23,9 +23,18 @@ namespace Jomla.Application.Common.Interfaces
         /// Called when batch completes.
         /// </summary>
         Task<StripePaymentIntentResult> CapturePaymentAsync(
+             string paymentIntentId,
+             string? idempotencyKey = null,
+             CancellationToken cancellationToken = default);
+
+
+        /// <summary>
+        /// Refund a captured payment.
+        /// Called when partial capture failure occurs.
+        /// </summary>
+        Task<StripePaymentIntentResult> RefundPaymentAsync(
             string paymentIntentId,
             CancellationToken cancellationToken = default);
-
         /// <summary>
         /// Cancel a held payment.
         /// Called when buyer leaves batch or batch fails.

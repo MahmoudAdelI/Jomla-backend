@@ -23,6 +23,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
             AcceptGroupRequestOfferCommand request,
             CancellationToken cancellationToken)
         {
+            
             // Step 1: Fetch offer with group request and participants
             var offer = await _context.GroupRequestOffers
                 .Include(o => o.GroupRequest)

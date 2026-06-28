@@ -34,139 +34,251 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
 
         public async Task Handle(CompleteGroupRequestOfferCommand request, CancellationToken cancellationToken)
         {
-            // 1️⃣ بدء عملية Transaction موحدة (لضمان نجاح كل شيء أو التراجع عن كل شيء)
-            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
-            try
+            //  PHASE 1: DB Transaction (Fast — No Stripe calls)
+            // Lock the offer and create Pending orders before touching Stripe
+
+            using (var transaction = await _context.Database.BeginTransactionAsync(cancellationToken))
             {
-                // 2️⃣ جلب العرض مع عمل قفل (Lock) لمنع أي Thread آخر من معالجته بالتزامن (Concurrency Handle)
-                // بنستخدم هنا ميزة الـ Pessimistic Locking أو التأكد الصارم من الحالة لمنع الـ Race Condition
-                var offer = await _context.GroupRequestOffers
-                    .Include(o => o.Responses)
-                    .Include(o => o.GroupRequest)
-                        .ThenInclude(gr => gr.Participants)
-                    .FirstOrDefaultAsync(o => o.Id == request.OfferId, cancellationToken);
-
-                // إذا كان العرض غير موجود أو تم معالجته مسبقاً (حيث تغيرت حالته) نخرج فوراً ونلغي الـ Transaction
-                if (offer == null || offer.Status != GroupRequestOfferStatus.Open)
+                try
                 {
-                    await transaction.RollbackAsync(cancellationToken);
-                    return;
-                }
+                    // Fetch the offer with all accepted responses and active participants
+                    var offer = await _context.GroupRequestOffers
+                        .Include(o => o.Responses)
+                        .Include(o => o.GroupRequest)
+                            .ThenInclude(gr => gr.Participants)
+                        .FirstOrDefaultAsync(o => o.Id == request.OfferId, cancellationToken);
 
-                // 3️⃣ تغيير حالة العرض فوراً إلى Accepted داخل الـ Transaction لمنع أي سحب مزدوج
-                offer.Status = GroupRequestOfferStatus.Accepted;
-                await _context.SaveChangesAsync(cancellationToken);
-
-                var activeResponses = offer.Responses
-                    .Where(r => r.Response == BuyerOfferResponseType.Accepted)
-                    .ToList();
-
-                bool hasFailure = false;
-                var successfulBuyerIds = new List<Guid>();
-
-                // 4️⃣ بدء معالجة سحب الأموال (Capture) لكل المشترين
-                foreach (var response in activeResponses)
-                {
-                    var participant = offer.GroupRequest.Participants
-                        .FirstOrDefault(p => p.BuyerId == response.BuyerId && p.Status == GroupRequestParticipantStatus.Active);
-
-                    if (participant == null)
+                    // If offer is missing or already processed, exit safely (idempotency guard)
+                    if (offer == null || offer.Status != GroupRequestOfferStatus.Open)
                     {
-                        _logger.LogWarning("Buyer {BuyerId} accepted offer {OfferId} but is not an active participant", response.BuyerId, offer.Id);
-                        continue;
+                        await transaction.RollbackAsync(cancellationToken);
+                        return;
                     }
 
-                    var existingOrder = await _context.Orders
-                        .FirstOrDefaultAsync(o => o.OfferId == offer.Id && o.BuyerId == response.BuyerId, cancellationToken);
+                    // Lock the offer immediately to prevent any concurrent processing
+                    offer.Status = GroupRequestOfferStatus.Accepted;
 
-                    if (existingOrder != null && existingOrder.Status == OrderStatus.Paid)
-                        continue;
+                    var activeResponses = offer.Responses
+                        .Where(r => r.Response == BuyerOfferResponseType.Accepted)
+                        .ToList();
 
-                    if (string.IsNullOrEmpty(response.StripePaymentIntentId))
+                    foreach (var response in activeResponses)
                     {
-                        _logger.LogWarning("StripePaymentIntentId is missing for buyer {BuyerId}", response.BuyerId);
-                        continue;
-                    }
+                        // Skip if buyer is no longer an active participant
+                        var participant = offer.GroupRequest.Participants
+                            .FirstOrDefault(p => p.BuyerId == response.BuyerId
+                                              && p.Status == GroupRequestParticipantStatus.Active);
 
-                    // تنفيذ عملية السحب الفعلي من Stripe
-                    var captureResult = await _stripePaymentService.CapturePaymentAsync(response.StripePaymentIntentId, cancellationToken);
-
-                    if (existingOrder != null)
-                    {
-                        existingOrder.Status = captureResult.Success ? OrderStatus.Paid : OrderStatus.Failed;
-                        existingOrder.PaidAt = captureResult.Success ? DateTime.UtcNow : null;
-                    }
-                    else
-                    {
-                        var order = new Order
+                        if (participant == null)
                         {
-                            BuyerId = response.BuyerId,
-                            BatchId = null, // linked directly to offer, no batch link
-                            OfferId = offer.Id,
-                            Quantity = participant.Quantity,
-                            TotalAmount = participant.Quantity * offer.CurrentUnitPrice,
-                            Status = captureResult.Success ? OrderStatus.Paid : OrderStatus.Failed,
-                            PaidAt = captureResult.Success ? DateTime.UtcNow : null,
-                            CreatedAt = DateTime.UtcNow
-                        };
-                        _context.Orders.Add(order);
+                            _logger.LogWarning(
+                                "Buyer {BuyerId} accepted offer {OfferId} but is not an active participant",
+                                response.BuyerId, offer.Id);
+                            continue;
+                        }
+
+                        // Skip if payment intent is missing — cannot capture without it
+                        if (string.IsNullOrEmpty(response.StripePaymentIntentId))
+                        {
+                            _logger.LogWarning(
+                                "StripePaymentIntentId is missing for buyer {BuyerId}",
+                                response.BuyerId);
+                            continue;
+                        }
+
+                        // Check if an order already exists for this buyer on this offer (Retry safety)
+                        var existingOrder = await _context.Orders
+                            .FirstOrDefaultAsync(o => o.OfferId == offer.Id
+                                                   && o.BuyerId == response.BuyerId,
+                                                   cancellationToken);
+
+                        // Already paid — skip to avoid double charging
+                        if (existingOrder != null && existingOrder.Status == OrderStatus.Paid)
+                            continue;
+
+                        // No order yet — create one with Pending status (Stripe hasn't run yet)
+                        if (existingOrder == null)
+                        {
+                            _context.Orders.Add(new Order
+                            {
+                                BuyerId = response.BuyerId,
+                                BatchId = null,
+                                OfferId = offer.Id,
+                                Quantity = participant.Quantity,
+                                TotalAmount = participant.Quantity * offer.CurrentUnitPrice,
+                                Status = OrderStatus.Pending,
+                                CreatedAt = DateTime.UtcNow
+                            });
+                        }
+                        // Order exists but failed previously — reset to Pending for retry
+                        else if (existingOrder.Status == OrderStatus.Failed)
+                        {
+                            existingOrder.Status = OrderStatus.Pending;
+                        }
                     }
 
-                    if (captureResult.Success)
-                    {
-                        successfulBuyerIds.Add(response.BuyerId);
-                    }
-                    else
-                    {
-                        hasFailure = true;
-                    }
-                }
-
-                // 5️⃣ الحماية من الفشل الجزئي: لو أي عملية سحب فشلت، نرمي Exception ليعود السيستم للحالة الأصلية
-                if (hasFailure)
-                {
-                    throw new Exception("One or more captures failed for GroupRequestOffer. Rolling back transaction. Hangfire will retry.");
-                }
-
-                // حفظ جميع التغييرات والطلبات في الداتابيز
-                await _context.SaveChangesAsync(cancellationToken);
-
-                // 6️⃣ إغلاق الجروب ريكويست رسمياً بعد نجاح العملية المالية بالكامل
-                await _mediator.Send(new CloseGroupRequest.CloseGroupRequestCommand(offer.GroupRequestId), cancellationToken);
-
-                // تأكيد وحفظ الـ Transaction بالكامل (Commit)
-                await transaction.CommitAsync(cancellationToken);
-
-                // 7️⃣ إنشاء وإرسال الإشعارات للناجحين (تتم بره الـ Transaction عشان لو الـ Realtime علق ما يخربش الحسابات)
-                foreach (var buyerId in successfulBuyerIds)
-                {
-                    var notification = new Notification
-                    {
-                        UserId = buyerId,
-                        Type = NotificationType.GroupRequestOfferFilled,
-                        Title = "Group Request Offer Filled",
-                        Body = "Your accepted group request offer has been filled and payment was captured.",
-                        EntityId = offer.Id,
-                        EntityType = nameof(GroupRequestOffer),
-                        IsRead = false,
-                        CreatedAt = DateTime.UtcNow
-                    };
-
-                    _context.Notifications.Add(notification);
+                    // Persist the offer status change and all Pending orders to DB
                     await _context.SaveChangesAsync(cancellationToken);
 
-                    // إطلاق الجرس اللحظي للموبايل
-                    await _mediator.Publish(new NotificationCreatedEvent(buyerId, notification.Id), cancellationToken);
+                    // Commit the transaction — DB is now consistent before any Stripe calls
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    _logger.LogError(ex,
+                        "Phase 1 failed: Could not prepare orders for offer {OfferId}",
+                        request.OfferId);
+                    throw;
                 }
             }
-            catch (Exception ex)
+
+            //  PHASE 2: Stripe Captures (Outside Transaction — Safe to Retry)
+            // Each order is saved individually so retries can resume from where they stopped
+
+            // Fetch all Pending orders for this offer to process
+            var pendingOrders = await _context.Orders
+                .Where(o => o.OfferId == request.OfferId && o.Status == OrderStatus.Pending)
+                .ToListAsync(cancellationToken);
+
+            // Fetch accepted responses to get the PaymentIntentId for each buyer
+            var responses = await _context.BuyerOfferResponses
+                .Where(r => r.OfferId == request.OfferId
+                         && r.Response == BuyerOfferResponseType.Accepted)
+                .ToListAsync(cancellationToken);
+
+            bool anyCaptureFailed = false;
+            var successfulBuyerIds = new List<Guid>();
+
+            foreach (var order in pendingOrders)
             {
-                // في حال حدوث أي خطأ غير متوقع.. تراجع تام عن كل التغييرات بالداتابيز لتأمين البيانات
-                await transaction.RollbackAsync(cancellationToken);
-                _logger.LogError(ex, "Complete process failed and transaction rolled back for Offer {OfferId}", request.OfferId);
-                throw;
+                var response = responses.FirstOrDefault(r => r.BuyerId == order.BuyerId);
+
+                // Skip if no payment intent found for this buyer
+                if (response == null || string.IsNullOrEmpty(response.StripePaymentIntentId))
+                {
+                    _logger.LogWarning(
+                        "No payment intent found for buyer {BuyerId} on offer {OfferId}",
+                        order.BuyerId, request.OfferId);
+                    continue;
+                }
+
+                // Capture the actual payment from Stripe using idempotency key to prevent double charging on retry
+                var captureResult = await _stripePaymentService.CapturePaymentAsync(
+                    response.StripePaymentIntentId,
+                    idempotencyKey: $"capture-{request.OfferId}-{order.BuyerId}",
+                    cancellationToken);
+
+                if (captureResult.Success)
+                {
+                    order.Status = OrderStatus.Paid;
+                    order.PaidAt = DateTime.UtcNow;
+                    successfulBuyerIds.Add(order.BuyerId);
+                }
+                else
+                {
+                    order.Status = OrderStatus.Failed;
+                    anyCaptureFailed = true;
+                    _logger.LogWarning(
+                        "Payment capture failed for buyer {BuyerId}, offer {OfferId}: {Error}",
+                        order.BuyerId, request.OfferId, captureResult.Error);
+                }
+
+                // Save each order result immediately so retries can skip already-processed ones
+                await _context.SaveChangesAsync(cancellationToken);
             }
+
+
+            // PHASE 2B: Partial failure — refund all successful captures
+            // If any capture failed, refund everyone who was already charged
+
+            if (anyCaptureFailed)
+            {
+                _logger.LogWarning(
+                    "Partial capture failure detected for offer {OfferId}. Refunding {Count} successful captures.",
+                    request.OfferId, successfulBuyerIds.Count);
+
+                foreach (var buyerId in successfulBuyerIds)
+                {
+                    var successResponse = responses.First(r => r.BuyerId == buyerId);
+                    try
+                    {
+                        // Refund the buyer who was already charged
+                        await _stripePaymentService.RefundPaymentAsync(
+                            successResponse.StripePaymentIntentId,
+                            cancellationToken);
+
+                        // Update order status to Refunded in DB
+                        var refundedOrder = await _context.Orders
+                            .FirstOrDefaultAsync(o => o.OfferId == request.OfferId
+                                                   && o.BuyerId == buyerId,
+                                                   cancellationToken);
+                        if (refundedOrder != null)
+                        {
+                            refundedOrder.Status = OrderStatus.Refunded;
+                            refundedOrder.PaidAt = null;
+                            await _context.SaveChangesAsync(cancellationToken);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Refund itself failed — log as Critical for manual intervention
+                        _logger.LogCritical(ex,
+                            "CRITICAL: Failed to refund PaymentIntent {PaymentIntentId} for buyer {BuyerId}. Manual intervention required!",
+                            successResponse.StripePaymentIntentId, buyerId);
+                    }
+                }
+
+                throw new Exception($"One or more captures failed for offer {request.OfferId}. Successful captures have been refunded.");
+            }
+
+
+            // PHASE 3: Notifications (After everything is done successfully)
+            // Save all notifications in a single bulk insert, then fire real-time events
+
+
+            // Build all notifications at once — single DB round trip
+            var notifications = successfulBuyerIds.Select(buyerId => new Notification
+            {
+                UserId = buyerId,
+                Type = NotificationType.GroupRequestOfferFilled,
+                Title = "Group Request Offer Filled",
+                Body = "Your accepted group request offer has been filled and payment was captured.",
+                EntityId = request.OfferId,
+                EntityType = nameof(GroupRequestOffer),
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            }).ToList();
+
+            if (notifications.Any())
+            {
+                // Bulk insert — single DB round trip for all notifications
+                _context.Notifications.AddRange(notifications);
+                await _context.SaveChangesAsync(cancellationToken);
+
+                // Fire real-time event for each buyer — failure here does not affect financials
+                foreach (var notification in notifications)
+                {
+                    try
+                    {
+                        await _mediator.Publish(
+                            new NotificationCreatedEvent(notification.UserId, notification.Id),
+                            cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex,
+                            "Real-time notification failed for buyer {BuyerId} — financials unaffected",
+                            notification.UserId);
+                    }
+                }
+            }
+
+            _logger.LogInformation(
+                "Offer {OfferId} completed successfully. {Count} buyers charged.",
+                request.OfferId, successfulBuyerIds.Count);
         }
+    
     }
 }

@@ -7,7 +7,7 @@ namespace Jomla.Domain
     public enum GroupRequestOfferStatus { Open, Accepted, Countered, Expired }
     public enum BuyerOfferResponseType { Accepted, Rejected, Cancelled, MovedToNextRound }
     public enum GroupRequestAlertStatus { Pending, Responded, Ignored }
-    public enum OrderStatus { Pending, Paid, Failed }
+    public enum OrderStatus { Pending, Paid, Failed , Refunded }
     public enum BatchParticipantStatus { Active, Left }
     public enum GroupRequestParticipantStatus { Active, Left }
     public enum NotificationType
