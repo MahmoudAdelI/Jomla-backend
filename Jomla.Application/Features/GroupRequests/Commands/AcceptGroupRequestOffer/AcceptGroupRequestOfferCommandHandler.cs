@@ -4,7 +4,8 @@ using Jomla.Domain;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
-using Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequestOffer;
+using Jomla.Application.Jobs.Fulfillment;
+using Jomla.Application.Jobs.JobDispatcher;
 
 namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOffer
 {
@@ -12,11 +13,13 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
         IAppDbContext context,
         IStripePaymentService stripePaymentService,
         IMediator mediator,
+        IBackgroundJobDispatcher jobDispatcher,
         ILogger<AcceptGroupRequestOfferCommandHandler> logger) : IRequestHandler<AcceptGroupRequestOfferCommand, AcceptGroupRequestOfferResponse>
     {
         private readonly IAppDbContext _context = context;
         private readonly IStripePaymentService _stripePaymentService = stripePaymentService;
         private readonly IMediator _mediator = mediator;
+        private readonly IBackgroundJobDispatcher _jobDispatcher = jobDispatcher;
         private readonly ILogger<AcceptGroupRequestOfferCommandHandler> _logger = logger;
 
         public async Task<AcceptGroupRequestOfferResponse> Handle(
@@ -130,10 +133,9 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
 
             if (isComplete)
             {
-                // Send command to trigger completion directly
-                await _mediator.Send(
-                    new CompleteGroupRequestOfferCommand(request.OfferId),
-                    cancellationToken);
+                // Offload to background job — the accepting buyer's request must not block
+                // on all other buyers' Stripe captures completing synchronously.
+                _jobDispatcher.Enqueue<IGroupRequestOfferFillJob>(j => j.ExecuteAsync(request.OfferId));
             }
 
             return new AcceptGroupRequestOfferResponse

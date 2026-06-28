@@ -1,13 +1,15 @@
 using Hangfire;
 using Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.CancelGroupRequestOffer;
+using Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.RejectGroupRequestOffer;
+using Jomla.Application.Features.GroupRequests.Dtos;
+using Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestOffers;
+using Jomla.Domain;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using Jomla.Domain;
-using Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOffer;
 
 namespace Jomla.API.Controllers;
 
@@ -93,6 +95,8 @@ public class GroupRequestOffersController(IMediator mediator,
 
     [HttpPost("{id:guid}/offers")]
     [Authorize(Roles = nameof(UserRole.Supplier))]
+    [EndpointSummary("Place a new offer for a group request.")]
+
     public async Task<IActionResult> PlaceOffer(Guid requestId,[FromBody] PlaceGroupRequestOfferCommand command)
     {
         command.SupplierId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -107,5 +111,40 @@ public class GroupRequestOffersController(IMediator mediator,
         });
     }
 
+    //[HttpGet("{id:guid}/offers")]
+    //[Authorize]
+    //[Produces("application/json")]
+    //[EndpointSummary("Retrieve offers for a group request.")]
+    //[ProducesResponseType(typeof(List<BuyerGroupRequestOfferDto>), StatusCodes.Status200OK)]
+    //public async Task<IActionResult> GetGroupRequestOffers(Guid requestId,[FromQuery] GroupRequestOfferStatus? status)
+    //{
+    //    var result = await _mediator.Send(new GetGroupRequestOffersQuery
+    //    {
+    //        GroupRequestId = requestId,
+    //        Status = status
+    //    });
+
+    //    return Ok(result);
+    //}
+
+
+    [HttpGet("{requestId:guid}/offers")]
+    [Authorize]
+    [Produces("application/json")]
+    [EndpointSummary("Retrieve offers for a group request.")]
+    [ProducesResponseType(typeof(List<BuyerGroupRequestOfferDto>), StatusCodes.Status200OK)]
+
+    public async Task<IActionResult> GetGroupRequestOffers(
+    Guid requestId,
+    [FromQuery] GroupRequestOfferStatus? status)
+    {
+        var result = await mediator.Send(new GetGroupRequestOffersQuery
+        {
+            GroupRequestId = requestId,
+            Status = status
+        });
+
+        return Ok(result);
+    }
 
 }

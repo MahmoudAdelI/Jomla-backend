@@ -1,7 +1,7 @@
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.GroupRequests.Commands.FailGroupRequestOffer;
-using Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupRequestOffer;
+using Jomla.Application.Jobs.Fulfillment;
 using Jomla.Application.Jobs.JobDispatcher;
 using Jomla.Application.Jobs.Sync;
 using Jomla.Domain;
@@ -46,13 +46,13 @@ namespace Jomla.Application.Features.GroupRequests.Commands.ExpireGroupRequestOf
                 .Where(p => acceptedBuyerIds.Contains(p.BuyerId))
                 .Sum(r => r.Quantity);
 
-            // path A — fallback quantity met → capture
+            // path A — fallback quantity met → offload capture to a dedicated background job
+            // The indexer is enqueued from inside the fill job, after the offer is Accepted.
             var shouldCapture = offer.MinFallbackQuantity.HasValue &&
                 acceptedQuantity >= offer.MinFallbackQuantity.Value;
             if (shouldCapture)
             {
-                await _sender.Send(new CompleteGroupRequestOfferCommand(offer.Id), cancellationToken);
-                _jobDispatcher.Enqueue<INegotiationRoundIndexJob>(j => j.ExcuteAsync(offer.Id));
+                _jobDispatcher.Enqueue<IGroupRequestOfferFillJob>(j => j.ExecuteAsync(offer.Id));
                 return;
             }
          
