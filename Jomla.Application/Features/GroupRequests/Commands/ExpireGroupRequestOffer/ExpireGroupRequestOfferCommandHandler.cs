@@ -1,5 +1,5 @@
 using Jomla.Application.Common.Interfaces;
-using Jomla.Application.Features.GroupRequests.Commands.CancelGroupRequestOffer;
+using Jomla.Application.Features.GroupRequests.Commands.FailGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupRequestOffer;
 using Jomla.Application.Jobs.JobDispatcher;
@@ -61,7 +61,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.ExpireGroupRequestOf
             var floor = offer.MinUnitPrice ?? offer.UnitPrice;
             if (offer.CurrentUnitPrice <= floor)
             {
-                await _sender.Send(new CancelGroupRequestOfferCommand(offer.Id), cancellationToken);
+                await _sender.Send(new FailGroupRequestOfferCommand(offer.Id), cancellationToken);
                 offer.Status = GroupRequestOfferStatus.Expired;
                 await _db.SaveChangesAsync(cancellationToken);
                 _jobDispatcher.Enqueue<INegotiationRoundIndexJob>(j => j.ExcuteAsync(offer.Id));

@@ -107,7 +107,7 @@ namespace Jomla.API.Controllers
             return Ok(result);
         }
 
-        [HttpDelete("{id}/leave")]
+        [HttpPost("{id}/leave")]
         [Produces("application/json")]
         [EndpointSummary("Leave a group request and schedule auto-close job if quantity drops to zero")]
         [ProducesResponseType(typeof(LeaveGroupRequestResponse), StatusCodes.Status200OK)]
