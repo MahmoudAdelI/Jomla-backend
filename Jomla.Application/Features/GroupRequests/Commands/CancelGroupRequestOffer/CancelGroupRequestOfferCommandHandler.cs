@@ -3,30 +3,19 @@ using Jomla.Domain;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Jomla.Application.Features.GroupRequests.Commands.CancelGroupRequestOffer
 {
-    public class CancelGroupRequestOfferCommandHandler : IRequestHandler<CancelGroupRequestOfferCommand>
+    public class CancelGroupRequestOfferCommandHandler(
+        IAppDbContext context,
+        IStripePaymentService stripePaymentService,
+        ILogger<CancelGroupRequestOfferCommandHandler> logger) : IRequestHandler<CancelGroupRequestOfferCommand>
     {
-        private readonly IAppDbContext _context;
-        private readonly IStripePaymentService _stripePaymentService;
-        private readonly ILogger<CancelGroupRequestOfferCommandHandler> _logger;
+        private readonly IAppDbContext _context = context;
+        private readonly IStripePaymentService _stripePaymentService = stripePaymentService;
+        private readonly ILogger<CancelGroupRequestOfferCommandHandler> _logger = logger;
 
-        public CancelGroupRequestOfferCommandHandler(
-            IAppDbContext context,
-            IStripePaymentService stripePaymentService,
-            ILogger<CancelGroupRequestOfferCommandHandler> logger)
-        {
-            _context = context;
-            _stripePaymentService = stripePaymentService;
-            _logger = logger;
-        }
-            public async Task Handle(CancelGroupRequestOfferCommand request, CancellationToken cancellationToken)
+        public async Task Handle(CancelGroupRequestOfferCommand request, CancellationToken cancellationToken)
             {
                 // 1️⃣ Fetch the offer with its responses
                 var offer = await _context.GroupRequestOffers

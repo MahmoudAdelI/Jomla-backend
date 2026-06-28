@@ -3,34 +3,21 @@ using Jomla.Domain.Entities;
 using Jomla.Domain;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Jomla.Application.Features.Events;
+using Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequestOffer;
 
 namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOffer
 {
-    public class AcceptGroupRequestOfferCommandHandler : IRequestHandler<AcceptGroupRequestOfferCommand, AcceptGroupRequestOfferResponse>
+    public class AcceptGroupRequestOfferCommandHandler(
+        IAppDbContext context,
+        IStripePaymentService stripePaymentService,
+        IMediator mediator,
+        ILogger<AcceptGroupRequestOfferCommandHandler> logger) : IRequestHandler<AcceptGroupRequestOfferCommand, AcceptGroupRequestOfferResponse>
     {
-        private readonly IAppDbContext _context;
-        private readonly IStripePaymentService _stripePaymentService;
-        private readonly IMediator _mediator;
-        private readonly ILogger<AcceptGroupRequestOfferCommandHandler> _logger;
-
-        public AcceptGroupRequestOfferCommandHandler(
-            IAppDbContext context,
-            IStripePaymentService stripePaymentService,
-            IMediator mediator,
-            ILogger<AcceptGroupRequestOfferCommandHandler> logger)
-        {
-            _context = context;
-            _stripePaymentService = stripePaymentService;
-            _mediator = mediator;
-            _logger = logger;
-        }
+        private readonly IAppDbContext _context = context;
+        private readonly IStripePaymentService _stripePaymentService = stripePaymentService;
+        private readonly IMediator _mediator = mediator;
+        private readonly ILogger<AcceptGroupRequestOfferCommandHandler> _logger = logger;
 
         public async Task<AcceptGroupRequestOfferResponse> Handle(
             AcceptGroupRequestOfferCommand request,
@@ -142,9 +129,9 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
 
             if (isComplete)
             {
-                // Publish event to trigger completion
-                await _mediator.Publish(
-                    new OfferAcceptedCompleteEvent(request.OfferId),
+                // Send command to trigger completion directly
+                await _mediator.Send(
+                    new CompleteGroupRequestOfferCommand(request.OfferId),
                     cancellationToken);
             }
 
