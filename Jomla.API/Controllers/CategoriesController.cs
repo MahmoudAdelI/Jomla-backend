@@ -1,8 +1,9 @@
-﻿using Jomla.Application.Features.Categories.Commands.CreateCategory;
+using Jomla.Application.Features.Categories.Commands.CreateCategory;
 using Jomla.Application.Features.Categories.Commands.DeleteCategory;
 using Jomla.Application.Features.Categories.Commands.UpdateCategory;
 using Jomla.Application.Features.Categories.Queries.GetCategoryById;
 using Jomla.Application.Features.Categories.Query;
+using Jomla.Application.Features.Categories.Dto;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -21,6 +22,23 @@ namespace Jomla.API.Controllers
         public CategoriesController(IMediator mediator)
         {
             _mediator = mediator;
+        }
+
+        [HttpGet("detect")]
+        [ProducesResponseType(typeof(CategoryDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DetectCategory([FromQuery] string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                return BadRequest("Title is required.");
+
+            var category = await _mediator.Send(new DetectCategoryQuery(title));
+
+            if (category is null)
+                return NotFound();
+
+            return Ok(category);
         }
 
         [HttpPost]
