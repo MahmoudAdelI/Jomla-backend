@@ -33,6 +33,13 @@ namespace Jomla.Application.Common.Interfaces
         Task<StripePaymentIntentResult> CancelPaymentAsync(
             string paymentIntentId,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Retrieve PaymentIntent details from Stripe.
+        /// </summary>
+        Task<StripePaymentIntentResult> GetPaymentIntentAsync(
+            string paymentIntentId,
+            CancellationToken cancellationToken = default);
     }
 
     /// <summary>

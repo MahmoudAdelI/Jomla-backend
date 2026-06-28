@@ -109,56 +109,7 @@ namespace Jomla.Application.Features.Batches.Commands
                 };
             }
 
-            // 7️⃣ Reactivate existing record OR create new participant
-            if (existingParticipant != null)
-            {
-                existingParticipant.Quantity = request.Quantity;
-                existingParticipant.StripePaymentIntentId = paymentResult.PaymentIntentId;
-                existingParticipant.Status = BatchParticipantStatus.Active;
-                existingParticipant.JoinedAt = DateTime.UtcNow;
-            }
-            else
-            {
-                _context.BatchParticipants.Add(new BatchParticipant
-                {
-                    BatchId = request.BatchId,
-                    BuyerId = request.BuyerId,
-                    Quantity = request.Quantity,
-                    StripePaymentIntentId = paymentResult.PaymentIntentId,
-                    Status = BatchParticipantStatus.Active,
-                    JoinedAt = DateTime.UtcNow
-                });
-            }
-
-            // 8️⃣ Update batch quantity
-            batch.CurrentQuantity += request.Quantity;
-
-            // 9️⃣ Save changes
-            try
-            {
-                await _context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                await _stripePaymentService.CancelPaymentAsync(paymentResult.PaymentIntentId, cancellationToken);
-
-                return new JoinBatchResponse
-                {
-                    Success = false,
-                    Error = "The batch was updated by another request. Please try again.",
-                    ErrorCode = "CONCURRENCY_CONFLICT",
-                    StatusCode = 409
-                };
-            }
-
-            // 🔟 Trigger completion ONLY if batch is full
-            if (batch.CurrentQuantity >= batch.TargetQuantity)
-            {
-                _jobDispatcher.Enqueue<IBatchCompletionJob>(
-                    j => j.ExecuteAsync(batch.Id));
-            }
-
-            // 1️⃣1️⃣ Return response
+            // 7️⃣ Return response for client-side Stripe confirmation
             return new JoinBatchResponse
             {
                 Success = true,

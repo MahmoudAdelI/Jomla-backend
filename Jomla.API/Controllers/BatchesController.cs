@@ -65,6 +65,41 @@ public class BatchesController(IMediator mediator) : ControllerBase
     }
 
     /// <summary>
+    /// POST /api/batches/{batchId}/confirm-join
+    /// </summary>
+    [HttpPost("{batchId:guid}/confirm-join")]
+    [EndpointSummary("Confirms user joining a batch after successful Stripe payment hold.")]
+    [ProducesResponseType(typeof(ConfirmJoinBatchResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ConfirmJoinBatch(Guid batchId, [FromBody] ConfirmJoinBatchRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request?.PaymentIntentId))
+            return BadRequest(new { success = false, error = "PaymentIntentId is required." });
+
+        if (request.Quantity <= 0)
+            return BadRequest(new { success = false, error = "Quantity must be greater than 0." });
+
+        var buyerId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var result = await _mediator.Send(new ConfirmJoinBatchCommand
+        {
+            BatchId = batchId,
+            BuyerId = buyerId,
+            Quantity = request.Quantity,
+            PaymentIntentId = request.PaymentIntentId
+        });
+
+        if (!result.Success)
+        {
+            if (result.StatusCode.HasValue)
+                return StatusCode(result.StatusCode.Value, result);
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// PUT /api/batches/{batchId}/quantity
     /// </summary>
     [HttpPut("{batchId:guid}/quantity")]
@@ -118,6 +153,12 @@ public class BatchesController(IMediator mediator) : ControllerBase
 
 public class JoinBatchRequest
 {
+    public int Quantity { get; set; }
+}
+
+public class ConfirmJoinBatchRequest
+{
+    public string PaymentIntentId { get; set; }
     public int Quantity { get; set; }
 }
 
