@@ -1,7 +1,7 @@
-﻿using Hangfire;
-using Jomla.Application.Common.Exceptions;
+﻿using Jomla.Application.Common.Exceptions;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Jobs.Expiry;
+using Jomla.Application.Jobs.JobDispatcher;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
@@ -11,11 +11,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOffer;
 
-public sealed class PlaceGroupRequestOfferHandler(IAppDbContext db,IIdentityService identityService,UserManager<AppUser> userManager,IBackgroundJobClient backgroundJobClient): IRequestHandler<PlaceGroupRequestOfferCommand, Guid>
+public sealed class PlaceGroupRequestOfferHandler(IAppDbContext db,UserManager<AppUser> userManager, IBackgroundJobDispatcher backgroundJobDispatcher) : IRequestHandler<PlaceGroupRequestOfferCommand, Guid>
 {
     public async Task<Guid> Handle(PlaceGroupRequestOfferCommand request,CancellationToken cancellationToken)
     {
-        var supplierId = identityService.GetCurrentUserId();
+        var supplierId = request.SupplierId;
 
         var supplier = await userManager.Users
             .FirstOrDefaultAsync(
@@ -28,18 +28,10 @@ public sealed class PlaceGroupRequestOfferHandler(IAppDbContext db,IIdentityServ
         if (!await userManager.IsInRoleAsync(supplier, nameof(UserRole.Supplier)))
             throw new UnauthorizedAccessException();
 
-        var groupRequest = await db.GroupRequests
-    .Include(x => x.Participants)
-    .Include(x => x.Alerts)
-    .FirstOrDefaultAsync(
-        x => x.Id == request.GroupRequestId,
-        cancellationToken);
-
+        var groupRequest = await db.GroupRequests.Include(x => x.Participants).Include(x => x.Alerts).FirstOrDefaultAsync(
+                 x => x.Id == request.GroupRequestId,cancellationToken);
         if (groupRequest is null)
             throw new NotFoundException(nameof(GroupRequest), request.GroupRequestId);
-
-
-       
 
 
         if (groupRequest.Status != GroupRequestStatus.Active)
@@ -60,15 +52,10 @@ public sealed class PlaceGroupRequestOfferHandler(IAppDbContext db,IIdentityServ
         if (groupRequest.InactiveSince.HasValue)
         {
             throw new ValidationException("This group request is inactive.");
-
-
-
-
         }
 
 
-        var participant = groupRequest.Participants
-    .FirstOrDefault(x => x.BuyerId == supplierId);
+        var participant = groupRequest.Participants .FirstOrDefault(x => x.BuyerId == supplierId);
 
         if (participant is not null)
         {
@@ -84,8 +71,6 @@ public sealed class PlaceGroupRequestOfferHandler(IAppDbContext db,IIdentityServ
 
         if (alreadyPlaced)
             throw new ConflictException("You already have an active offer.");
-
-
 
 
         var offer = new GroupRequestOffer
@@ -123,51 +108,40 @@ public sealed class PlaceGroupRequestOfferHandler(IAppDbContext db,IIdentityServ
 
         db.GroupRequestOffers.Add(offer);
 
-        var alert = new GroupRequestAlert
+        
+        foreach (var participan in groupRequest.Participants)
         {
-            GroupRequestId = groupRequest.Id,
-            SupplierId = supplierId,
-            Status = GroupRequestAlertStatus.Pending,
-            NotifiedAt = DateTime.UtcNow
-        };
+            db.Notifications.Add(new Notification
+            {
+                Id = Guid.NewGuid(),
 
-        db.GroupRequestAlerts.Add(alert);
+                UserId = participan.BuyerId,
 
-        var notification = new Notification
-        {
-            Id = Guid.NewGuid(),
+                Type = NotificationType.GroupRequestOfferPlaced,
 
-            UserId = groupRequest.InitiatorId,
+                Title = "New Offer Placed",
 
-            Type = NotificationType.GroupRequestOfferPlaced,
+                Body =
+                    $"{supplier.FirstName} {supplier.LastName} placed a new offer on a group request you're participating in.",
 
-            Title = "New Offer",
+                EntityId = offer.Id,
 
-            Body = $"{supplier.FirstName} {supplier.LastName} placed an offer on your group request.",
+                EntityType = nameof(GroupRequestOffer),
 
-            EntityId = offer.Id,
+                IsRead = false,
 
-            EntityType = nameof(GroupRequestOffer),
-
-            IsRead = false,
-
-            CreatedAt = DateTime.UtcNow
-        };
-
-        db.Notifications.Add(notification);
+                CreatedAt = DateTime.UtcNow
+            });
+        }
 
         await db.SaveChangesAsync(cancellationToken);
 
-        var jobId = backgroundJobClient.Schedule<IGroupRequestOfferExpiryJob>(x => x.ExcuteAsync(offer.Id),offer.ExpiresAt);
+        var jobId = backgroundJobDispatcher.Schedule<IGroupRequestOfferExpiryJob>(x => x.ExcuteAsync(offer.Id),offer.ExpiresAt);
 
         offer.JobId = jobId;
 
         await db.SaveChangesAsync(cancellationToken);
 
         return offer.Id;
-
-
-
-
     }
 }
