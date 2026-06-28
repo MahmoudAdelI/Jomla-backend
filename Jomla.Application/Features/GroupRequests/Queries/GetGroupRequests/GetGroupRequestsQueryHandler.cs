@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.GroupRequests.Dtos;
 using Jomla.Domain;
 using MediatR;
@@ -22,11 +22,18 @@ namespace Jomla.Application.Features.GroupRequests.Queries.GetGroupRequests
 
         public async Task<PagedResult<GroupRequestListItemDto>> Handle(GetGroupRequestsQuery request, CancellationToken cancellationToken)
         {
+            var targetStatus = GroupRequestStatus.Active;
+            if (!string.IsNullOrWhiteSpace(request.Status) &&
+                Enum.TryParse<GroupRequestStatus>(request.Status, out var parsedStatus))
+            {
+                targetStatus = parsedStatus;
+            }
+
             var query = _context.GroupRequests
                 .Include(r => r.Category)
                 .Include(r => r.Participants)
-                .Where(r => r.Status == GroupRequestStatus.Active
-                         && r.ModerationStatus == ModerationStatus.Approved)
+                .Where(r => r.ModerationStatus == ModerationStatus.Approved
+                         && r.Status == targetStatus)
                 .AsQueryable();
 
             // Filtering
@@ -35,10 +42,6 @@ namespace Jomla.Application.Features.GroupRequests.Queries.GetGroupRequests
 
             if (!string.IsNullOrWhiteSpace(request.TitleSearch))
                 query = query.Where(r => r.Title.Contains(request.TitleSearch));
-
-            if (!string.IsNullOrWhiteSpace(request.Status) &&
-                Enum.TryParse<GroupRequestStatus>(request.Status, out var status))
-                query = query.Where(r => r.Status == status);
 
             // Total count
             var totalCount = await query.CountAsync(cancellationToken);

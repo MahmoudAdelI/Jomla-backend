@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Jomla.Application.Features.Offers.Commands.CreateOffer;
 using System;
 using System.Collections.Generic;
@@ -12,6 +12,13 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CreateGroupRequest
     {
         public CreateGroupRequestCommandValidator()
         {
+            RuleFor(x => x.Title)
+                .NotEmpty().WithMessage("Title is required.")
+                .MaximumLength(100).WithMessage("Title must not exceed 100 characters.");
+
+            RuleFor(x => x.Quantity)
+                .GreaterThan(0).WithMessage("Quantity must be greater than zero.");
+
             RuleFor(x => x.Images)
                 .Must(images => images!.Count <= 10).WithMessage("You may upload up to 10 images.")
                 .When(x => x.Images is not null);
@@ -21,9 +28,6 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CreateGroupRequest
                 .Must(file => new[] { "image/jpeg", "image/png", "image/webp" }.Contains(file.ContentType))
                     .WithMessage("Only JPEG, PNG, and WebP images are accepted.")
                 .When(x => x.Images is not null);
-
-
-
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Jobs.JobDispatcher;
 using Jomla.Application.Jobs.Matching;
 using Jomla.Domain;
@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Jomla.Application.Features.GroupRequests.Commands.ReactivateGroupRequest;
 
 namespace Jomla.Application.Features.GroupRequests.Commands.JoinGroupRequest
 {
@@ -17,17 +18,21 @@ namespace Jomla.Application.Features.GroupRequests.Commands.JoinGroupRequest
     {
         private readonly IAppDbContext _context;
         private readonly IBackgroundJobDispatcher _jobDispatcher;
+        private readonly IMediator _mediator;
 
         public JoinGroupRequestCommandHandler(
             IAppDbContext context,
-            IBackgroundJobDispatcher jobDispatcher)
+            IBackgroundJobDispatcher jobDispatcher,
+            IMediator mediator)
         {
             _context = context;
             _jobDispatcher = jobDispatcher;
+            _mediator = mediator;
         }
 
         public async Task<JoinGroupRequestResponse> Handle(JoinGroupRequestCommand request, CancellationToken cancellationToken)
         {
+            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
             var groupRequest = await _context.GetGroupRequestWithLockAsync(request.GroupRequestId, cancellationToken);
 
@@ -44,41 +49,55 @@ namespace Jomla.Application.Features.GroupRequests.Commands.JoinGroupRequest
             if (groupRequest.ModerationStatus != ModerationStatus.Approved)
                 return new JoinGroupRequestResponse(false, "Group request is not approved yet.");
 
-            
-            var alreadyJoined = await _context.GroupRequestParticipants
-                .AnyAsync(p => p.GroupRequestId == request.GroupRequestId
-                            && p.BuyerId == request.BuyerId
-                            && p.Status == GroupRequestParticipantStatus.Active, cancellationToken);
+            var existingParticipant = await _context.GroupRequestParticipants
+                .FirstOrDefaultAsync(p => p.GroupRequestId == request.GroupRequestId
+                                       && p.BuyerId == request.BuyerId, cancellationToken);
 
-            if (alreadyJoined)
-                return new JoinGroupRequestResponse(false, "You already joined this group request.");
-
-            
-            if (groupRequest.Status == GroupRequestStatus.Inactive)
+            if (existingParticipant != null)
             {
-                groupRequest.Status = GroupRequestStatus.Active;
-                groupRequest.InactiveSince = null;
+                if (existingParticipant.Status == GroupRequestParticipantStatus.Active)
+                {
+                    return new JoinGroupRequestResponse(false, "You already joined this group request.");
+                }
+
+                // User is rejoining: update existing record
+                existingParticipant.Status = GroupRequestParticipantStatus.Active;
+                existingParticipant.Quantity = request.Quantity;
+                existingParticipant.JoinedAt = DateTime.UtcNow; // Explicitly set timestamp on update (defaults only run on INSERT)
+            }
+            else
+            {
+                // Create new participant record (JoinedAt is database-generated via default constraint)
+                var participant = new GroupRequestParticipant
+                {
+                    GroupRequestId = request.GroupRequestId,
+                    BuyerId = request.BuyerId,
+                    Quantity = request.Quantity,
+                    Status = GroupRequestParticipantStatus.Active
+                };
+
+                _context.GroupRequestParticipants.Add(participant);
             }
 
-           
+            var wasInactive = groupRequest.Status == GroupRequestStatus.Inactive;
+
             groupRequest.CurrentQuantity += request.Quantity;
 
-            
-            var participant = new GroupRequestParticipant
+            if (wasInactive)
             {
-                GroupRequestId = request.GroupRequestId,
-                BuyerId = request.BuyerId,
-                Quantity = request.Quantity,
-                Status = GroupRequestParticipantStatus.Active,
-                JoinedAt = DateTime.UtcNow
-            };
+                // Delegate reactivation to ReactivateGroupRequestCommand which enqueues its own matching job
+                await _mediator.Send(new ReactivateGroupRequestCommand(request.GroupRequestId), cancellationToken);
+            }
+            else
+            {
+                await _context.SaveChangesAsync(cancellationToken);
 
-            _context.GroupRequestParticipants.Add(participant);
-            await _context.SaveChangesAsync(cancellationToken);
+                // Fire the SupplierMatchingJob
+                _jobDispatcher.Enqueue<ISupplierMatchingJob>(j =>
+                    j.ExecuteAsync(request.GroupRequestId, groupRequest.CategoryId, groupRequest.CurrentQuantity));
+            }
 
-            //  Fire الـSupplierMatchingJob
-            _jobDispatcher.Enqueue<ISupplierMatchingJob>(j =>
-                j.ExecuteAsync(request.GroupRequestId, groupRequest.CategoryId, groupRequest.CurrentQuantity));
+            await transaction.CommitAsync(cancellationToken);
 
             return new JoinGroupRequestResponse(true, null);
         }

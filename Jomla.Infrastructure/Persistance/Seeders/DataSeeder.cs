@@ -146,6 +146,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             var homeKitchen = new Category { Id = Guid.NewGuid(), Name = "Home & Kitchen" };
             var officeSupplies = new Category { Id = Guid.NewGuid(), Name = "Office Supplies" };
             var fashion = new Category { Id = Guid.NewGuid(), Name = "Fashion & Apparel" };
+            var other = new Category { Id = Guid.NewGuid(), Name = "Other" };
 
             // Level 2 Subcategories under Electronics & Appliances
             var laptops = new Category { Id = Guid.NewGuid(), Name = "Laptops", ParentId = electronics.Id };
@@ -180,7 +181,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
 
             var categories = new List<Category>
             {
-                electronics, supermarket, homeKitchen, officeSupplies, fashion,
+                electronics, supermarket, homeKitchen, officeSupplies, fashion, other,
                 laptops, smartphones, largeAppliances, smallAppliances, computerAccessories, cameras,
                 beverages, snacksSweets, pantryStaples, babyCare,
                 furniture, bedding, homeDecor, cookwareDining,
