@@ -1,10 +1,11 @@
+using CloudinaryDotNet.Actions;
 using Jomla.Application.Features.Offers.Commands.CreateOffer;
 using Jomla.Application.Features.Offers.Commands.DeleteOffer;
 using Jomla.Application.Features.Offers.Commands.UpdateOffer;
 using Jomla.Application.Features.Offers.Queries.GetAllOffers;
 using Jomla.Application.Features.Offers.Queries.GetMyOffers;
 using Jomla.Application.Features.Offers.Queries.GetOfferById;
-using Jomla.Domain.Constants;
+using Jomla.Domain;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +20,7 @@ public class OffersController(IMediator mediator) : ControllerBase
     private readonly IMediator _mediator = mediator;
 
     [HttpPost]
-    [Authorize(Roles = Roles.Supplier)]
+    [Authorize(Roles = nameof(UserRole.Supplier))]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> Create(
         [FromForm] CreateOfferCommand command)
@@ -35,10 +36,10 @@ public class OffersController(IMediator mediator) : ControllerBase
 
 
     [HttpGet]
-    public async Task<IActionResult> GetAllOffers()
+    public async Task<IActionResult> GetAllOffers(
+        [FromQuery] GetAllOffersQuery query)
     {
-        var result = await _mediator.Send(
-            new GetAllOffersQuery());
+        var result = await mediator.Send(query);
 
         return Ok(result);
     }
@@ -53,7 +54,7 @@ public class OffersController(IMediator mediator) : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = Roles.Supplier)]
+    [Authorize(Roles = nameof(UserRole.Supplier))]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> Update(
     Guid id,
@@ -71,7 +72,7 @@ public class OffersController(IMediator mediator) : ControllerBase
 
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = Roles.Supplier)]
+    [Authorize(Roles = nameof(UserRole.Supplier))]
     public async Task<IActionResult> Delete(Guid id)
     {
         var result = await _mediator.Send(
@@ -84,11 +85,11 @@ public class OffersController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("my-offers")]
-    [Authorize(Roles = Roles.Supplier)]
-    public async Task<IActionResult> GetMyOffers()
+    [Authorize(Roles = nameof(UserRole.Supplier))]
+    public async Task<IActionResult> GetMyOffers(
+        [FromQuery] GetMyOffersQuery query)
     {
-        var result = await _mediator.Send(
-            new GetMyOffersQuery());
+        var result = await mediator.Send(query);
 
         return Ok(result);
     }

@@ -1,5 +1,7 @@
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Notifications;
+using Jomla.Application.Jobs.JobDispatcher;
+using Jomla.Application.Jobs.Matching;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
@@ -11,11 +13,13 @@ namespace Jomla.Application.Features.GroupRequests.Commands.ModerateGroupRequest
     public class ModerateGroupRequestCommandHandler(
         IAppDbContext db,
         IModerationAgent moderation,
-        IMediator mediator) : IRequestHandler<ModerateGroupRequestCommand>
+        IMediator mediator,
+        IBackgroundJobDispatcher jobDispatcher) : IRequestHandler<ModerateGroupRequestCommand>
     {
         private readonly IAppDbContext _db = db;
         private readonly IModerationAgent _moderation = moderation;
         private readonly IMediator _mediator = mediator;
+        private readonly IBackgroundJobDispatcher _jobDispatcher = jobDispatcher;
 
         public async Task Handle(ModerateGroupRequestCommand request, CancellationToken cancellationToken)
         {
@@ -60,6 +64,12 @@ namespace Jomla.Application.Features.GroupRequests.Commands.ModerateGroupRequest
 
             _db.Notifications.Add(notification);
             await _db.SaveChangesAsync(cancellationToken);
+
+            if (result.IsApproved)
+            {
+                _jobDispatcher.Enqueue<ISupplierMatchingJob>(j =>
+                    j.ExecuteAsync(groupRequest.Id, groupRequest.CategoryId, groupRequest.CurrentQuantity));
+            }
 
             await _mediator.Publish(new NotificationCreatedEvent(notification.UserId, notification.Id), cancellationToken);
         }

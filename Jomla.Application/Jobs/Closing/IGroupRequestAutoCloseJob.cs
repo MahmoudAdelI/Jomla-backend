@@ -1,7 +1,7 @@
-﻿namespace Jomla.Application.Jobs.Closing
+namespace Jomla.Application.Jobs.Closing
 {
     public interface IGroupRequestAutoCloseJob
     {
-        Task ExcuteAsync(Guid groupRequestId);
+        Task ExecuteAsync(Guid groupRequestId);
     }
 }

@@ -11,7 +11,7 @@ namespace Jomla.Application.Features.GroupRequests.Dtos
      Guid Id,
      string Title,
      string? Description,
-     string? ImageUrls,
+     List<string> ImageUrls,
      int CurrentQuantity,
      string Status,
      string ModerationStatus,

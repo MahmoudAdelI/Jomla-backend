@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Jomla.Application.Features.GroupRequests.Queries
@@ -32,11 +33,15 @@ namespace Jomla.Application.Features.GroupRequests.Queries
             if (groupRequest == null)
                 return null;
 
+            var imageUrlsList = string.IsNullOrEmpty(groupRequest.ImageUrls)
+                ? new List<string>()
+                : JsonSerializer.Deserialize<List<string>>(groupRequest.ImageUrls) ?? new List<string>();
+
             return new GroupRequestDetailDto(
                 groupRequest.Id,
                 groupRequest.Title,
                 groupRequest.Description,
-                groupRequest.ImageUrls,
+                imageUrlsList,
                 groupRequest.CurrentQuantity,
                 groupRequest.Status.ToString(),
                 groupRequest.ModerationStatus.ToString(),
