@@ -4,6 +4,8 @@ using Jomla.Application.Features.GroupRequests.Commands.CancelGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.ExpireGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.LeaveGroupRequestOffer;
+using Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOffer;
+using Jomla.Domain;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -83,4 +85,21 @@ public class GroupRequestOffersController(IMediator mediator,
 
         return Accepted(new { Success = true });
     }
+
+    [HttpPost("{id:guid}/offers")]
+    [Authorize(Roles = nameof(UserRole.Supplier))]
+    public async Task<IActionResult> PlaceOffer(Guid requestId,[FromBody] PlaceGroupRequestOfferCommand command)
+    {
+        command.GroupRequestId = requestId;
+
+        var offerId = await _mediator.Send(command);
+
+        return Ok(new
+        {
+            Success = true,
+            OfferId = offerId
+        });
+    }
+
+
 }
