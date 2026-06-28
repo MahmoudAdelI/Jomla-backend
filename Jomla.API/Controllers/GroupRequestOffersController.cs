@@ -1,18 +1,13 @@
 using Hangfire;
 using Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.CancelGroupRequestOffer;
-using Jomla.Application.Features.GroupRequests.Commands.FailGroupRequestOffer;
-using Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequestOffer;
-using Jomla.Application.Features.GroupRequests.Commands.ExpireGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.RejectGroupRequestOffer;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Security.Claims;
-using System.Threading.Tasks;
-using System.Threading;
+using Jomla.Domain;
+using Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOffer;
 
 namespace Jomla.API.Controllers;
 
@@ -95,4 +90,22 @@ public class GroupRequestOffersController(IMediator mediator,
 
         return Accepted(new { Success = true });
     }
+
+    [HttpPost("{id:guid}/offers")]
+    [Authorize(Roles = nameof(UserRole.Supplier))]
+    public async Task<IActionResult> PlaceOffer(Guid requestId,[FromBody] PlaceGroupRequestOfferCommand command)
+    {
+        command.SupplierId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        command.GroupRequestId = requestId;
+
+        var offerId = await _mediator.Send(command);
+
+        return Ok(new
+        {
+            Success = true,
+            OfferId = offerId
+        });
+    }
+
+
 }
