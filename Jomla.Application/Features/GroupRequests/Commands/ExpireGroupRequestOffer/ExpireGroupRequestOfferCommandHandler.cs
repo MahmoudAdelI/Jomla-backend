@@ -47,12 +47,12 @@ namespace Jomla.Application.Features.GroupRequests.Commands.ExpireGroupRequestOf
                 .Sum(r => r.Quantity);
 
             // path A — fallback quantity met → offload capture to a dedicated background job
+            // The indexer is enqueued from inside the fill job, after the offer is Accepted.
             var shouldCapture = offer.MinFallbackQuantity.HasValue &&
                 acceptedQuantity >= offer.MinFallbackQuantity.Value;
             if (shouldCapture)
             {
                 _jobDispatcher.Enqueue<IGroupRequestOfferFillJob>(j => j.ExecuteAsync(offer.Id));
-                _jobDispatcher.Enqueue<INegotiationRoundIndexJob>(j => j.ExcuteAsync(offer.Id));
                 return;
             }
          
