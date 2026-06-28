@@ -1,12 +1,14 @@
-﻿using Jomla.Application.Jobs.Fulfillment;
+using Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequestOffer;
+using Jomla.Application.Jobs.Fulfillment;
+using MediatR;
 
 namespace Jomla.Infrastructure.Jobs.Fulfillment
 {
-    public class GroupRequestOfferFillJob : IGroupRequestOfferFillJob
+    public class GroupRequestOfferFillJob(ISender sender) : IGroupRequestOfferFillJob
     {
-        public Task ExcuteAsync()
+        public async Task ExecuteAsync(Guid offerId)
         {
-            throw new NotImplementedException();
+            await sender.Send(new CompleteGroupRequestOfferCommand(offerId));
         }
     }
 }
