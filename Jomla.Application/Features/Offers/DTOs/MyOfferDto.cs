@@ -16,6 +16,7 @@ namespace Jomla.Application.Features.Offers.DTOs
         int TotalQuantityAvailable,
         int CommittedUnits,
         int BatchTargetQuantity,
+        List<string> Images,
         Guid? ActiveBatchId,
         int? ActiveBatchNumber,
         DateTime CreatedAt,

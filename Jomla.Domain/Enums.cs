@@ -25,4 +25,11 @@ namespace Jomla.Domain
         OfferCountered,
     }
     public enum ModerationStatus { Pending, Approved, Flagged }
+
+    public enum OfferSortBy{ CreatedAt,
+        Title,
+        Price,
+        Discount,
+        ExpiresAt
+    }
 }

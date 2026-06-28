@@ -1,49 +1,93 @@
+using Jomla.Application.Common.Extensions;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Offers.DTOs;
+using Jomla.Domain;
+using Jomla.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Jomla.Domain;
+using System.Text.Json;
 
 namespace Jomla.Application.Features.Offers.Queries.GetMyOffers;
 
-public sealed class GetMyOffersQueryHandler(IAppDbContext db,IIdentityService identityService): IRequestHandler<GetMyOffersQuery, List<MyOfferDto>>
+public sealed class GetMyOffersQueryHandler(
+    IAppDbContext db,
+    IIdentityService identityService)
+    : IRequestHandler<GetMyOffersQuery, MyOffersPagedResponse>
 {
-    public async Task<List<MyOfferDto>> Handle(
+    public async Task<MyOffersPagedResponse> Handle(
         GetMyOffersQuery request,
         CancellationToken cancellationToken)
     {
         var supplierId = identityService.GetCurrentUserId();
 
-        if (supplierId == Guid.Empty)
-            throw new UnauthorizedAccessException();
-
-        var offers = await db.SupplierOffers
+        IQueryable<SupplierOffer> query = db.SupplierOffers
+            .AsNoTracking()
             .Include(x => x.Batches)
-            .Where(x => x.SupplierId == supplierId)
-            .OrderByDescending(x => x.CreatedAt)
-            .ToListAsync(cancellationToken);
+            .Where(x => x.SupplierId == supplierId);
 
-        return offers.Select(x => {
-            var activeBatch = x.Batches.FirstOrDefault(b => b.Status == BatchStatus.Open);
-            var committedUnits = activeBatch?.CurrentQuantity ?? 0;
-            var targetQuantity = activeBatch?.TargetQuantity ?? x.BatchTargetQuantity;
-            var activeBatchId = activeBatch?.Id;
-            var activeBatchNumber = activeBatch?.BatchNumber;
+        query = query
+            .ApplySearch(request.Search)
+            .ApplyCategoryFilter(request.CategoryId)
+            .ApplyStatusFilter(request.Status);
 
-            return new MyOfferDto(
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        query = query
+            .ApplySorting(request.SortBy, request.Descending)
+            .ApplyPagination(request.PageNumber, request.PageSize);
+
+        var offers = await query
+            .Select(x => new MyOfferDto(
                 x.Id,
                 x.Title,
                 x.UnitPrice,
                 x.DiscountPercentage,
                 x.Status,
                 x.TotalQuantityAvailable,
-                committedUnits,
-                targetQuantity,
-                activeBatchId,
-                activeBatchNumber,
+                x.Batches
+                    .Where(b => b.Status == BatchStatus.Open)
+                    .Sum(b => b.CurrentQuantity),
+                x.BatchTargetQuantity,
+                x.ImageUrls == null
+                    ? new List<string>()
+                    : JsonSerializer.Deserialize<List<string>>(x.ImageUrls, (JsonSerializerOptions?)null)!,
+                x.Batches
+                    .Where(b => b.Status == BatchStatus.Open)
+                    .Select(b => (Guid?)b.Id)
+                    .FirstOrDefault(),
+                x.Batches
+                    .Where(b => b.Status == BatchStatus.Open)
+                    .Select(b => (int?)b.BatchNumber)
+                    .FirstOrDefault(),
                 x.CreatedAt,
                 x.ExpiresAt
-            );
-        }).ToList();
+            ))
+            .ToListAsync(cancellationToken);
+
+        return new MyOffersPagedResponse
+        {
+            Items = offers,
+            PageNumber = request.PageNumber ?? 1,
+            PageSize = request.PageSize ?? totalCount,
+            TotalCount = totalCount,
+            TotalPages = request.PageNumber.HasValue
+                ? (int)Math.Ceiling((double)totalCount / request.PageSize!.Value)
+                : 1,
+
+            ActiveOffersCount = await db.SupplierOffers.CountAsync(
+                x => x.SupplierId == supplierId &&
+                     x.Status == SupplierOfferStatus.Active,
+                cancellationToken),
+
+            ExpiredOffersCount = await db.SupplierOffers.CountAsync(
+                x => x.SupplierId == supplierId &&
+                     x.Status == SupplierOfferStatus.Expired,
+                cancellationToken),
+
+            PendingModerationCount = await db.SupplierOffers.CountAsync(
+                x => x.SupplierId == supplierId &&
+                     x.ModerationStatus == ModerationStatus.Pending,
+                cancellationToken)
+        };
     }
 }
