@@ -22,7 +22,8 @@ public sealed class GetAllOffersQueryHandler(
             .AsNoTracking()
             .Include(x => x.Category)
             .Include(x => x.Supplier)
-            .Include(x => x.Batches);
+            .Include(x => x.Batches)
+                .ThenInclude(b => b.Participants);
 
         query = query
             .ApplySearch(request.Search)
@@ -35,8 +36,15 @@ public sealed class GetAllOffersQueryHandler(
             .ApplySorting(request.SortBy, request.Descending)
             .ApplyPagination(request.PageNumber, request.PageSize);
 
-        var offers = await query
-            .Select(x => new OfferDto(
+        var dbOffers = await query.ToListAsync(cancellationToken);
+
+        var offers = dbOffers.Select(x =>
+        {
+            var activeBatch = x.Batches.FirstOrDefault(b => b.Status == BatchStatus.Open);
+            var committedUnits = activeBatch?.CurrentQuantity ?? 0;
+            var buyerCount = activeBatch?.Participants?.Count(p => p.Status == BatchParticipantStatus.Active) ?? 0;
+
+            return new OfferDto(
                 x.Id,
                 x.Title,
                 x.Description,
@@ -49,15 +57,25 @@ public sealed class GetAllOffersQueryHandler(
                     : JsonSerializer.Deserialize<List<string>>(x.ImageUrls, (JsonSerializerOptions?)null)!,
                 x.CreatedAt,
                 x.ExpiresAt,
-                x.Batches
-                    .Where(b => b.Status == BatchStatus.Open)
-                    .Select(b => (Guid?)b.Id)
-                    .FirstOrDefault(),
-                x.Batches.Sum(b => b.CurrentQuantity),
+                activeBatch?.Id,
+                committedUnits,
                 x.BatchTargetQuantity,
-                x.Batches.Count(b => b.Status == BatchStatus.Open)
-            ))
-            .ToListAsync(cancellationToken);
+                buyerCount,
+                x.MinFallbackQuantity,
+                x.Batches
+                    .OrderByDescending(b => b.BatchNumber)
+                    .Select(b => new OfferBatchDto(
+                        b.Id,
+                        b.BatchNumber,
+                        b.TargetQuantity,
+                        b.CurrentQuantity,
+                        b.Status.ToString(),
+                        b.CreatedAt,
+                        b.CompletedAt
+                    ))
+                    .ToList()
+            );
+        }).ToList();
 
         return new GetAllOffersPagedResponse
         {

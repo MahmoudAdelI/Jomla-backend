@@ -84,8 +84,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.LeaveGroupRequestOff
                     }
                     catch (Exception ex) when (ex.Message.Contains("already refunded") || ex.Message.Contains("canceled"))
                     {
-                        // Secondary guard in case the service throws specific exceptions for already altered states
-                        _logger.LogWarning(ex, "Stripe exception caught indicating hold was already released for buyer {BuyerId}. Syncing DB.");
+                        _logger.LogWarning(ex, "Stripe exception caught indicating hold was already released for buyer {BuyerId}. Syncing DB.", request.BuyerId);
                     }
                 }
 
