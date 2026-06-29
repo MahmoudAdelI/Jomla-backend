@@ -51,36 +51,6 @@ public class GroupRequestOffersController(IMediator mediator,
         return Ok(result);
     }
 
-    //[HttpPost("{id:guid}/complete")]
-    //[Produces("application/json")]
-    //[EndpointSummary("Manually trigger the completion of an offer and capture payments.")]
-    //[ProducesResponseType(StatusCodes.Status200OK)]
-    //public async Task<IActionResult> CompleteOffer(Guid id)
-    //{
-    //    await _mediator.Send(new CompleteGroupRequestOfferCommand(id));
-    //    return Ok(new { Success = true });
-    //}
-
-    //[HttpPost("{id:guid}/cancel")]
-    //[Produces("application/json")]
-    //[EndpointSummary("Manually fail an offer and release all Stripe payment holds.")]
-    //[ProducesResponseType(StatusCodes.Status200OK)]
-    //public async Task<IActionResult> CancelOffer(Guid id)
-    //{
-    //    await _mediator.Send(new FailGroupRequestOfferCommand(id));
-    //    return Ok(new { Success = true });
-    //}
-
-    //[HttpPost("{id:guid}/expire")]
-    //[Produces("application/json")]
-    //[EndpointSummary("Manually trigger the expiration process for a timed-out offer.")]
-    //[ProducesResponseType(StatusCodes.Status200OK)]
-    //public async Task<IActionResult> ExpireOffer(Guid id)
-    //{
-    //    await _mediator.Send(new ExpireGroupRequestOfferCommand(id));
-    //    return Ok(new { Success = true });
-    //}
-    
     [HttpPost("{id:guid}/cancel")]
     [Produces("application/json")]
     [EndpointSummary("Buyer cancels their accepted offer, triggering an asynchronous Stripe release and database update.")]
@@ -89,10 +59,10 @@ public class GroupRequestOffersController(IMediator mediator,
     {
         var buyerId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
  
-        var result = _backgroundJobClient.Enqueue<ISender>(sender =>
+        _backgroundJobClient.Enqueue<ISender>(sender =>
             sender.Send(new CancelGroupRequestOfferCommand(id, buyerId), CancellationToken.None));
 
-        return Accepted(result);
+        return Accepted(new { Success = true });
     }
 
     [HttpGet("{id:guid}")]
