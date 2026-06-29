@@ -85,14 +85,14 @@ public class GroupRequestOffersController(IMediator mediator,
     [Produces("application/json")]
     [EndpointSummary("Buyer cancels their accepted offer, triggering an asynchronous Stripe release and database update.")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
-    public IActionResult LeaveOffer(Guid id)
+    public IActionResult CancelOffer(Guid id)
     {
         var buyerId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
  
-        _backgroundJobClient.Enqueue<ISender>(sender =>
+        var result = _backgroundJobClient.Enqueue<ISender>(sender =>
             sender.Send(new CancelGroupRequestOfferCommand(id, buyerId), CancellationToken.None));
 
-        return Accepted(new { Success = true });
+        return Accepted(result);
     }
 
     [HttpGet("{id:guid}")]
