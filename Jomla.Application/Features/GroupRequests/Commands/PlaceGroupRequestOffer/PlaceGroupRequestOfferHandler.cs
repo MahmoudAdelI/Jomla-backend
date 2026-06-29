@@ -81,11 +81,8 @@ public sealed class PlaceGroupRequestOfferHandler(
             alert.Status = GroupRequestAlertStatus.Responded;
         }
 
-        var generator = new Microsoft.EntityFrameworkCore.ValueGeneration.SequentialGuidValueGenerator();
-        var offerId = generator.Next(null!);
         var offer = new GroupRequestOffer
         {
-            Id = offerId,
             GroupRequestId = groupRequest.Id,
             SupplierId = supplierId,
             UnitPrice = request.UnitPrice,
@@ -120,8 +117,10 @@ public sealed class PlaceGroupRequestOfferHandler(
 
         db.Notifications.AddRange(notifications);
 
+        await db.SaveChangesAsync(cancellationToken);
+
         // Schedule the offer expiry job
-        var jobId = backgroundJobDispatcher.Schedule<IGroupRequestOfferExpiryJob>(x => x.ExcuteAsync(offerId), offer.ExpiresAt);
+        var jobId = backgroundJobDispatcher.Schedule<IGroupRequestOfferExpiryJob>(x => x.ExcuteAsync(offer.Id), offer.ExpiresAt);
         offer.JobId = jobId;
 
         await db.SaveChangesAsync(cancellationToken);
