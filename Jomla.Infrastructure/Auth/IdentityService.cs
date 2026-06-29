@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
 using Microsoft.AspNetCore.Http;
@@ -56,5 +56,9 @@ namespace Jomla.Infrastructure.Auth
             return _httpContextAccessor.HttpContext?.User
                 ?.FindFirst(ClaimTypes.Email)?.Value ?? "";
         }
+
+        public async Task<AppUser?> FindByIdAsync(Guid userId) => await _userMgr.FindByIdAsync(userId.ToString());
+
+        public async Task<bool> IsInRoleAsync(AppUser user, string role) => await _userMgr.IsInRoleAsync(user, role);
     }
 }

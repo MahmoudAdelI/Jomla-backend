@@ -1,18 +1,17 @@
 using Hangfire;
 using Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.CancelGroupRequestOffer;
-using Jomla.Application.Features.GroupRequests.Commands.FailGroupRequestOffer;
-using Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequestOffer;
-using Jomla.Application.Features.GroupRequests.Commands.ExpireGroupRequestOffer;
+using Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.RejectGroupRequestOffer;
+using Jomla.Application.Features.GroupRequests.Dtos;
+using Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestOffers;
+using Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestOfferDetail;
+using Jomla.Domain;
+using Jomla.Domain.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System;
 using System.Security.Claims;
-using System.Threading.Tasks;
-using System.Threading;
 
 namespace Jomla.API.Controllers;
 
@@ -52,41 +51,11 @@ public class GroupRequestOffersController(IMediator mediator,
         return Ok(result);
     }
 
-    //[HttpPost("{id:guid}/complete")]
-    //[Produces("application/json")]
-    //[EndpointSummary("Manually trigger the completion of an offer and capture payments.")]
-    //[ProducesResponseType(StatusCodes.Status200OK)]
-    //public async Task<IActionResult> CompleteOffer(Guid id)
-    //{
-    //    await _mediator.Send(new CompleteGroupRequestOfferCommand(id));
-    //    return Ok(new { Success = true });
-    //}
-
-    //[HttpPost("{id:guid}/cancel")]
-    //[Produces("application/json")]
-    //[EndpointSummary("Manually fail an offer and release all Stripe payment holds.")]
-    //[ProducesResponseType(StatusCodes.Status200OK)]
-    //public async Task<IActionResult> CancelOffer(Guid id)
-    //{
-    //    await _mediator.Send(new FailGroupRequestOfferCommand(id));
-    //    return Ok(new { Success = true });
-    //}
-
-    //[HttpPost("{id:guid}/expire")]
-    //[Produces("application/json")]
-    //[EndpointSummary("Manually trigger the expiration process for a timed-out offer.")]
-    //[ProducesResponseType(StatusCodes.Status200OK)]
-    //public async Task<IActionResult> ExpireOffer(Guid id)
-    //{
-    //    await _mediator.Send(new ExpireGroupRequestOfferCommand(id));
-    //    return Ok(new { Success = true });
-    //}
-    
     [HttpPost("{id:guid}/cancel")]
     [Produces("application/json")]
     [EndpointSummary("Buyer cancels their accepted offer, triggering an asynchronous Stripe release and database update.")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
-    public IActionResult LeaveOffer(Guid id)
+    public IActionResult CancelOffer(Guid id)
     {
         var buyerId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
  
@@ -94,5 +63,18 @@ public class GroupRequestOffersController(IMediator mediator,
             sender.Send(new CancelGroupRequestOfferCommand(id, buyerId), CancellationToken.None));
 
         return Accepted(new { Success = true });
+    }
+
+    [HttpGet("{id:guid}")]
+    [Authorize(Roles = Roles.Supplier)]
+    [Produces("application/json")]
+    [EndpointSummary("Get detailed information of a group request offer for the supplier, including buyer responses.")]
+    [ProducesResponseType(typeof(SupplierGroupRequestOfferDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetOfferDetail(Guid id)
+    {
+        var result = await _mediator.Send(new GetGroupRequestOfferDetailQuery(id));
+        return Ok(result);
     }
 }

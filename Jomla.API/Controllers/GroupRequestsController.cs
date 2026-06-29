@@ -1,11 +1,16 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Exceptions;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.GroupRequests.Commands.CreateGroupRequest;
 using Jomla.Application.Features.GroupRequests.Commands.JoinGroupRequest;
 using Jomla.Application.Features.GroupRequests.Commands.LeaveGroupRequest;
+using Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Dtos;
 using Jomla.Application.Features.GroupRequests.Queries;
 using Jomla.Application.Features.GroupRequests.Queries.GetGroupRequests;
+using Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestOffers;
 using Jomla.Application.Features.GroupRequests.Queries.GetSupplierMatchedGroupRequests;
+using Jomla.Domain;
+using Jomla.Domain.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -140,7 +145,49 @@ namespace Jomla.API.Controllers
 
             var result = await _mediator.Send(new GetSupplierMatchedGroupRequestsQuery(
                 supplierId, page, pageSize));
+ 
+            return Ok(result);
+        }
 
+        [HttpPost("{requestId:guid}/offers")]
+        [Authorize(Roles = Roles.Supplier)]
+        [Produces("application/json")]
+        [EndpointSummary("Supplier places an offer on a buyer's group request.")]
+        [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> PlaceOffer(
+            Guid requestId,
+            [FromBody] PlaceGroupRequestOfferCommand command)
+        {
+            var supplierId = _identityService.GetCurrentUserId();
+            if (supplierId == Guid.Empty) return Unauthorized();
+
+            command.SupplierId = supplierId;
+            command.GroupRequestId = requestId;
+
+            var offerId = await _mediator.Send(command);
+            return Ok(new { Success = true, OfferId = offerId });
+        }
+
+        [HttpGet("{requestId:guid}/offers")]
+        [Produces("application/json")]
+        [EndpointSummary("Get group request offers with optional status filtering, sorted by price ascending.")]
+        [ProducesResponseType(typeof(PagedResult<BuyerGroupRequestOfferDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetOffers(
+            Guid requestId,
+            [FromQuery] GroupRequestOfferStatus? status,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            var result = await _mediator.Send(new GetGroupRequestOffersQuery
+            {
+                GroupRequestId = requestId,
+                Status = status,
+                Page = page,
+                PageSize = pageSize
+            });
             return Ok(result);
         }
     }
