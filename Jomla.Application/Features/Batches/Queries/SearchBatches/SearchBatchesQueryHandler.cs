@@ -55,6 +55,7 @@ namespace Jomla.Application.Features.Batches.Queries.SearchBatches
             // Apply pagination and sorting
             var items = await query
                 .OrderByDescending(b => b.CreatedAt)
+                .ThenBy(b => b.Id)
                 .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .Select(b => new BatchSearchItemDto(
