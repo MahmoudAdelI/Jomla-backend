@@ -81,8 +81,10 @@ public sealed class PlaceGroupRequestOfferHandler(
             alert.Status = GroupRequestAlertStatus.Responded;
         }
 
+        var offerId = Guid.NewGuid();
         var offer = new GroupRequestOffer
         {
+            Id = offerId,
             GroupRequestId = groupRequest.Id,
             SupplierId = supplierId,
             UnitPrice = request.UnitPrice,
@@ -117,10 +119,8 @@ public sealed class PlaceGroupRequestOfferHandler(
 
         db.Notifications.AddRange(notifications);
 
-        await db.SaveChangesAsync(cancellationToken);
-
         // Schedule the offer expiry job
-        var jobId = backgroundJobDispatcher.Schedule<IGroupRequestOfferExpiryJob>(x => x.ExcuteAsync(offer.Id), offer.ExpiresAt);
+        var jobId = backgroundJobDispatcher.Schedule<IGroupRequestOfferExpiryJob>(x => x.ExcuteAsync(offerId), offer.ExpiresAt);
         offer.JobId = jobId;
 
         await db.SaveChangesAsync(cancellationToken);
