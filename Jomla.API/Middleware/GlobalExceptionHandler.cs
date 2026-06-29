@@ -23,6 +23,13 @@ namespace Jomla.API.Middleware
                     Status = StatusCodes.Status400BadRequest
                 },
 
+                BadRequestException ex => new ProblemDetails
+                {
+                    Title = "Bad Request",
+                    Detail = ex.Message,
+                    Status = StatusCodes.Status400BadRequest
+                },
+
                 NotFoundException ex => new ProblemDetails
                 {
                     Title = "Resource not found!",
