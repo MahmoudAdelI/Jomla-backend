@@ -81,7 +81,8 @@ public sealed class PlaceGroupRequestOfferHandler(
             alert.Status = GroupRequestAlertStatus.Responded;
         }
 
-        var offerId = Guid.NewGuid();
+        var generator = new Microsoft.EntityFrameworkCore.ValueGeneration.SequentialGuidValueGenerator();
+        var offerId = generator.Next(null!);
         var offer = new GroupRequestOffer
         {
             Id = offerId,
