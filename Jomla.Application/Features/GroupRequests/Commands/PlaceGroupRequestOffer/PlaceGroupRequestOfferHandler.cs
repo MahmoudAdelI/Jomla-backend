@@ -83,7 +83,6 @@ public sealed class PlaceGroupRequestOfferHandler(
 
         var offer = new GroupRequestOffer
         {
-            Id = Guid.NewGuid(),
             GroupRequestId = groupRequest.Id,
             SupplierId = supplierId,
             UnitPrice = request.UnitPrice,
@@ -95,7 +94,6 @@ public sealed class PlaceGroupRequestOfferHandler(
             AcceptedQuantity = 0,
             RoundNumber = 1,
             Status = GroupRequestOfferStatus.Open,
-            CreatedAt = DateTime.UtcNow,
             ExpiresAt = request.ExpiresAt,
             JobId = string.Empty
         };
@@ -112,15 +110,13 @@ public sealed class PlaceGroupRequestOfferHandler(
         {
             var notification = new Notification
             {
-                Id = Guid.NewGuid(),
                 UserId = activeParticipant.BuyerId,
                 Type = NotificationType.GroupRequestOfferPlaced,
                 Title = "New Offer Placed",
                 Body = $"{supplier.FirstName} {supplier.LastName} placed a new offer on a group request you're participating in.",
                 EntityId = groupRequest.Id,
                 EntityType = nameof(GroupRequest),
-                IsRead = false,
-                CreatedAt = DateTime.UtcNow
+                IsRead = false
             };
             db.Notifications.Add(notification);
             notifications.Add(notification);
