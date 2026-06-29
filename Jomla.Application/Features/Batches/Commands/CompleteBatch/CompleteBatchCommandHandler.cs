@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Batches.Commands.OpenBatch;
 using Jomla.Application.Features.Notifications;
 using Jomla.Domain;
@@ -151,8 +151,7 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                 Body = "Your payment was captured and your order has been created successfully.",
                 EntityId = batch.Id,
                 EntityType = "SupplierBatch",
-                IsRead = false,
-                CreatedAt = DateTime.UtcNow
+                IsRead = false
             }));
 
             // Bug #1 Fix: supplier notification was missing entirely
@@ -164,8 +163,7 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                 Body = $"Batch #{batch.BatchNumber} for your offer \"{batch.Offer.Title}\" has been completed with {batch.CurrentQuantity} unit(s).",
                 EntityId = batch.Id,
                 EntityType = "SupplierBatch",
-                IsRead = false,
-                CreatedAt = DateTime.UtcNow
+                IsRead = false
             });
 
             _context.Notifications.AddRange(notifications);
