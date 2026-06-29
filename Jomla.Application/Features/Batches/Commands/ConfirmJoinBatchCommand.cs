@@ -32,15 +32,18 @@ namespace Jomla.Application.Features.Batches.Commands
         private readonly IAppDbContext _context;
         private readonly IStripePaymentService _stripePaymentService;
         private readonly IBackgroundJobDispatcher _jobDispatcher;
+        private readonly IMediator _mediator;
 
         public ConfirmJoinBatchCommandHandler(
             IAppDbContext context,
             IStripePaymentService stripePaymentService,
-            IBackgroundJobDispatcher jobDispatcher)
+            IBackgroundJobDispatcher jobDispatcher,
+            IMediator mediator)
         {
             _context = context;
             _stripePaymentService = stripePaymentService;
             _jobDispatcher = jobDispatcher;
+            _mediator = mediator;
         }
 
         public async Task<ConfirmJoinBatchResponse> Handle(ConfirmJoinBatchCommand request, CancellationToken cancellationToken)
@@ -154,6 +157,18 @@ namespace Jomla.Application.Features.Batches.Commands
                     ErrorCode = "CONCURRENCY_CONFLICT",
                     StatusCode = 409
                 };
+            }
+
+            // 7.5️⃣ Publish batch update event
+            try
+            {
+                var updateDto = Jomla.Application.Features.Batches.DTOs.BatchUpdatedDto.MapFrom(batch);
+                await _mediator.Publish(new Jomla.Application.Features.Batches.Events.BatchUpdatedEvent(batch.OfferId, updateDto), cancellationToken);
+            }
+            catch (Exception)
+            {
+                // Warn but do not fail the core transaction if real-time broadcast fails
+                // Log/handle if needed, but MediatR publication failures shouldn't abort successfully saved DB state
             }
 
             // 8️⃣ Trigger completion ONLY if batch is full
