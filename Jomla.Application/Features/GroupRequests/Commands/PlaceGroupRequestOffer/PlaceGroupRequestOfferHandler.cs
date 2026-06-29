@@ -8,7 +8,7 @@ using Jomla.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
+using FluentValidation;
 
 namespace Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOffer;
 
@@ -49,23 +49,23 @@ public sealed class PlaceGroupRequestOfferHandler(
 
         if (groupRequest.ModerationStatus == ModerationStatus.Flagged)
         {
-            throw new ValidationException("This group request is flagged.");
+            throw new ValidationException([new FluentValidation.Results.ValidationFailure(nameof(GroupRequest.ModerationStatus), "This group request is flagged.")]);
         }
 
         if (groupRequest.ModerationStatus != ModerationStatus.Approved)
         {
-            throw new ValidationException("This group request is not approved yet.");
+            throw new ValidationException([new FluentValidation.Results.ValidationFailure(nameof(GroupRequest.ModerationStatus), "This group request is not approved yet.")]);
         }
 
         if (groupRequest.InitiatorId == supplierId)
         {
-            throw new ValidationException("You cannot place an offer on your own group request.");
+            throw new ValidationException([new FluentValidation.Results.ValidationFailure(nameof(GroupRequest.InitiatorId), "You cannot place an offer on your own group request.")]);
         }
 
         var participant = groupRequest.Participants.FirstOrDefault(x => x.BuyerId == supplierId);
         if (participant is not null)
         {
-            throw new ValidationException("Suppliers cannot join as participants.");
+            throw new ValidationException([new FluentValidation.Results.ValidationFailure(nameof(GroupRequestParticipant.BuyerId), "Suppliers cannot join as participants.")]);
         }
 
         // Idempotency: Check if the supplier already has an active, Open offer on this Group Request

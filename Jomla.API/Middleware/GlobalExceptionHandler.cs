@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Jomla.Application.Common.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -35,6 +35,13 @@ namespace Jomla.API.Middleware
                     Title = "Conflict",
                     Detail = ex.Message,
                     Status = StatusCodes.Status409Conflict
+                },
+
+                ForbiddenException ex => new ProblemDetails
+                {
+                    Title = "Forbidden",
+                    Detail = ex.Message,
+                    Status = StatusCodes.Status403Forbidden
                 },
 
                 UnauthorizedAccessException ex => new ProblemDetails

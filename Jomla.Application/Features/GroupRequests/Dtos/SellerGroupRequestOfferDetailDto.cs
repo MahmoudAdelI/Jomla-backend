@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Jomla.Application.Features.GroupRequests.Dtos;
 
-public sealed record SellerGroupRequestOfferDetailDto(
+public sealed record SupplierGroupRequestOfferDetailDto(
     Guid Id,
     Guid GroupRequestId,
     Guid SupplierId,
@@ -20,10 +20,10 @@ public sealed record SellerGroupRequestOfferDetailDto(
     DateTime CreatedAt,
     DateTime ExpiresAt,
     int AcceptedQuantity,
-    List<SellerBuyerResponseDto> Responses
+    List<SupplierBuyerResponseDto> Responses
 );
 
-public sealed record SellerBuyerResponseDto(
+public sealed record SupplierBuyerResponseDto(
     Guid BuyerId,
     string BuyerName,
     string BuyerEmail,

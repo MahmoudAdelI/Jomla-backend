@@ -166,19 +166,8 @@ namespace Jomla.API.Controllers
             command.SupplierId = supplierId;
             command.GroupRequestId = requestId;
 
-            try
-            {
-                var offerId = await _mediator.Send(command);
-                return Ok(new { Success = true, OfferId = offerId });
-            }
-            catch (ConflictException ex)
-            {
-                return Conflict(new ProblemDetails { Detail = ex.Message });
-            }
-            catch (System.ComponentModel.DataAnnotations.ValidationException ex)
-            {
-                return BadRequest(new ProblemDetails { Detail = ex.Message });
-            }
+            var offerId = await _mediator.Send(command);
+            return Ok(new { Success = true, OfferId = offerId });
         }
 
         [HttpGet("{requestId:guid}/offers")]
@@ -190,19 +179,12 @@ namespace Jomla.API.Controllers
             Guid requestId,
             [FromQuery] GroupRequestOfferStatus? status)
         {
-            try
+            var result = await _mediator.Send(new GetGroupRequestOffersQuery
             {
-                var result = await _mediator.Send(new GetGroupRequestOffersQuery
-                {
-                    GroupRequestId = requestId,
-                    Status = status
-                });
-                return Ok(result);
-            }
-            catch (NotFoundException)
-            {
-                return NotFound();
-            }
+                GroupRequestId = requestId,
+                Status = status
+            });
+            return Ok(result);
         }
     }
 

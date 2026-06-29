@@ -4,4 +4,4 @@ using System;
 
 namespace Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestOfferDetail;
 
-public sealed record GetGroupRequestOfferDetailQuery(Guid OfferId) : IRequest<SellerGroupRequestOfferDetailDto>;
+public sealed record GetGroupRequestOfferDetailQuery(Guid OfferId) : IRequest<SupplierGroupRequestOfferDetailDto>;

@@ -99,23 +99,12 @@ public class GroupRequestOffersController(IMediator mediator,
     [Authorize(Roles = Roles.Supplier)]
     [Produces("application/json")]
     [EndpointSummary("Get detailed information of a group request offer for the supplier, including buyer responses.")]
-    [ProducesResponseType(typeof(SellerGroupRequestOfferDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(SupplierGroupRequestOfferDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetOfferDetail(Guid id)
     {
-        try
-        {
-            var result = await _mediator.Send(new GetGroupRequestOfferDetailQuery(id));
-            return Ok(result);
-        }
-        catch (KeyNotFoundException)
-        {
-            return NotFound();
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Forbid();
-        }
+        var result = await _mediator.Send(new GetGroupRequestOfferDetailQuery(id));
+        return Ok(result);
     }
 }
