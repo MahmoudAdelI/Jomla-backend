@@ -1,4 +1,4 @@
-using Jomla.Application.Common.Interfaces;
+ï»¿using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Batches.Commands.OpenBatch;
 using Jomla.Application.Features.Notifications;
 using Jomla.Domain;
@@ -38,11 +38,20 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
 
             if (batch == null) return;
 
-            // Step 2: Idempotency check — if already completed, only retry failed orders
+            // Step 2: Idempotency check - if already completed, only retry failed orders
+            // Bug #4 Fix: filter out Left participants when checking for failed orders on retry
             if (batch.Status == BatchStatus.Completed)
             {
+                var activeBuyerIds = batch.Participants
+                    .Where(p => p.Status == BatchParticipantStatus.Active)
+                    .Select(p => p.BuyerId)
+                    .ToList();
+
                 var hasFailedOrders = await _context.Orders
-                    .AnyAsync(o => o.BatchId == batch.Id && o.Status == OrderStatus.Failed, cancellationToken);
+                    .AnyAsync(o => o.BatchId == batch.Id
+                                && o.Status == OrderStatus.Failed
+                                && activeBuyerIds.Contains(o.BuyerId),
+                        cancellationToken);
 
                 if (!hasFailedOrders)
                     return;
@@ -60,7 +69,7 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                 await _context.SaveChangesAsync(cancellationToken);
             }
 
-            // Step 4: Resilient capture loop — each participant captured and saved individually
+            // Step 4: Resilient capture loop - each participant captured and saved individually
             var activeParticipants = batch.Participants
                 .Where(p => p.Status == BatchParticipantStatus.Active)
                 .ToList();
@@ -93,12 +102,12 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                     }
                     else
                     {
-                        // Create new order
+                        // Bug #2 Fix: OfferId was hardcoded to null - use batch.OfferId
                         _context.Orders.Add(new Order
                         {
                             BuyerId = participant.BuyerId,
                             BatchId = batch.Id,
-                            OfferId = null,
+                            OfferId = batch.OfferId,
                             Quantity = participant.Quantity,
                             TotalAmount = participant.Quantity * batch.Offer.UnitPrice * (1 - batch.Offer.DiscountPercentage / 100m),
                             Status = captureResult.Success ? OrderStatus.Paid : OrderStatus.Failed,
@@ -123,15 +132,18 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                 }
             }
 
-            // If any capture failed, throw so Hangfire retries the whole job
-            if (hasFailure)
-                throw new Exception("One or more captures failed. Hangfire will retry.");
+            // Bug #3 Fix: moved throw to AFTER Step 5 and Step 6 so that:
+            // - The next batch is always opened even if some individual captures failed
+            // - Successful buyers and the supplier always receive their notifications
 
             // Step 5: Open next batch for the same offer
             await _mediator.Send(new OpenBatchCommand(batch.OfferId), cancellationToken);
 
-            // Step 6: Send notifications in bulk — single DB round trip
-            var notifications = successfulBuyerIds.Select(buyerId => new Notification
+            // Step 6: Send notifications in bulk - single DB round trip
+            var notifications = new List<Notification>();
+
+            // Buyer notifications
+            notifications.AddRange(successfulBuyerIds.Select(buyerId => new Notification
             {
                 UserId = buyerId,
                 Type = NotificationType.BatchCompleted,
@@ -141,30 +153,45 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                 EntityType = "SupplierBatch",
                 IsRead = false,
                 CreatedAt = DateTime.UtcNow
-            }).ToList();
+            }));
 
-            if (notifications.Any())
+            // Bug #1 Fix: supplier notification was missing entirely
+            notifications.Add(new Notification
             {
-                _context.Notifications.AddRange(notifications);
-                await _context.SaveChangesAsync(cancellationToken);
+                UserId = batch.Offer.SupplierId,
+                Type = NotificationType.BatchCompleted,
+                Title = $"Batch #{batch.BatchNumber} Completed",
+                Body = $"Batch #{batch.BatchNumber} for your offer \"{batch.Offer.Title}\" has been completed with {batch.CurrentQuantity} unit(s).",
+                EntityId = batch.Id,
+                EntityType = "SupplierBatch",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            });
 
-                // Fire real-time event for each buyer — failure here does not affect financials
-                foreach (var notification in notifications)
+            _context.Notifications.AddRange(notifications);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // Fire real-time event for each notification - failure here does not affect financials
+            foreach (var notification in notifications)
+            {
+                try
                 {
-                    try
-                    {
-                        await _mediator.Publish(
-                            new NotificationCreatedEvent(notification.UserId, notification.Id),
-                            cancellationToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex,
-                            "Real-time notification failed for buyer {BuyerId} — financials unaffected",
-                            notification.UserId);
-                    }
+                    await _mediator.Publish(
+                        new NotificationCreatedEvent(notification.UserId, notification.Id),
+                        cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Real-time notification failed for user {UserId} - financials unaffected",
+                        notification.UserId);
                 }
             }
+
+            // If any capture failed, throw now so Hangfire retries the failed orders
+            // next-batch-open and successful notifications have already been persisted above
+            if (hasFailure)
+                throw new Exception("One or more captures failed. Hangfire will retry.");
         }
     }
 }
