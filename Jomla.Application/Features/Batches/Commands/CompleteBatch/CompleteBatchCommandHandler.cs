@@ -1,5 +1,7 @@
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Batches.Commands.OpenBatch;
+using Jomla.Application.Features.Batches.DTOs;
+using Jomla.Application.Features.Batches.Events;
 using Jomla.Application.Features.Notifications;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
@@ -168,6 +170,21 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
 
             _context.Notifications.AddRange(notifications);
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Fetch the newly opened batch if any and publish batch completion/new-batch updates
+            try
+            {
+                var newBatch = await _context.SupplierBatches
+                    .FirstOrDefaultAsync(b => b.OfferId == batch.OfferId && b.Status == BatchStatus.Open, cancellationToken);
+                var newBatchDto = newBatch is not null ? BatchUpdatedDto.MapFrom(newBatch) : null;
+
+                var completedBatchUpdate = BatchUpdatedDto.MapFrom(batch, newBatchDto);
+                await _mediator.Publish(new BatchUpdatedEvent(batch.OfferId, completedBatchUpdate), cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to publish BatchUpdatedEvent in CompleteBatchCommandHandler.");
+            }
 
             // Fire real-time event for each notification - failure here does not affect financials
             foreach (var notification in notifications)

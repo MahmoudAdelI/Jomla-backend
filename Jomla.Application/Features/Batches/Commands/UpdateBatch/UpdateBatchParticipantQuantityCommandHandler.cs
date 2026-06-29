@@ -1,5 +1,7 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Batches.Commands.UpdateBatch;
+using Jomla.Application.Features.Batches.DTOs;
+using Jomla.Application.Features.Batches.Events;
 using Jomla.Application.Jobs.Fulfillment;
 using Jomla.Application.Jobs.JobDispatcher;
 using Jomla.Domain;
@@ -19,15 +21,18 @@ namespace Jomla.Application.Features.Batches.Commands.UpdateBatch
         private readonly IAppDbContext _context;
         private readonly IStripePaymentService _stripePaymentService;
         private readonly IBackgroundJobDispatcher _jobDispatcher;
+        private readonly IMediator _mediator;
 
         public UpdateBatchParticipantQuantityCommandHandler(
             IAppDbContext context,
             IStripePaymentService stripePaymentService,
-            IBackgroundJobDispatcher jobDispatcher)
+            IBackgroundJobDispatcher jobDispatcher,
+            IMediator mediator)
         {
             _context = context;
             _stripePaymentService = stripePaymentService;
             _jobDispatcher = jobDispatcher;
+            _mediator = mediator;
         }
 
         public async Task<UpdateBatchParticipantQuantityResponse> Handle(UpdateBatchParticipantQuantityCommand request, CancellationToken cancellationToken)
@@ -103,6 +108,17 @@ namespace Jomla.Application.Features.Batches.Commands.UpdateBatch
             try
             {
                 await _context.SaveChangesAsync(cancellationToken);
+
+                // 9.5️⃣ Publish batch update event
+                try
+                {
+                    var updateDto = BatchUpdatedDto.MapFrom(batch);
+                    await _mediator.Publish(new BatchUpdatedEvent(batch.OfferId, updateDto), cancellationToken);
+                }
+                catch (Exception)
+                {
+                    // Log but don't abort
+                }
 
                 // Release old Stripe payment hold since the new one is safely recorded
                 if (!string.IsNullOrEmpty(oldPaymentIntentId))

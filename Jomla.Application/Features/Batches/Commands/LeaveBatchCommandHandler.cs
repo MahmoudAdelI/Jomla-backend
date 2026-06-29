@@ -1,4 +1,6 @@
 using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Features.Batches.DTOs;
+using Jomla.Application.Features.Batches.Events;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
@@ -12,20 +14,23 @@ namespace Jomla.Application.Features.Batches.Commands
         private readonly IAppDbContext _context;
         private readonly IStripePaymentService _stripePaymentService;
         private readonly ILogger<LeaveBatchCommandHandler> _logger;
+        private readonly IMediator _mediator;
 
         public LeaveBatchCommandHandler(
             IAppDbContext context,
             IStripePaymentService stripePaymentService,
-            ILogger<LeaveBatchCommandHandler> logger)
+            ILogger<LeaveBatchCommandHandler> logger,
+            IMediator mediator)
         {
             _context = context;
             _stripePaymentService = stripePaymentService;
             _logger = logger;
+            _mediator = mediator;
         }
 
         public async Task<LeaveBatchResponse> Handle(LeaveBatchCommand request, CancellationToken cancellationToken)
         {
-            // 1️⃣ Fetch batch with participants
+            // 1️⃣ Fetch batch with participants and offer (for OfferId mapping)
             var batch = await _context.SupplierBatches
                 .Include(b => b.Participants)
                 .FirstOrDefaultAsync(b => b.Id == request.BatchId, cancellationToken);
@@ -85,6 +90,17 @@ namespace Jomla.Application.Features.Batches.Commands
                     Success = false,
                     Error = "The batch was updated by another request. Please try again."
                 };
+            }
+
+            // 6.5️⃣ Publish batch update event
+            try
+            {
+                var updateDto = BatchUpdatedDto.MapFrom(batch);
+                await _mediator.Publish(new BatchUpdatedEvent(batch.OfferId, updateDto), cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to publish BatchUpdatedEvent in LeaveBatchCommandHandler.");
             }
 
             // 7️⃣ Cancel Stripe hold AFTER successful DB commit
