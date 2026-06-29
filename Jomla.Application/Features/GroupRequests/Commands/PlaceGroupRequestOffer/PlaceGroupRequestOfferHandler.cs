@@ -6,7 +6,6 @@ using Jomla.Application.Jobs.JobDispatcher;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using FluentValidation;
 
@@ -14,7 +13,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOff
 
 public sealed class PlaceGroupRequestOfferHandler(
     IAppDbContext db,
-    UserManager<AppUser> userManager,
+    IIdentityService identityService,
     IBackgroundJobDispatcher backgroundJobDispatcher,
     IMediator mediator) : IRequestHandler<PlaceGroupRequestOfferCommand, Guid>
 {
@@ -22,15 +21,12 @@ public sealed class PlaceGroupRequestOfferHandler(
     {
         var supplierId = request.SupplierId;
 
-        var supplier = await userManager.Users
-            .FirstOrDefaultAsync(
-                x => x.Id == supplierId,
-                cancellationToken);
+        var supplier = await identityService.FindByIdAsync(supplierId);
 
         if (supplier is null)
             throw new NotFoundException(nameof(AppUser), supplierId);
 
-        if (!await userManager.IsInRoleAsync(supplier, nameof(UserRole.Supplier)))
+        if (!await identityService.IsInRoleAsync(supplier, nameof(UserRole.Supplier)))
             throw new UnauthorizedAccessException();
 
         var groupRequest = await db.GroupRequests
