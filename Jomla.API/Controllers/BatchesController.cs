@@ -10,6 +10,8 @@ using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
+using Jomla.Application.Features.Batches.Queries.SearchBatches;
+
 namespace Jomla.Api.Controllers;
 
 [Authorize]
@@ -18,6 +20,22 @@ namespace Jomla.Api.Controllers;
 public class BatchesController(IMediator mediator) : ControllerBase
 {
     private readonly IMediator _mediator = mediator;
+
+    /// <summary>
+    /// GET /api/batches/search
+    /// </summary>
+    [HttpGet("search")]
+    [EndpointSummary("Search and paginate batches by status or query term.")]
+    [ProducesResponseType(typeof(PagedBatchesResult), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SearchBatches(
+        [FromQuery] string? searchTerm,
+        [FromQuery] string? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var result = await _mediator.Send(new SearchBatchesQuery(searchTerm, status, page, pageSize));
+        return Ok(result);
+    }
 
     /// <summary>
     /// GET /api/batches/{batchId}
