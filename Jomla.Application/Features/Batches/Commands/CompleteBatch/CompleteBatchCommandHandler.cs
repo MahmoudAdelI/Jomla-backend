@@ -1,5 +1,7 @@
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Batches.Commands.OpenBatch;
+using Jomla.Application.Features.Batches.DTOs;
+using Jomla.Application.Features.Batches.Events;
 using Jomla.Application.Features.Notifications;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
@@ -174,10 +176,10 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
             {
                 var newBatch = await _context.SupplierBatches
                     .FirstOrDefaultAsync(b => b.OfferId == batch.OfferId && b.Status == BatchStatus.Open, cancellationToken);
-                var newBatchDto = newBatch is not null ? Jomla.Application.Features.Batches.DTOs.BatchUpdatedDto.MapFrom(newBatch) : null;
+                var newBatchDto = newBatch is not null ? BatchUpdatedDto.MapFrom(newBatch) : null;
 
-                var completedBatchUpdate = Jomla.Application.Features.Batches.DTOs.BatchUpdatedDto.MapFrom(batch, newBatchDto);
-                await _mediator.Publish(new Jomla.Application.Features.Batches.Events.BatchUpdatedEvent(batch.OfferId, completedBatchUpdate), cancellationToken);
+                var completedBatchUpdate = BatchUpdatedDto.MapFrom(batch, newBatchDto);
+                await _mediator.Publish(new BatchUpdatedEvent(batch.OfferId, completedBatchUpdate), cancellationToken);
             }
             catch (Exception ex)
             {

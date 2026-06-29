@@ -1,4 +1,6 @@
 using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Features.Batches.DTOs;
+using Jomla.Application.Features.Batches.Events;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
@@ -93,8 +95,8 @@ namespace Jomla.Application.Features.Batches.Commands
             // 6.5️⃣ Publish batch update event
             try
             {
-                var updateDto = Jomla.Application.Features.Batches.DTOs.BatchUpdatedDto.MapFrom(batch);
-                await _mediator.Publish(new Jomla.Application.Features.Batches.Events.BatchUpdatedEvent(batch.OfferId, updateDto), cancellationToken);
+                var updateDto = BatchUpdatedDto.MapFrom(batch);
+                await _mediator.Publish(new BatchUpdatedEvent(batch.OfferId, updateDto), cancellationToken);
             }
             catch (Exception ex)
             {
