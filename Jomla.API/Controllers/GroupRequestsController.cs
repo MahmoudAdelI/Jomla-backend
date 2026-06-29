@@ -173,16 +173,20 @@ namespace Jomla.API.Controllers
         [HttpGet("{requestId:guid}/offers")]
         [Produces("application/json")]
         [EndpointSummary("Get group request offers with optional status filtering, sorted by price ascending.")]
-        [ProducesResponseType(typeof(List<BuyerGroupRequestOfferDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PagedResult<BuyerGroupRequestOfferDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetOffers(
             Guid requestId,
-            [FromQuery] GroupRequestOfferStatus? status)
+            [FromQuery] GroupRequestOfferStatus? status,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
             var result = await _mediator.Send(new GetGroupRequestOffersQuery
             {
                 GroupRequestId = requestId,
-                Status = status
+                Status = status,
+                Page = page,
+                PageSize = pageSize
             });
             return Ok(result);
         }
