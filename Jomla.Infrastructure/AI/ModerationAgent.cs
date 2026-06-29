@@ -76,8 +76,8 @@ public class ModerationAgent(IChatCompletionService chat, ILogger<ModerationAgen
             refusalObj is string refusal && 
             !string.IsNullOrWhiteSpace(refusal))
         {
-            _logger.LogWarning("Moderation agent request was refused by the model safety filters. Refusal: {Refusal}", refusal);
-            return new ModerationResult(false, $"Content violated safety policies: {refusal}");
+            _logger.LogWarning("Moderation agent request was refused by the model safety filters.");
+            return new ModerationResult(false, $"Content violated safety policies.");
         }
 
         _logger.LogInformation("Moderation agent raw response: {ResponseContent}", response.Content);
