@@ -1,4 +1,4 @@
-﻿using Jomla.Domain;
+using Jomla.Domain;
 using Jomla.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 
@@ -20,5 +20,7 @@ namespace Jomla.Application.Common.Interfaces
 
         Guid GetCurrentUserId();
         string GetCurrentUserEmail();
+        Task<AppUser?> FindByIdAsync(Guid userId);
+        Task<bool> IsInRoleAsync(AppUser user, string role);
     }
 }
