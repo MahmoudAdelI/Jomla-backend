@@ -101,14 +101,9 @@ public sealed class PlaceGroupRequestOfferHandler(
         db.GroupRequestOffers.Add(offer);
 
         // Notify active participants about the new offer
-        var notifications = new List<Notification>();
-        var activeParticipants = groupRequest.Participants
+        var notifications = groupRequest.Participants
             .Where(p => p.Status == GroupRequestParticipantStatus.Active)
-            .ToList();
-
-        foreach (var activeParticipant in activeParticipants)
-        {
-            var notification = new Notification
+            .Select(activeParticipant => new Notification
             {
                 UserId = activeParticipant.BuyerId,
                 Type = NotificationType.GroupRequestOfferPlaced,
@@ -117,10 +112,10 @@ public sealed class PlaceGroupRequestOfferHandler(
                 EntityId = groupRequest.Id,
                 EntityType = nameof(GroupRequest),
                 IsRead = false
-            };
-            db.Notifications.Add(notification);
-            notifications.Add(notification);
-        }
+            })
+            .ToList();
+
+        db.Notifications.AddRange(notifications);
 
         await db.SaveChangesAsync(cancellationToken);
 
