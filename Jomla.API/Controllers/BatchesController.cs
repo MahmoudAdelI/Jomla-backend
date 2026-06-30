@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Jomla.Application.Features.Batches.Queries.SearchBatches;
 using Jomla.Application.Features.Batches.Commands.JoinBatch;
 using Jomla.Application.Features.Batches.Queries.GetMyHubs;
+using Jomla.Application.Features.Batches.Queries.GetCompletedDeals;
 using Jomla.Application.Features.Batches.Commands.LeaveBatch;
 
 namespace Jomla.Api.Controllers;
@@ -168,21 +169,6 @@ public class BatchesController(IMediator mediator) : ControllerBase
         if (!result.Success)
             return BadRequest(result);
 
-        return Ok(result);
-    }
-
-    /// <summary>
-    /// GET /api/batches/my-hubs
-    /// </summary>
-    [HttpGet("my-hubs")]
-    [Authorize(Roles = "Buyer")]
-    [EndpointSummary("Retrieve active and completed hubs joined by the buyer.")]
-    [ProducesResponseType(typeof(List<BuyerHubDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> GetMyHubs()
-    {
-        var buyerId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var result = await _mediator.Send(new GetMyHubsQuery(buyerId));
         return Ok(result);
     }
 }
