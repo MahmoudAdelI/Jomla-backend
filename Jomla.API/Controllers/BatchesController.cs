@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 using Jomla.Application.Features.Batches.Queries.SearchBatches;
 using Jomla.Application.Features.Batches.Commands.JoinBatch;
+using Jomla.Application.Features.Batches.Commands.LeaveBatch;
 
 namespace Jomla.Api.Controllers;
 

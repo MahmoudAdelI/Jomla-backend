@@ -14,7 +14,8 @@ namespace Jomla.Application.Features.GroupRequests.Queries.GetGroupRequests
         string? Status,
         int Page = 1,
         int PageSize = 10,
-        string? SortBy = null
+        string? SortBy = null,
+        Guid? BuyerId = null
     ) : IRequest<PagedResult<GroupRequestListItemDto>>;
 }
 

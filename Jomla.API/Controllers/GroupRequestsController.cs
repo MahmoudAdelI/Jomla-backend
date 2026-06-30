@@ -85,11 +85,19 @@ namespace Jomla.API.Controllers
             [FromQuery] string? titleSearch,
             [FromQuery] string? status,
             [FromQuery] string? sortBy,
+            [FromQuery] bool? myRequestsOnly,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
+            Guid? filterBuyerId = null;
+            if (myRequestsOnly == true)
+            {
+                filterBuyerId = _identityService.GetCurrentUserId();
+                if (filterBuyerId == Guid.Empty) return Unauthorized();
+            }
+
             var result = await _mediator.Send(new GetGroupRequestsQuery(
-                categoryId, titleSearch, status, page, pageSize, sortBy));
+                categoryId, titleSearch, status, page, pageSize, sortBy, filterBuyerId));
 
             return Ok(result);
         }

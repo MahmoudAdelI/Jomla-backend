@@ -43,6 +43,12 @@ namespace Jomla.Application.Features.GroupRequests.Queries.GetGroupRequests
             if (!string.IsNullOrWhiteSpace(request.TitleSearch))
                 query = query.Where(r => r.Title.Contains(request.TitleSearch));
 
+            if (request.BuyerId.HasValue)
+            {
+                query = query.Where(r => r.InitiatorId == request.BuyerId.Value ||
+                                         r.Participants.Any(p => p.BuyerId == request.BuyerId.Value && p.Status == GroupRequestParticipantStatus.Active));
+            }
+
             // Total count
             var totalCount = await query.CountAsync(cancellationToken);
 
