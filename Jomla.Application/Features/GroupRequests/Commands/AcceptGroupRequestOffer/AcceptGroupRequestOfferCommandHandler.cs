@@ -26,7 +26,6 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
             AcceptGroupRequestOfferCommand request,
             CancellationToken cancellationToken)
         {
-            
             // Step 1: Fetch offer with group request and participants
             var offer = await _context.GroupRequestOffers
                 .Include(o => o.GroupRequest)
@@ -59,18 +58,42 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
             if (existingResponse != null && existingResponse.Response == BuyerOfferResponseType.Accepted)
                 return new AcceptGroupRequestOfferResponse { Success = false, Error = "You have already accepted this offer" };
 
-            //  FIX 1: Check available quantity BEFORE processing payment
+            // Step 6: Check available quantity BEFORE processing payment
             var currentAcceptedQuantity = offer.AcceptedQuantity;
+            var remainingSlots = offer.QuantityAvailable - currentAcceptedQuantity;
 
-            if (currentAcceptedQuantity + participant.Quantity > offer.QuantityAvailable)
+            if (participant.Quantity > remainingSlots)
             {
-                return new AcceptGroupRequestOfferResponse { Success = false, Error = "Offer does not have enough remaining capacity for your requested quantity" };
+                // No slots left at all — hard reject
+                if (remainingSlots <= 0)
+                {
+                    return new AcceptGroupRequestOfferResponse
+                    {
+                        Success = false,
+                        Error = "No slots remaining in this offer."
+                    };
+                }
+
+                // Buyer hasn't confirmed the reduced quantity yet — return the available amount and stop
+                if (!request.ConfirmPartialQuantity)
+                {
+                    return new AcceptGroupRequestOfferResponse
+                    {
+                        Success = false,
+                        RequiresConfirmation = true,
+                        Message = $"Only {remainingSlots} slots remaining out of your requested {participant.Quantity}.",
+                        AvailableSlots = remainingSlots
+                    };
+                }
+
+                // Buyer confirmed — reduce their quantity to what's actually available
+                participant.Quantity = remainingSlots;
             }
 
-            // Step 6: Calculate payment amount
+            // Step 7: Calculate payment amount based on the (possibly adjusted) quantity
             decimal totalAmount = participant.Quantity * offer.CurrentUnitPrice;
 
-            // Step 7: Create Stripe payment hold
+            // Step 8: Create Stripe payment hold
             var paymentResult = await _stripePaymentService.CreatePaymentHoldAsync(
                 request.BuyerId.ToString(),
                 request.BuyerEmail,
@@ -84,10 +107,10 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 return new AcceptGroupRequestOfferResponse { Success = false, Error = "Payment hold failed" };
             }
 
-            //  FIX 2: Wrap DB operations in try-catch to cancel payment hold if DB fails
+            // Step 9: Wrap DB operations in try-catch to cancel payment hold if DB fails
             try
             {
-                // Step 8: Create or update buyer response
+                // Create or update buyer response
                 if (existingResponse == null)
                 {
                     existingResponse = new BuyerOfferResponse
@@ -108,10 +131,10 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                     existingResponse.RespondedAt = DateTime.UtcNow;
                 }
 
-                // Update the persisted AcceptedQuantity counter
+                // Update the persisted AcceptedQuantity counter using the (possibly adjusted) quantity
                 offer.AcceptedQuantity = currentAcceptedQuantity + participant.Quantity;
 
-                // Step 9: Save Changes
+                // Save Changes
                 await _context.SaveChangesAsync(cancellationToken);
             }
             catch (Exception ex)
