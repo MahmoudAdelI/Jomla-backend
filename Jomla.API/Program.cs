@@ -38,9 +38,12 @@ namespace Jomla.API
             builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
             builder.Services.AddProblemDetails();
 
+            var allowedOrigins = builder.Configuration["AllowedOrigins"]?.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                 ?? new[] { "http://localhost:4200" };
+
             builder.Services.AddCors(opt =>
                  opt.AddPolicy("Angular", p =>
-                 p.WithOrigins("http://localhost:4200")
+                 p.WithOrigins(allowedOrigins)
                  .AllowAnyHeader()
                  .AllowAnyMethod()
                  .AllowCredentials()));
@@ -90,12 +93,18 @@ namespace Jomla.API
             app.UseExceptionHandler();
             // Configure the HTTP request pipeline.
             bool didSeed = false;
-            if (app.Environment.IsDevelopment())
+            bool enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger") || app.Environment.IsDevelopment();
+            bool seedDatabase = builder.Configuration.GetValue<bool>("SeedDatabase") || app.Environment.IsDevelopment();
+
+            if (enableSwagger)
             {
                 app.MapOpenApi();
                 app.UseSwagger();
                 app.UseSwaggerUI();
+            }
 
+            if (seedDatabase)
+            {
                 using (var scope = app.Services.CreateScope())
                 {
                     var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
@@ -130,7 +139,7 @@ namespace Jomla.API
                     .GetRequiredService<NegotiationRoundsCollectionInitializer>();
                 await initializer.InitializeAsync();
 
-                if (app.Environment.IsDevelopment() && didSeed)
+                if (seedDatabase && didSeed)
                 {
                     _ = Task.Run(async () =>
                     {
