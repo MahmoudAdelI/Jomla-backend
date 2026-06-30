@@ -15,7 +15,7 @@ namespace Jomla.Infrastructure.Persistance.Configurations
                 .HasMaxLength(20);
 
             builder.Property(x => x.CreatedAt)
-                .HasDefaultValueSql("getdate()");
+                .HasDefaultValueSql("GETUTCDATE()");
 
             builder.Property(x => x.RowVersion)
                 .IsRowVersion();

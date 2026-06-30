@@ -1,4 +1,4 @@
-﻿using Jomla.Domain.Entities;
+using Jomla.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -18,7 +18,7 @@ namespace Jomla.Infrastructure.Persistance.Configurations
                 .HasMaxLength(20);
 
             builder.Property(x => x.CreatedAt)
-                .HasDefaultValueSql("getdate()");
+                .HasDefaultValueSql("GETUTCDATE()");
 
             builder.HasOne(x => x.Buyer)
                 .WithMany()
