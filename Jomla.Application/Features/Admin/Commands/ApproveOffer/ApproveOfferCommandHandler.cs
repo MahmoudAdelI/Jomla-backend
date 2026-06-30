@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Batches.Commands.CreateBatch;
 using Jomla.Application.Features.Notifications;
 using Jomla.Application.Jobs.JobDispatcher;
@@ -40,7 +40,6 @@ namespace Jomla.Application.Features.Admin.Commands.ApproveOffer
 
             var notification = new Notification
             {
-                Id = Guid.NewGuid(),
                 UserId = offer.SupplierId,
                 Type = NotificationType.OfferApproved,
                 Title = "Your offer has been approved",

@@ -33,7 +33,6 @@ public sealed class CreateCategoryCommandHandler(IAppDbContext db)
 
         var category = new Category
         {
-            Id = Guid.NewGuid(),
             Name = request.Name.Trim(),
             ParentId = request.ParentId
         };

@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Notifications;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
@@ -37,7 +37,6 @@ namespace Jomla.Application.Features.Admin.Commands.ApproveGroupRequest
 
             var notification = new Notification
             {
-                Id = Guid.NewGuid(),
                 UserId = groupRequest.InitiatorId,
                 Type = NotificationType.GroupRequestApproved,
                 Title = "Your group request has been approved",

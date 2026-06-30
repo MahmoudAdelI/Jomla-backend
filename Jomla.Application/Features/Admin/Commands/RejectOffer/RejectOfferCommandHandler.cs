@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Notifications;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
@@ -36,7 +36,6 @@ namespace Jomla.Application.Features.Admin.Commands.RejectOffer
 
             var notification = new Notification
             {
-                Id = Guid.NewGuid(),
                 UserId = offer.SupplierId,
                 Type = NotificationType.OfferFlagged,
                 Title = "Your offer has been rejected",
