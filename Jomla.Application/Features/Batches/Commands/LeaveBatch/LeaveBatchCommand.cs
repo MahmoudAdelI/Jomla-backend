@@ -1,6 +1,6 @@
 ﻿using MediatR;
 
-namespace Jomla.Application.Features.Batches.Commands
+namespace Jomla.Application.Features.Batches.Commands.LeaveBatch
 {
     public class LeaveBatchCommand : IRequest<LeaveBatchResponse>
     {

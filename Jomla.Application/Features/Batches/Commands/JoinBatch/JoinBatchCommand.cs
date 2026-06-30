@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MediatR;
 
-namespace Jomla.Application.Features.Batches.Commands
+namespace Jomla.Application.Features.Batches.Commands.JoinBatch
 {
 
         public class JoinBatchCommand : IRequest<JoinBatchResponse>
