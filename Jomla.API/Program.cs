@@ -100,6 +100,7 @@ namespace Jomla.API
                 {
                     var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
                     didSeed = await seeder.SeedAsync();
+                    await seeder.SeedAdminAsync();
                 }
             }
 

@@ -894,5 +894,41 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             new string(input.Where(char.IsLetterOrDigit).ToArray());
         private static string Pick(Random r, params string[] options) => options[r.Next(options.Length)];
 
+        public async Task SeedAdminAsync()
+        {
+            const string adminEmail = "admin@jomla.test";
+
+            if (await _userManager.FindByEmailAsync(adminEmail) != null)
+                return;
+
+            
+            var roleName = UserRole.Admin.ToString();
+            if (!await _roleManager.RoleExistsAsync(roleName))
+            {
+                await _roleManager.CreateAsync(new IdentityRole<Guid>
+                {
+                    Id = Guid.NewGuid(),
+                    Name = roleName,
+                    NormalizedName = roleName.ToUpperInvariant()
+                });
+            }
+
+            var admin = new AppUser
+            {
+                Id = Guid.NewGuid(),
+                UserName = adminEmail,
+                Email = adminEmail,
+                FirstName = "Admin",
+                LastName = "Jomla",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var result = await _userManager.CreateAsync(admin, "Admin123!");
+            if (!result.Succeeded)
+                throw new Exception($"Failed to create admin: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+
+            await _userManager.AddToRoleAsync(admin, roleName);
+        }
+
     }
 }
