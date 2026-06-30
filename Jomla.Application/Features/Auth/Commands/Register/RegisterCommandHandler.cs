@@ -4,6 +4,7 @@ using FluentValidation.Results;
 using Jomla.Application.Common.Exceptions;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Auth.DTOs;
+using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
 
@@ -17,6 +18,9 @@ namespace Jomla.Application.Features.Auth.Commands.Register
     {
         public async Task<AuthResponseDto> Handle(RegisterCommand request, CancellationToken cancellationToken)
         {
+            if (request.Role == UserRole.Admin)
+                throw new UnauthorizedAccessException("Cannot register as Admin.");
+
             if (await _identityService.FindByEmailAsync(request.Email) != null)
                 throw new ConflictException("Email already registered");
 
