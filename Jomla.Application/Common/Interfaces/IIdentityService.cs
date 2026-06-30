@@ -22,5 +22,7 @@ namespace Jomla.Application.Common.Interfaces
         string GetCurrentUserEmail();
         Task<AppUser?> FindByIdAsync(Guid userId);
         Task<bool> IsInRoleAsync(AppUser user, string role);
+        Task<string> GeneratePasswordResetTokenAsync(AppUser user);
+        Task<(bool Succeeded, IEnumerable<string> Errors)> ResetPasswordAsync(AppUser user, string token, string newPassword);
     }
 }
