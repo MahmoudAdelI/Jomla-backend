@@ -1,11 +1,12 @@
 using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Jobs.JobDispatcher;
 using MediatR;
 
 namespace Jomla.Application.Features.Auth.Commands.ForgotPassword
 {
     public class ForgotPasswordCommandHandler(
         IIdentityService _identityService,
-        IEmailService _emailService
+        IBackgroundJobDispatcher _jobDispatcher
         ) : IRequestHandler<ForgotPasswordCommand>
     {
         public async Task Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
@@ -28,7 +29,7 @@ namespace Jomla.Application.Features.Auth.Commands.ForgotPassword
                 <p>If you did not request a password reset, please ignore this email.</p>
             ";
 
-            await _emailService.SendEmailAsync(user.Email!, subject, body);
+            _jobDispatcher.Enqueue<IEmailService>(x => x.SendEmailAsync(user.Email!, subject, body));
         }
     }
 }
