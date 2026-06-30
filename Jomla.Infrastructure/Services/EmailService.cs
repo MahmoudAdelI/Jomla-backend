@@ -1,4 +1,5 @@
 using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Settings;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Mail;

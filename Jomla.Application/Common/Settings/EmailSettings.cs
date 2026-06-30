@@ -1,4 +1,4 @@
-namespace Jomla.Infrastructure.Services
+namespace Jomla.Application.Common.Settings
 {
     public class EmailSettings
     {
