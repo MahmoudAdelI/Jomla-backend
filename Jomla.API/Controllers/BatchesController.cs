@@ -11,6 +11,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 
 using Jomla.Application.Features.Batches.Queries.SearchBatches;
+using Jomla.Application.Features.Batches.Commands.JoinBatch;
 
 namespace Jomla.Api.Controllers;
 

@@ -7,7 +7,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Jomla.Application.Features.Batches.Commands
+namespace Jomla.Application.Features.Batches.Commands.LeaveBatch
 {
     public class LeaveBatchCommandHandler : IRequestHandler<LeaveBatchCommand, LeaveBatchResponse>
     {

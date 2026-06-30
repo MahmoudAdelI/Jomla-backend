@@ -9,7 +9,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Jomla.Application.Features.Batches.Commands
+namespace Jomla.Application.Features.Batches.Commands.JoinBatch
 {
     public class JoinBatchCommandHandler : IRequestHandler<JoinBatchCommand, JoinBatchResponse>
     {
