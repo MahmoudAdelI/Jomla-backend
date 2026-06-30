@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 using Jomla.Application.Features.Batches.Queries.SearchBatches;
 using Jomla.Application.Features.Batches.Commands.JoinBatch;
+using Jomla.Application.Features.Batches.Queries.GetCompletedDeals;
 using Jomla.Application.Features.Batches.Commands.LeaveBatch;
 
 namespace Jomla.Api.Controllers;
@@ -167,6 +168,21 @@ public class BatchesController(IMediator mediator) : ControllerBase
         if (!result.Success)
             return BadRequest(result);
 
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// GET /api/batches/completed-deals
+    /// </summary>
+    [HttpGet("completed-deals")]
+    [Authorize(Roles = "Supplier")]
+    [EndpointSummary("Retrieve completed batches and sales analytics for the supplier.")]
+    [ProducesResponseType(typeof(CompletedDealsResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetCompletedDeals()
+    {
+        var supplierId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await _mediator.Send(new GetCompletedDealsQuery(supplierId));
         return Ok(result);
     }
 }
