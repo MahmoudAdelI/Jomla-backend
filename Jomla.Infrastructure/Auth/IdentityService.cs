@@ -60,5 +60,15 @@ namespace Jomla.Infrastructure.Auth
         public async Task<AppUser?> FindByIdAsync(Guid userId) => await _userMgr.FindByIdAsync(userId.ToString());
 
         public async Task<bool> IsInRoleAsync(AppUser user, string role) => await _userMgr.IsInRoleAsync(user, role);
+
+        public async Task<string> GeneratePasswordResetTokenAsync(AppUser user) => await _userMgr.GeneratePasswordResetTokenAsync(user);
+
+        public async Task<(bool Succeeded, IEnumerable<string> Errors)> ResetPasswordAsync(AppUser user, string token, string newPassword)
+        {
+            var result = await _userMgr.ResetPasswordAsync(user, token, newPassword);
+            if (result.Succeeded)
+                return (true, Enumerable.Empty<string>());
+            return (false, result.Errors.Select(e => e.Description));
+        }
     }
 }
