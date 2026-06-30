@@ -1,6 +1,6 @@
 namespace Jomla.Domain
 {
-    public enum UserRole { Buyer, Supplier }
+    public enum UserRole { Buyer, Supplier, Admin }
     public enum SupplierOfferStatus { PendingReview, Active, Inactive, Expired }
     public enum BatchStatus { Open, Completed, Failed }
     public enum GroupRequestStatus { PendingReview, Active, Inactive, Closed }

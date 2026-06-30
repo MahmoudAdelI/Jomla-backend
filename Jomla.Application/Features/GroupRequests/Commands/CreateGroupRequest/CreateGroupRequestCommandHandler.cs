@@ -45,7 +45,7 @@ public class CreateGroupRequestCommandHandler : IRequestHandler<CreateGroupReque
 
         var categoryDtos = categories.Select(c => new CategoryDto(
              c.Id,
-             c.Parent != null ? $"{c.Parent.Name} > {c.Name}" : c.Name
+             c.Parent != null ? $"{c.Parent.Name} : {c.Name}" : c.Name
         ));
 
         Guid categoryId;

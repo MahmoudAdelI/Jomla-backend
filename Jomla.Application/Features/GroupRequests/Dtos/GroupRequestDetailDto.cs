@@ -19,7 +19,8 @@ namespace Jomla.Application.Features.GroupRequests.Dtos
      DateTime CreatedAt,
      Guid InitiatorId,
      string CategoryName,
-     int ParticipantsCount
+     int ParticipantsCount,
+     List<GroupRequestOfferDto> Offers
     );
 
 }

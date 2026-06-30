@@ -1,7 +1,9 @@
-﻿using Jomla.Application.Features.Auth.Commands.Login;
+using Jomla.Application.Features.Auth.Commands.Login;
 using Jomla.Application.Features.Auth.Commands.Logout;
 using Jomla.Application.Features.Auth.Commands.RefreshToken;
 using Jomla.Application.Features.Auth.Commands.Register;
+using Jomla.Application.Features.Auth.Commands.ForgotPassword;
+using Jomla.Application.Features.Auth.Commands.ResetPassword;
 using Jomla.Application.Features.Auth.DTOs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -74,6 +76,29 @@ namespace Jomla.API.Controllers
             return NoContent();
         }
 
+        [HttpPost("forgot-password")]
+        [Produces("application/json")]
+        [EndpointSummary("Sends a password reset email/code to the user if they exist.")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
+        {
+            await _sender.Send(command);
+            return Ok(new { message = "If the email is registered, a password reset code has been sent." });
+        }
+
+        [HttpPost("reset-password")]
+        [Produces("application/json")]
+        [EndpointSummary("Resets the user's password using the token sent via email.")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command)
+        {
+            await _sender.Send(command);
+            return Ok(new { message = "Password has been reset successfully." });
+        }
+
         private const string RefreshTokenCookieName = "refreshToken";
         private string? GetRefreshTokenCookie()
         {
@@ -82,7 +107,15 @@ namespace Jomla.API.Controllers
 
         private void ClearRefreshTokenCookie()
         {
-            Response.Cookies.Delete(RefreshTokenCookieName);
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = DateTime.UtcNow.AddDays(-1),
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Path = "/"
+            };
+            Response.Cookies.Delete(RefreshTokenCookieName, cookieOptions);
         }
         private void SetRefreshTokenCookie(string refreshToken, DateTime expiresOn)
         {
@@ -92,6 +125,7 @@ namespace Jomla.API.Controllers
                 Expires = expiresOn.ToUniversalTime(),
                 Secure = true,
                 SameSite = SameSiteMode.None,
+                Path = "/"
             };
             Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
         }

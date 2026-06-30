@@ -9,6 +9,13 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Jomla.Domain.Constants;
+
+using Jomla.Application.Features.Batches.Queries.SearchBatches;
+using Jomla.Application.Features.Batches.Commands.JoinBatch;
+using Jomla.Application.Features.Batches.Queries.GetMyHubs;
+using Jomla.Application.Features.Batches.Queries.GetCompletedDeals;
+using Jomla.Application.Features.Batches.Commands.LeaveBatch;
 
 namespace Jomla.Api.Controllers;
 
@@ -18,6 +25,22 @@ namespace Jomla.Api.Controllers;
 public class BatchesController(IMediator mediator) : ControllerBase
 {
     private readonly IMediator _mediator = mediator;
+
+    /// <summary>
+    /// GET /api/batches/search
+    /// </summary>
+    [HttpGet("search")]
+    [EndpointSummary("Search and paginate batches by status or query term.")]
+    [ProducesResponseType(typeof(PagedBatchesResult), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SearchBatches(
+        [FromQuery] string? searchTerm,
+        [FromQuery] string? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var result = await _mediator.Send(new SearchBatchesQuery(searchTerm, status, page, pageSize));
+        return Ok(result);
+    }
 
     /// <summary>
     /// GET /api/batches/{batchId}
@@ -52,6 +75,41 @@ public class BatchesController(IMediator mediator) : ControllerBase
             BuyerId = buyerId,
             BuyerEmail = buyerEmail,
             Quantity = request.Quantity
+        });
+
+        if (!result.Success)
+        {
+            if (result.StatusCode.HasValue)
+                return StatusCode(result.StatusCode.Value, result);
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// POST /api/batches/{batchId}/confirm-join
+    /// </summary>
+    [HttpPost("{batchId:guid}/confirm-join")]
+    [EndpointSummary("Confirms user joining a batch after successful Stripe payment hold.")]
+    [ProducesResponseType(typeof(ConfirmJoinBatchResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ConfirmJoinBatch(Guid batchId, [FromBody] ConfirmJoinBatchRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request?.PaymentIntentId))
+            return BadRequest(new { success = false, error = "PaymentIntentId is required." });
+
+        if (request.Quantity <= 0)
+            return BadRequest(new { success = false, error = "Quantity must be greater than 0." });
+
+        var buyerId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var result = await _mediator.Send(new ConfirmJoinBatchCommand
+        {
+            BatchId = batchId,
+            BuyerId = buyerId,
+            Quantity = request.Quantity,
+            PaymentIntentId = request.PaymentIntentId
         });
 
         if (!result.Success)
@@ -114,10 +172,46 @@ public class BatchesController(IMediator mediator) : ControllerBase
 
         return Ok(result);
     }
+
+    /// <summary>
+    /// GET /api/batches/my-hubs
+    /// </summary>
+    [HttpGet("my-hubs")]
+    [Authorize(Roles = Roles.Buyer)]
+    [EndpointSummary("Retrieve active and completed hubs joined by the buyer.")]
+    [ProducesResponseType(typeof(List<BuyerHubDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetMyHubs()
+    {
+        var buyerId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await _mediator.Send(new GetMyHubsQuery(buyerId));
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// GET /api/batches/completed-deals
+    /// </summary>
+    [HttpGet("completed-deals")]
+    [Authorize(Roles = Roles.Supplier)]
+    [EndpointSummary("Retrieve completed batches and sales analytics for the supplier.")]
+    [ProducesResponseType(typeof(CompletedDealsResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetCompletedDeals()
+    {
+        var supplierId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await _mediator.Send(new GetCompletedDealsQuery(supplierId));
+        return Ok(result);
+    }
 }
 
 public class JoinBatchRequest
 {
+    public int Quantity { get; set; }
+}
+
+public class ConfirmJoinBatchRequest
+{
+    public string PaymentIntentId { get; set; }
     public int Quantity { get; set; }
 }
 

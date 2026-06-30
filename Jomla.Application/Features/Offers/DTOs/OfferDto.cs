@@ -20,6 +20,18 @@ namespace Jomla.Application.Features.Offers.DTOs
         Guid? ActiveBatchId,
         int CommittedUnits,
         int HubTargetQuantity,
-        int BuyerCount
+        int BuyerCount,
+        int? MinFallbackQuantity,
+        List<OfferBatchDto> Batches
+    );
+
+    public sealed record OfferBatchDto(
+        Guid Id,
+        int BatchNumber,
+        int TargetQuantity,
+        int CurrentQuantity,
+        string Status,
+        DateTime CreatedAt,
+        DateTime? CompletedAt
     );
 }

@@ -46,9 +46,20 @@ public class ModerationAgent(IChatCompletionService chat, ILogger<ModerationAgen
         foreach (var url in input.ImageUrls)
         {
             if (!string.IsNullOrWhiteSpace(url) && Uri.TryCreate(url, UriKind.Absolute, out var uri))
-                parts.Add(new ImageContent(uri));
+            {
+                if (IsPublicUri(uri))
+                {
+                    parts.Add(new ImageContent(uri));
+                }
+                else
+                {
+                    _logger.LogWarning("Local/private image URL skipped: {Url}", url);
+                }
+            }
             else
+            {
                 _logger.LogWarning("Invalid image URL skipped: {Url}", url);
+            }
         }
 
         history.Add(new ChatMessageContent(AuthorRole.User, parts));
@@ -59,8 +70,25 @@ public class ModerationAgent(IChatCompletionService chat, ILogger<ModerationAgen
         };
 
         var response = await _chat.GetChatMessageContentAsync(history, executionSettings, cancellationToken: ct);
+
+        if (response.Metadata is not null && 
+            response.Metadata.TryGetValue("Refusal", out var refusalObj) && 
+            refusalObj is string refusal && 
+            !string.IsNullOrWhiteSpace(refusal))
+        {
+            _logger.LogWarning("Moderation agent request was refused by the model safety filters.");
+            return new ModerationResult(false, $"Content violated safety policies.");
+        }
+
         _logger.LogInformation("Moderation agent raw response: {ResponseContent}", response.Content);
-        return Parse(response.Content ?? string.Empty);
+
+        if (string.IsNullOrWhiteSpace(response.Content))
+        {
+            _logger.LogWarning("Moderation agent returned empty content without a refusal message.");
+            return Fallback();
+        }
+
+        return Parse(response.Content);
     }
 
     private ModerationResult Parse(string raw)
@@ -84,6 +112,41 @@ public class ModerationAgent(IChatCompletionService chat, ILogger<ModerationAgen
             _logger.LogError(ex, "Moderation agent failed to parse response JSON. Raw response: {RawResponse}", raw);
             return Fallback();
         }
+    }
+
+    private static bool IsPublicUri(Uri uri)
+    {
+        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+            return false;
+
+        var host = uri.Host;
+        if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(host, "127.0.0.1") ||
+            string.Equals(host, "[::1]"))
+        {
+            return false;
+        }
+
+        // Check if it's a private IP address (IPv4)
+        // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+        if (System.Net.IPAddress.TryParse(host, out var ip))
+        {
+            var bytes = ip.GetAddressBytes();
+            if (bytes.Length == 4)
+            {
+                if (bytes[0] == 10) return false;
+                if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) return false;
+                if (bytes[0] == 192 && bytes[1] == 168) return false;
+            }
+            else if (bytes.Length == 16)
+            {
+                // IPv6 loopback or link-local/site-local
+                if (ip.IsIPv6LinkLocal || ip.IsIPv6SiteLocal || System.Net.IPAddress.IsLoopback(ip))
+                    return false;
+            }
+        }
+
+        return true;
     }
 
     // Fail safe — flag for manual review if model returns garbage

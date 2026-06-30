@@ -26,6 +26,8 @@ namespace Jomla.Application.Features.GroupRequests.Queries
             var groupRequest = await _context.GroupRequests
                 .Include(r => r.Category)
                 .Include(r => r.Participants)
+                .Include(r => r.Offers)
+                    .ThenInclude(o => o.Supplier)
                 .FirstOrDefaultAsync(r => r.Id == request.GroupRequestId, cancellationToken);
 
             if (groupRequest == null)
@@ -47,7 +49,22 @@ namespace Jomla.Application.Features.GroupRequests.Queries
                 groupRequest.CreatedAt,
                 groupRequest.InitiatorId,
                 groupRequest.Category.Name,
-                groupRequest.Participants.Count(p => p.Status == GroupRequestParticipantStatus.Active)
+                groupRequest.Participants.Count(p => p.Status == GroupRequestParticipantStatus.Active),
+                groupRequest.Offers.Select(o => new GroupRequestOfferDto(
+                    o.Id,
+                    o.SupplierId,
+                    o.Supplier != null ? $"{o.Supplier.FirstName} {o.Supplier.LastName}".Trim() : "Unknown Supplier",
+                    o.UnitPrice,
+                    o.MinUnitPrice,
+                    o.CurrentUnitPrice,
+                    o.QuantityAvailable,
+                    o.MinFallbackQuantity,
+                    o.AcceptedQuantity,
+                    o.Status.ToString(),
+                    o.CreatedAt,
+                    o.ExpiresAt,
+                    o.RoundNumber
+                )).ToList()
             );
         }
     }

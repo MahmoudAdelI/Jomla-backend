@@ -39,7 +39,7 @@ namespace Jomla.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("getdate()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -119,7 +119,7 @@ namespace Jomla.Infrastructure.Migrations
                     b.Property<DateTime>("JoinedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("getdate()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
@@ -152,7 +152,7 @@ namespace Jomla.Infrastructure.Migrations
                     b.Property<DateTime>("RespondedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("getdate()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Response")
                         .IsRequired()
@@ -205,7 +205,7 @@ namespace Jomla.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("getdate()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int>("CurrentQuantity")
                         .HasColumnType("int");
@@ -261,7 +261,7 @@ namespace Jomla.Infrastructure.Migrations
                     b.Property<DateTime>("NotifiedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("getdate()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -290,7 +290,7 @@ namespace Jomla.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("getdate()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<decimal>("CurrentUnitPrice")
                         .HasColumnType("decimal(10,2)");
@@ -356,7 +356,7 @@ namespace Jomla.Infrastructure.Migrations
                     b.Property<DateTime>("JoinedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("getdate()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
@@ -381,7 +381,7 @@ namespace Jomla.Infrastructure.Migrations
                     b.Property<DateTime>("ActedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("getdate()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<decimal>("NewPrice")
                         .HasColumnType("decimal(10,2)");
@@ -417,7 +417,7 @@ namespace Jomla.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("getdate()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<Guid?>("EntityId")
                         .HasColumnType("uniqueidentifier");
@@ -465,7 +465,7 @@ namespace Jomla.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("getdate()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<Guid?>("OfferId")
                         .HasColumnType("uniqueidentifier");
@@ -514,7 +514,7 @@ namespace Jomla.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("getdate()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int>("CurrentQuantity")
                         .HasColumnType("int");
@@ -577,7 +577,7 @@ namespace Jomla.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("getdate()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
@@ -793,7 +793,7 @@ namespace Jomla.Infrastructure.Migrations
                             b1.Property<DateTime>("CreatedAt")
                                 .ValueGeneratedOnAdd()
                                 .HasColumnType("datetime2")
-                                .HasDefaultValueSql("getdate()");
+                                .HasDefaultValueSql("GETUTCDATE()");
 
                             b1.Property<DateTime>("ExpiresOn")
                                 .HasColumnType("datetime2");

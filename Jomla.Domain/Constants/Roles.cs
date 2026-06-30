@@ -4,5 +4,6 @@
     {
         public const string Supplier = nameof(UserRole.Supplier);
         public const string Buyer = nameof(UserRole.Buyer);
+        public const string Admin = nameof(UserRole.Admin);
     }
 }

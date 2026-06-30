@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Stripe;
 
 namespace Jomla.Infrastructure.Payments
@@ -192,6 +192,46 @@ namespace Jomla.Infrastructure.Payments
                     Success = true,
                     PaymentIntentId = intent.Id,
                     Status = intent.Status
+                };
+            }
+            catch (StripeException ex)
+            {
+                return new StripePaymentIntentResult
+                {
+                    Success = false,
+                    Error = ex.Message,
+                    ErrorCode = ex.StripeError?.Code ?? "unknown_error"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new StripePaymentIntentResult
+                {
+                    Success = false,
+                    Error = $"Unexpected error: {ex.Message}",
+                    ErrorCode = "internal_error"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Retrieve PaymentIntent details from Stripe.
+        /// </summary>
+        public async Task<StripePaymentIntentResult> GetPaymentIntentAsync(
+            string paymentIntentId,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var service = new PaymentIntentService();
+                var intent = await service.GetAsync(paymentIntentId, cancellationToken: cancellationToken);
+
+                return new StripePaymentIntentResult
+                {
+                    Success = true,
+                    PaymentIntentId = intent.Id,
+                    Status = intent.Status,
+                    Amount = intent.Amount
                 };
             }
             catch (StripeException ex)

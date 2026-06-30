@@ -1,17 +1,19 @@
-﻿using Jomla.Application.Common.Exceptions;
+using Jomla.Application.Common.Exceptions;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.GroupRequests.Dtos;
+using Jomla.Application.Features.GroupRequests.Queries.GetGroupRequests;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestOffers;
 
 public sealed class GetGroupRequestOffersQueryHandler(IAppDbContext db)
-    : IRequestHandler<GetGroupRequestOffersQuery, List<BuyerGroupRequestOfferDto>>
+    : IRequestHandler<GetGroupRequestOffersQuery, PagedResult<BuyerGroupRequestOfferDto>>
 {
-    public async Task<List<BuyerGroupRequestOfferDto>> Handle(
+    public async Task<PagedResult<BuyerGroupRequestOfferDto>> Handle(
         GetGroupRequestOffersQuery request,
         CancellationToken cancellationToken)
     {
@@ -40,22 +42,26 @@ public sealed class GetGroupRequestOffersQueryHandler(IAppDbContext db)
             query = query.Where(x => x.Status == GroupRequestOfferStatus.Open);
         }
 
+        var totalCount = await query.CountAsync(cancellationToken);
+
         var offers = await query
             .OrderBy(x => x.CurrentUnitPrice)
-           .Select(x => new BuyerGroupRequestOfferDto(
-           x.Id,
-           x.SupplierId,
-           x.Supplier.FirstName + " " + x.Supplier.LastName,
-           x.CurrentUnitPrice,
-           x.QuantityAvailable,
-           x.AcceptedQuantity,
-           x.Status,
-           x.RoundNumber,
-           x.ExpiresAt,
-           x.VariantAttributes
-            )).ToListAsync(cancellationToken);
+            .Skip((request.Page - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .Select(x => new BuyerGroupRequestOfferDto(
+                x.Id,
+                x.SupplierId,
+                x.Supplier.FirstName + " " + x.Supplier.LastName,
+                x.CurrentUnitPrice,
+                x.QuantityAvailable,
+                x.AcceptedQuantity,
+                x.Status,
+                x.RoundNumber,
+                x.ExpiresAt,
+                x.VariantAttributes
+            ))
+            .ToListAsync(cancellationToken);
 
-        return offers;
-    
-}
+        return new PagedResult<BuyerGroupRequestOfferDto>(offers, totalCount, request.Page, request.PageSize);
+    }
 }

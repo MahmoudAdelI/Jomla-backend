@@ -90,7 +90,8 @@ namespace Jomla.Infrastructure
             })
                 .AddRoles<IdentityRole<Guid>>()
                 .AddEntityFrameworkStores<AppDbContext>()
-                .AddSignInManager<SignInManager<AppUser>>();
+                .AddSignInManager<SignInManager<AppUser>>()
+                .AddDefaultTokenProviders();
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key));
 
@@ -176,6 +177,10 @@ namespace Jomla.Infrastructure
             // Infrastructure implementations
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IIdentityService, IdentityService>();
+
+            services.Configure<EmailSettings>(config.GetSection("EmailSettings"));
+            services.AddTransient<IEmailService, EmailService>();
+
             return services;
         }
     }
