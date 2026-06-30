@@ -46,9 +46,22 @@ namespace Jomla.Application.Features.GroupRequests.Queries.GetGroupRequests
             // Total count
             var totalCount = await query.CountAsync(cancellationToken);
 
-            // Sorting + Pagination
+            // Sorting
+            if (request.SortBy == "most_buyers")
+            {
+                query = query.OrderByDescending(r => r.Participants.Count(p => p.Status == GroupRequestParticipantStatus.Active));
+            }
+            else if (request.SortBy == "newest")
+            {
+                query = query.OrderByDescending(r => r.CreatedAt);
+            }
+            else
+            {
+                query = query.OrderByDescending(r => r.CurrentQuantity);
+            }
+
+            // Pagination
             var items = await query
-                .OrderByDescending(r => r.CurrentQuantity)
                 .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .Select(r => new GroupRequestListItemDto(

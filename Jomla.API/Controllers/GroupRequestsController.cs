@@ -84,11 +84,12 @@ namespace Jomla.API.Controllers
             [FromQuery] Guid? categoryId,
             [FromQuery] string? titleSearch,
             [FromQuery] string? status,
+            [FromQuery] string? sortBy,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
             var result = await _mediator.Send(new GetGroupRequestsQuery(
-                categoryId, titleSearch, status, page, pageSize));
+                categoryId, titleSearch, status, page, pageSize, sortBy));
 
             return Ok(result);
         }

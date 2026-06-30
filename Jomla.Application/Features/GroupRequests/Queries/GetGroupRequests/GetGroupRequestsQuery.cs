@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Features.GroupRequests.Dtos;
+using Jomla.Application.Features.GroupRequests.Dtos;
 using MediatR;
 using System;
 using System.Collections.Generic;
@@ -9,12 +9,13 @@ using System.Threading.Tasks;
 namespace Jomla.Application.Features.GroupRequests.Queries.GetGroupRequests
 {
     public sealed record GetGroupRequestsQuery(
-    Guid? CategoryId,
-    string? TitleSearch,
-    string? Status,
-    int Page = 1,
-    int PageSize = 10
-   ) : IRequest<PagedResult<GroupRequestListItemDto>>;
+        Guid? CategoryId,
+        string? TitleSearch,
+        string? Status,
+        int Page = 1,
+        int PageSize = 10,
+        string? SortBy = null
+    ) : IRequest<PagedResult<GroupRequestListItemDto>>;
 }
 
 
