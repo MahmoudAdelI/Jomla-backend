@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using Jomla.Application.Jobs.Fulfillment;
 using Jomla.Application.Jobs.JobDispatcher;
+using Jomla.Application.Common.Exceptions;
 using System;
 using System.Linq;
 using System.Threading;
@@ -19,17 +20,9 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
         string BuyerEmail,
         int AcceptedQuantity,
         string PaymentIntentId
-    ) : IRequest<ConfirmAcceptGroupRequestOfferResponse>;
+    ) : IRequest<bool>;
 
-    public class ConfirmAcceptGroupRequestOfferResponse
-    {
-        public bool Success { get; set; }
-        public string? Error { get; set; }
-        public string? ErrorCode { get; set; }
-        public int? StatusCode { get; set; }
-    }
-
-    public class ConfirmAcceptGroupRequestOfferCommandHandler : IRequestHandler<ConfirmAcceptGroupRequestOfferCommand, ConfirmAcceptGroupRequestOfferResponse>
+    public class ConfirmAcceptGroupRequestOfferCommandHandler : IRequestHandler<ConfirmAcceptGroupRequestOfferCommand, bool>
     {
         private readonly IAppDbContext _context;
         private readonly IStripePaymentService _stripePaymentService;
@@ -48,7 +41,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
             _logger = logger;
         }
 
-        public async Task<ConfirmAcceptGroupRequestOfferResponse> Handle(
+        public async Task<bool> Handle(
             ConfirmAcceptGroupRequestOfferCommand request,
             CancellationToken cancellationToken)
         {
@@ -60,119 +53,49 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 .FirstOrDefaultAsync(o => o.Id == request.OfferId, cancellationToken);
 
             if (offer == null)
-            {
-                return new ConfirmAcceptGroupRequestOfferResponse
-                {
-                    Success = false,
-                    Error = "Offer not found",
-                    ErrorCode = "NOT_FOUND",
-                    StatusCode = 404
-                };
-            }
+                throw new NotFoundException(nameof(GroupRequestOffer), request.OfferId);
 
             // 2️⃣ Validate offer is Open
             if (offer.Status != GroupRequestOfferStatus.Open)
-            {
-                return new ConfirmAcceptGroupRequestOfferResponse
-                {
-                    Success = false,
-                    Error = $"Offer is {offer.Status}",
-                    ErrorCode = "INVALID_OFFER_STATUS",
-                    StatusCode = 409
-                };
-            }
+                throw new ConflictException($"Offer status is {offer.Status}.");
 
             // 3️⃣ Validate group request is active
             if (offer.GroupRequest.Status != GroupRequestStatus.Active)
-            {
-                return new ConfirmAcceptGroupRequestOfferResponse
-                {
-                    Success = false,
-                    Error = "Group request is not active",
-                    ErrorCode = "INVALID_GROUP_REQUEST_STATUS",
-                    StatusCode = 409
-                };
-            }
+                throw new ConflictException("Group request is not active.");
 
             // 4️⃣ Find buyer participant
             var participant = offer.GroupRequest.Participants
                 .FirstOrDefault(p => p.BuyerId == request.BuyerId && p.Status == GroupRequestParticipantStatus.Active);
 
             if (participant == null)
-            {
-                return new ConfirmAcceptGroupRequestOfferResponse
-                {
-                    Success = false,
-                    Error = "You are not an active participant in this group request",
-                    ErrorCode = "NOT_PARTICIPANT",
-                    StatusCode = 403
-                };
-            }
+                throw new ForbiddenException("You are not an active participant in this group request.");
 
             // 5️⃣ Check if already accepted
             var existingResponse = offer.Responses
                 .FirstOrDefault(r => r.BuyerId == request.BuyerId);
 
             if (existingResponse != null && existingResponse.Response == BuyerOfferResponseType.Accepted)
-            {
-                return new ConfirmAcceptGroupRequestOfferResponse
-                {
-                    Success = false,
-                    Error = "You have already accepted this offer",
-                    ErrorCode = "ALREADY_ACCEPTED",
-                    StatusCode = 400
-                };
-            }
+                throw new ConflictException("You have already accepted this offer.");
 
             // 6️⃣ Re-validate capacity (Prevent overselling)
             int remaining = offer.QuantityAvailable - offer.AcceptedQuantity;
             if (request.AcceptedQuantity <= 0)
-            {
-                return new ConfirmAcceptGroupRequestOfferResponse
-                {
-                    Success = false,
-                    Error = "Accepted quantity must be at least 1.",
-                    ErrorCode = "INVALID_QUANTITY",
-                    StatusCode = 400
-                };
-            }
+                throw new BadRequestException("Accepted quantity must be at least 1.");
 
             if (request.AcceptedQuantity > remaining)
             {
-                // Rollback Stripe payment hold to prevent charging buyer when save fails
+                // Rollback Stripe payment hold to prevent charging buyer
                 await _stripePaymentService.CancelPaymentAsync(request.PaymentIntentId, cancellationToken);
-                return new ConfirmAcceptGroupRequestOfferResponse
-                {
-                    Success = false,
-                    Error = $"Only {remaining} slot(s) remaining. You cannot accept more than that.",
-                    ErrorCode = "INSUFFICIENT_SLOTS",
-                    StatusCode = 409
-                };
+                throw new ConflictException($"Only {remaining} slot(s) remaining. You cannot accept more than that.");
             }
 
             // 7️⃣ Verify Stripe PaymentIntent status
             var paymentResult = await _stripePaymentService.GetPaymentIntentAsync(request.PaymentIntentId, cancellationToken);
             if (!paymentResult.Success)
-            {
-                return new ConfirmAcceptGroupRequestOfferResponse
-                {
-                    Success = false,
-                    Error = $"Could not verify payment: {paymentResult.Error}",
-                    ErrorCode = "PAYMENT_VERIFICATION_FAILED",
-                    StatusCode = 400
-                };
-            }
+                throw new BadRequestException($"Could not verify payment: {paymentResult.Error}");
 
             if (paymentResult.Status != "requires_capture" && paymentResult.Status != "succeeded")
-            {
-                return new ConfirmAcceptGroupRequestOfferResponse
-                {
-                    Success = false,
-                    Error = $"Stripe payment intent status is '{paymentResult.Status}', but 'requires_capture' or 'succeeded' is required.",
-                    ErrorCode = "PAYMENT_NOT_AUTHORIZED",
-                    StatusCode = 400
-                };
-            }
+                throw new BadRequestException($"Stripe payment intent status is '{paymentResult.Status}', but 'requires_capture' or 'succeeded' is required.");
 
             // 8️⃣ Verify Payment amount matches expected amount
             decimal expectedAmount = request.AcceptedQuantity * offer.CurrentUnitPrice;
@@ -182,13 +105,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
             {
                 // Rollback Stripe payment hold
                 await _stripePaymentService.CancelPaymentAsync(request.PaymentIntentId, cancellationToken);
-                return new ConfirmAcceptGroupRequestOfferResponse
-                {
-                    Success = false,
-                    Error = "Payment amount does not match the requested quantity.",
-                    ErrorCode = "PAYMENT_AMOUNT_MISMATCH",
-                    StatusCode = 400
-                };
+                throw new BadRequestException("Payment amount does not match the requested quantity.");
             }
 
             // 9️⃣ Create or update buyer response
@@ -230,13 +147,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 // Revert/Cancel Stripe Payment Hold if DB save failed
                 await _stripePaymentService.CancelPaymentAsync(request.PaymentIntentId, cancellationToken);
 
-                return new ConfirmAcceptGroupRequestOfferResponse
-                {
-                    Success = false,
-                    Error = "An error occurred while saving your response. Payment hold was released.",
-                    ErrorCode = "SAVE_FAILED",
-                    StatusCode = 500
-                };
+                throw new ConflictException("An error occurred while saving your response. Payment hold was released.");
             }
 
             // 🔟 Check if offer is complete
@@ -248,10 +159,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 _jobDispatcher.Enqueue<IGroupRequestOfferFillJob>(j => j.ExecuteAsync(request.OfferId));
             }
 
-            return new ConfirmAcceptGroupRequestOfferResponse
-            {
-                Success = true
-            };
+            return true;
         }
     }
 }

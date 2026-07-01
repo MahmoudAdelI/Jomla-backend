@@ -5,6 +5,7 @@ using Jomla.Application.Features.Batches.DTOs;
 using Jomla.Application.Features.Batches.Events;
 using Jomla.Application.Jobs.Fulfillment;
 using Jomla.Application.Jobs.JobDispatcher;
+using Jomla.Application.Common.Exceptions;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -13,23 +14,15 @@ using System.Threading.Tasks;
 
 namespace Jomla.Application.Features.Batches.Commands
 {
-    public class ConfirmJoinBatchCommand : IRequest<ConfirmJoinBatchResponse>
+    public class ConfirmJoinBatchCommand : IRequest<bool>
     {
         public Guid BatchId { get; set; }
         public Guid BuyerId { get; set; }
         public int Quantity { get; set; }
-        public string PaymentIntentId { get; set; }
+        public string PaymentIntentId { get; set; } = null!;
     }
 
-    public class ConfirmJoinBatchResponse
-    {
-        public bool Success { get; set; }
-        public string Error { get; set; }
-        public string ErrorCode { get; set; }
-        public int? StatusCode { get; set; }
-    }
-
-    public class ConfirmJoinBatchCommandHandler : IRequestHandler<ConfirmJoinBatchCommand, ConfirmJoinBatchResponse>
+    public class ConfirmJoinBatchCommandHandler : IRequestHandler<ConfirmJoinBatchCommand, bool>
     {
         private readonly IAppDbContext _context;
         private readonly IStripePaymentService _stripePaymentService;
@@ -48,7 +41,7 @@ namespace Jomla.Application.Features.Batches.Commands
             _mediator = mediator;
         }
 
-        public async Task<ConfirmJoinBatchResponse> Handle(ConfirmJoinBatchCommand request, CancellationToken cancellationToken)
+        public async Task<bool> Handle(ConfirmJoinBatchCommand request, CancellationToken cancellationToken)
         {
             // 1️⃣ Fetch batch with offer
             var batch = await _context.SupplierBatches
@@ -56,27 +49,11 @@ namespace Jomla.Application.Features.Batches.Commands
                 .FirstOrDefaultAsync(b => b.Id == request.BatchId, cancellationToken);
 
             if (batch == null)
-            {
-                return new ConfirmJoinBatchResponse
-                {
-                    Success = false,
-                    Error = $"SupplierBatch with ID '{request.BatchId}' was not found.",
-                    ErrorCode = "NOT_FOUND",
-                    StatusCode = 404
-                };
-            }
+                throw new NotFoundException(nameof(SupplierBatch), request.BatchId);
 
             // 2️⃣ Validate batch is Open
             if (batch.Status != BatchStatus.Open)
-            {
-                return new ConfirmJoinBatchResponse
-                {
-                    Success = false,
-                    Error = $"Batch is {batch.Status}. Cannot join.",
-                    ErrorCode = "INVALID_BATCH_STATUS",
-                    StatusCode = 409
-                };
-            }
+                throw new ConflictException($"Batch is {batch.Status}. Cannot join.");
 
             // 3️⃣ Check if already an ACTIVE participant
             var existingParticipant = await _context.BatchParticipants
@@ -84,15 +61,7 @@ namespace Jomla.Application.Features.Batches.Commands
                                         && p.BuyerId == request.BuyerId, cancellationToken);
 
             if (existingParticipant != null && existingParticipant.Status == BatchParticipantStatus.Active)
-            {
-                return new ConfirmJoinBatchResponse
-                {
-                    Success = false,
-                    Error = "You are already a participant in this batch.",
-                    ErrorCode = "ALREADY_PARTICIPANT",
-                    StatusCode = 400
-                };
-            }
+                throw new ConflictException("You are already a participant in this batch.");
 
             // 3.5️⃣ Re-validate capacity
             int spaceRemaining = batch.TargetQuantity - batch.CurrentQuantity;
@@ -100,38 +69,16 @@ namespace Jomla.Application.Features.Batches.Commands
             {
                 // Rollback Stripe payment hold to prevent charging buyer
                 await _stripePaymentService.CancelPaymentAsync(request.PaymentIntentId, cancellationToken);
-                return new ConfirmJoinBatchResponse
-                {
-                    Success = false,
-                    Error = $"Only {spaceRemaining} slots available.",
-                    ErrorCode = "INSUFFICIENT_SLOTS",
-                    StatusCode = 409
-                };
+                throw new ConflictException($"Only {spaceRemaining} slots available.");
             }
 
             // 4️⃣ Verify Stripe PaymentIntent status
             var paymentResult = await _stripePaymentService.GetPaymentIntentAsync(request.PaymentIntentId, cancellationToken);
             if (!paymentResult.Success)
-            {
-                return new ConfirmJoinBatchResponse
-                {
-                    Success = false,
-                    Error = $"Could not verify payment: {paymentResult.Error}",
-                    ErrorCode = "PAYMENT_VERIFICATION_FAILED",
-                    StatusCode = 400
-                };
-            }
+                throw new BadRequestException($"Could not verify payment: {paymentResult.Error}");
 
             if (paymentResult.Status != "requires_capture" && paymentResult.Status != "succeeded")
-            {
-                return new ConfirmJoinBatchResponse
-                {
-                    Success = false,
-                    Error = $"Stripe payment intent status is '{paymentResult.Status}', but 'requires_capture' or 'succeeded' is required.",
-                    ErrorCode = "PAYMENT_NOT_AUTHORIZED",
-                    StatusCode = 400
-                };
-            }
+                throw new BadRequestException($"Stripe payment intent status is '{paymentResult.Status}', but 'requires_capture' or 'succeeded' is required.");
 
             // 4.5️⃣ Verify Payment amount matches request.Quantity
             decimal expectedAmount = request.Quantity * batch.Offer.UnitPrice * (1 - batch.Offer.DiscountPercentage / 100m);
@@ -141,13 +88,7 @@ namespace Jomla.Application.Features.Batches.Commands
             {
                 // Rollback Stripe payment hold
                 await _stripePaymentService.CancelPaymentAsync(request.PaymentIntentId, cancellationToken);
-                return new ConfirmJoinBatchResponse
-                {
-                    Success = false,
-                    Error = "Payment amount does not match the requested quantity.",
-                    ErrorCode = "PAYMENT_AMOUNT_MISMATCH",
-                    StatusCode = 400
-                };
+                throw new BadRequestException("Payment amount does not match the requested quantity.");
             }
 
             // 5️⃣ Reactivate existing record OR create new participant
@@ -183,14 +124,7 @@ namespace Jomla.Application.Features.Batches.Commands
             {
                 // Rollback Stripe payment hold to prevent charging buyer when save fails
                 await _stripePaymentService.CancelPaymentAsync(request.PaymentIntentId, cancellationToken);
-
-                return new ConfirmJoinBatchResponse
-                {
-                    Success = false,
-                    Error = "The batch was updated by another request. Please try again.",
-                    ErrorCode = "CONCURRENCY_CONFLICT",
-                    StatusCode = 409
-                };
+                throw new ConflictException("The batch was updated by another request. Please try again.");
             }
 
             // 7.5️⃣ Publish batch update event
@@ -202,7 +136,6 @@ namespace Jomla.Application.Features.Batches.Commands
             catch (Exception)
             {
                 // Warn but do not fail the core transaction if real-time broadcast fails
-                // Log/handle if needed, but MediatR publication failures shouldn't abort successfully saved DB state
             }
 
             // 8️⃣ Trigger completion ONLY if batch is full
@@ -212,10 +145,7 @@ namespace Jomla.Application.Features.Batches.Commands
                     j => j.ExecuteAsync(batch.Id));
             }
 
-            return new ConfirmJoinBatchResponse
-            {
-                Success = true
-            };
+            return true;
         }
     }
 }

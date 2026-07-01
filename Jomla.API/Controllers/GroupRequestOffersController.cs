@@ -44,7 +44,7 @@ public class GroupRequestOffersController(IMediator mediator,
     [HttpPost("{id:guid}/confirm-accept")]
     [Produces("application/json")]
     [EndpointSummary("Confirm buyer acceptance of a merchant's offer after Stripe payment completes.")]
-    [ProducesResponseType(typeof(ConfirmAcceptGroupRequestOfferResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ConfirmAcceptOffer(Guid id, [FromBody] ConfirmAcceptOfferRequest request)
@@ -57,6 +57,7 @@ public class GroupRequestOffersController(IMediator mediator,
 
         return Ok(result);
     }
+
 
 
     [HttpPost("{id:guid}/reject")]
