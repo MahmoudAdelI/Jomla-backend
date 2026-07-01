@@ -55,12 +55,10 @@ namespace Jomla.Application.Features.Batches.Commands.FailBatch
             await _db.SaveChangesAsync(cancellationToken);
 
             // Notify each affected buyer
-            var notifications = new List<Notification>();
-            foreach (var participant in batch.Participants)
-            {
-                var notification = new Notification
+            var notifications = batch.Participants
+                .Select(p => new Notification
                 {
-                    UserId = participant.BuyerId,
+                    UserId = p.BuyerId,
                     Type = NotificationType.BatchCanceledBySupplier,
                     Title = "Batch canceled by supplier",
                     Body = "The supplier has deactivated the offer. Your payment hold has been released.",
@@ -68,13 +66,12 @@ namespace Jomla.Application.Features.Batches.Commands.FailBatch
                     EntityType = nameof(SupplierBatch),
                     IsRead = false,
                     CreatedAt = DateTime.UtcNow
-                };
-                notifications.Add(notification);
-                _db.Notifications.Add(notification);
-            }
+                })
+                .ToList();
 
             if (notifications.Count > 0)
             {
+                _db.Notifications.AddRange(notifications);
                 await _db.SaveChangesAsync(cancellationToken);
 
                 foreach (var notification in notifications)
