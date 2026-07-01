@@ -1,5 +1,6 @@
 using CloudinaryDotNet.Actions;
 using Jomla.Application.Features.Offers.Commands.CreateOffer;
+using Jomla.Application.Features.Offers.Commands.DeactivateOffer;
 using Jomla.Application.Features.Offers.Commands.DeleteOffer;
 using Jomla.Application.Features.Offers.Commands.UpdateOffer;
 using Jomla.Application.Features.Offers.Queries.GetAllOffers;
@@ -82,6 +83,15 @@ public class OffersController(IMediator mediator) : ControllerBase
         {
             Success = result
         });
+    }
+
+    [HttpPost("{id:guid}/deactivate")]
+    [Authorize(Roles = nameof(UserRole.Supplier))]
+    public async Task<IActionResult> Deactivate(Guid id)
+    {
+        var result = await _mediator.Send(new DeactivateOfferCommand(id));
+
+        return Ok(new { Success = result });
     }
 
     [HttpGet("my-offers")]
