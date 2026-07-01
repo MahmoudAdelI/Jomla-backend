@@ -94,7 +94,7 @@ public sealed class PlaceGroupRequestOfferHandler(
             AcceptedQuantity = 0,
             RoundNumber = 1,
             Status = GroupRequestOfferStatus.Open,
-            ExpiresAt = request.ExpiresAt,
+            ExpiresAt = request.ExpiresAt.UtcDateTime,
             JobId = string.Empty
         };
 
@@ -120,7 +120,7 @@ public sealed class PlaceGroupRequestOfferHandler(
         await db.SaveChangesAsync(cancellationToken);
 
         // Schedule the offer expiry job
-        var jobId = backgroundJobDispatcher.Schedule<IGroupRequestOfferExpiryJob>(x => x.ExcuteAsync(offer.Id), offer.ExpiresAt);
+        var jobId = backgroundJobDispatcher.Schedule<IGroupRequestOfferExpiryJob>(x => x.ExcuteAsync(offer.Id), request.ExpiresAt);
         offer.JobId = jobId;
 
         await db.SaveChangesAsync(cancellationToken);

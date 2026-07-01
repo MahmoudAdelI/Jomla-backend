@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 
 namespace Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOffer;
 
@@ -18,5 +18,5 @@ public sealed record PlaceGroupRequestOfferCommand : IRequest<Guid>
 
     public string? VariantAttributes { get; init; }
 
-    public DateTime ExpiresAt { get; init; }
+    public DateTimeOffset ExpiresAt { get; init; }
 }
