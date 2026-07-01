@@ -1,3 +1,4 @@
+using Jomla.Application.Common.Exceptions;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Batches.Commands.FailBatch;
 using Jomla.Application.Features.Notifications;
@@ -28,22 +29,23 @@ public sealed class DeactivateOfferCommandHandler(
     {
         var supplierId = _identityService.GetCurrentUserId();
 
-        // 1️⃣ Load the offer
+        // Load the offer with its batches in a single query
         var offer = await _db.SupplierOffers
+            .Include(o => o.Batches)
             .FirstOrDefaultAsync(o => o.Id == request.OfferId, cancellationToken);
 
         if (offer is null)
-            throw new KeyNotFoundException($"Offer '{request.OfferId}' was not found.");
+            throw new NotFoundException(nameof(SupplierOffer), request.OfferId);
 
-        // 2️⃣ Ownership check
+        // Ownership check
         if (offer.SupplierId != supplierId)
-            throw new UnauthorizedAccessException("You are not the owner of this offer.");
+            throw new ForbiddenException("You are not the owner of this offer.");
 
-        // 3️⃣ Only Active offers can be deactivated
+        // Only Active offers can be deactivated
         if (offer.Status != SupplierOfferStatus.Active)
-            throw new InvalidOperationException($"Only Active offers can be deactivated. Current status: {offer.Status}.");
+            throw new BadRequestException($"Only Active offers can be deactivated. Current status: {offer.Status}.");
 
-        // 4️⃣ Cancel the scheduled expiry Hangfire job (if one exists)
+        // Cancel the scheduled expiry Hangfire job (if one exists)
         if (!string.IsNullOrWhiteSpace(offer.JobId))
         {
             try
@@ -58,16 +60,13 @@ public sealed class DeactivateOfferCommandHandler(
             }
         }
 
-        // 5️⃣ Mark offer as Inactive
+        // Mark offer as Inactive
         offer.Status = SupplierOfferStatus.Inactive;
         await _db.SaveChangesAsync(cancellationToken);
 
-        // 6️⃣ Find and fail the open batch (if any) — FailBatchCommandHandler handles
-        //     Stripe hold releases, per-buyer notifications, and SignalR broadcast
-        var openBatch = await _db.SupplierBatches
-            .FirstOrDefaultAsync(
-                b => b.OfferId == offer.Id && b.Status == BatchStatus.Open,
-                cancellationToken);
+        // Find and fail the open batch (if any) — FailBatchCommandHandler handles
+        // Stripe hold releases, per-buyer notifications, and SignalR broadcast
+        var openBatch = offer.Batches.FirstOrDefault(b => b.Status == BatchStatus.Open);
 
         if (openBatch is not null)
         {
@@ -85,7 +84,7 @@ public sealed class DeactivateOfferCommandHandler(
             }
         }
 
-        // 7️⃣ Notify the supplier
+        // Notify the supplier
         var supplierNotification = new Notification
         {
             UserId = offer.SupplierId,
