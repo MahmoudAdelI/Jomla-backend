@@ -167,6 +167,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 OfferId = request.OfferId,
                 GroupRequestId = offer.GroupRequestId,
                 PaymentIntentId = paymentResult.PaymentIntentId,
+                ClientSecret = paymentResult.ClientSecret,
                 AcceptedQuantity = updatedAcceptedQuantity,
                 TotalAmount = totalAmount,
                 Message = isComplete

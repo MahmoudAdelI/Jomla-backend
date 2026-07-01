@@ -14,6 +14,7 @@ namespace Jomla.Application.Features.Batches.Commands.JoinBatch
             public Guid BuyerId { get; set; }
             public string BuyerEmail { get; set; }
             public int Quantity { get; set; }
+            //public bool ConfirmPartialQuantity { get; set; } = false 
         }
 
         public class JoinBatchResponse
