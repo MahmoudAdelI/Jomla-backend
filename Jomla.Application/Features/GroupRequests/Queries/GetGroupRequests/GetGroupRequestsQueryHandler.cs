@@ -45,9 +45,9 @@ namespace Jomla.Application.Features.GroupRequests.Queries.GetGroupRequests
 
             if (request.BuyerId.HasValue)
             {
-                query = query.Where(r => r.InitiatorId == request.BuyerId.Value ||
-                                         r.Participants.Any(p => p.BuyerId == request.BuyerId.Value && p.Status == GroupRequestParticipantStatus.Active));
+                query = query.Where(r => r.InitiatorId == request.BuyerId.Value);
             }
+
 
             // Total count
             var totalCount = await query.CountAsync(cancellationToken);
