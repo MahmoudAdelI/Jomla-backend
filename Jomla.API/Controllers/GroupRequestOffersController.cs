@@ -41,6 +41,25 @@ public class GroupRequestOffersController(IMediator mediator,
         return Ok(result);
     }
 
+    [HttpPost("{id:guid}/confirm-accept")]
+    [Produces("application/json")]
+    [EndpointSummary("Confirm buyer acceptance of a merchant's offer after Stripe payment completes.")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ConfirmAcceptOffer(Guid id, [FromBody] ConfirmAcceptOfferRequest request)
+    {
+        var buyerId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var buyerEmail = User.FindFirstValue(ClaimTypes.Email)!;
+
+        var result = await _mediator.Send(
+            new ConfirmAcceptGroupRequestOfferCommand(id, buyerId, buyerEmail, request.AcceptedQuantity, request.PaymentIntentId));
+
+        return Ok(result);
+    }
+
+
+
     [HttpPost("{id:guid}/reject")]
     [Produces("application/json")]
     [EndpointSummary("Buyer rejects a merchant's offer, voting to trigger AI price negotiation.")]
@@ -84,3 +103,9 @@ public class AcceptOfferRequest
 {
     public int AcceptedQuantity { get; set; }
 }
+
+public class ConfirmAcceptOfferRequest
+{
+    public int AcceptedQuantity { get; set; }
+    public string PaymentIntentId { get; set; } = null!;
+}

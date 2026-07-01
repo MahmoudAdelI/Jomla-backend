@@ -17,13 +17,12 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
 
     public class AcceptGroupRequestOfferResponse
     {
-        public bool Success { get; set; }
-        public Guid? OfferId { get; set; }
-        public Guid? GroupRequestId { get; set; }
-        public string? PaymentIntentId { get; set; }
-        public int? AcceptedQuantity { get; set; }
-        public decimal? TotalAmount { get; set; }
-        public string? Message { get; set; }
-        public string? Error { get; set; }
+        public Guid OfferId { get; set; }
+        public Guid GroupRequestId { get; set; }
+        public string PaymentIntentId { get; set; } = null!;
+        public string ClientSecret { get; set; } = null!;
+        public int AcceptedQuantity { get; set; }
+        public decimal TotalAmount { get; set; }
     }
+
 }
