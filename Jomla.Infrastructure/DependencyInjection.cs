@@ -72,6 +72,7 @@ namespace Jomla.Infrastructure
             services.AddScoped<ISupplierMatchingJob, SupplierMatchingJob>();
             services.AddScoped<IGroupRequestAutoCloseJob, GroupRequestAutoCloseJob>();
             services.AddScoped<IGroupRequestOfferExpiryJob, GroupRequestOfferExpiryJob>();
+            services.AddScoped<IGroupRequestOfferFillJob, GroupRequestOfferFillJob>();
             services.AddScoped<INegotiationRoundIndexJob, NegotiationRoundIndexJob>();
             services.AddScoped<INegotiationRoundSyncJob, NegotiationRoundSyncJob>();
             #endregion
