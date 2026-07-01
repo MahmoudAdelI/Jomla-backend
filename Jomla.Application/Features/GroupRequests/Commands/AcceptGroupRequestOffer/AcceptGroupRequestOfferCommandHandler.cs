@@ -59,16 +59,19 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
             if (existingResponse != null && existingResponse.Response == BuyerOfferResponseType.Accepted)
                 return new AcceptGroupRequestOfferResponse { Success = false, Error = "You have already accepted this offer" };
 
-            //  FIX 1: Check available quantity BEFORE processing payment
+            // Validate AcceptedQuantity bounds
+            int remaining = offer.QuantityAvailable - offer.AcceptedQuantity;
+
+            if (request.AcceptedQuantity <= 0)
+                return new AcceptGroupRequestOfferResponse { Success = false, Error = "Accepted quantity must be at least 1." };
+
+            if (request.AcceptedQuantity > remaining)
+                return new AcceptGroupRequestOfferResponse { Success = false, Error = $"Only {remaining} slot(s) remaining. You cannot accept more than that." };
+
             var currentAcceptedQuantity = offer.AcceptedQuantity;
 
-            if (currentAcceptedQuantity + participant.Quantity > offer.QuantityAvailable)
-            {
-                return new AcceptGroupRequestOfferResponse { Success = false, Error = "Offer does not have enough remaining capacity for your requested quantity" };
-            }
-
-            // Step 6: Calculate payment amount
-            decimal totalAmount = participant.Quantity * offer.CurrentUnitPrice;
+            // Calculate payment amount using the buyer-chosen accepted quantity
+            decimal totalAmount = request.AcceptedQuantity * offer.CurrentUnitPrice;
 
             // Step 7: Create Stripe payment hold
             var paymentResult = await _stripePaymentService.CreatePaymentHoldAsync(
@@ -95,21 +98,23 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                         OfferId = request.OfferId,
                         BuyerId = request.BuyerId,
                         Response = BuyerOfferResponseType.Accepted,
+                        AcceptedQuantity = request.AcceptedQuantity,
                         StripePaymentIntentId = paymentResult.PaymentIntentId,
                         RespondedAt = DateTime.UtcNow
                     };
                     _context.BuyerOfferResponses.Add(existingResponse);
-                    offer.Responses.Add(existingResponse); // Fix in-memory collection tracking
+                    offer.Responses.Add(existingResponse);
                 }
                 else
                 {
                     existingResponse.Response = BuyerOfferResponseType.Accepted;
+                    existingResponse.AcceptedQuantity = request.AcceptedQuantity;
                     existingResponse.StripePaymentIntentId = paymentResult.PaymentIntentId;
                     existingResponse.RespondedAt = DateTime.UtcNow;
                 }
 
-                // Update the persisted AcceptedQuantity counter
-                offer.AcceptedQuantity = currentAcceptedQuantity + participant.Quantity;
+                // Update the persisted AcceptedQuantity counter on the offer
+                offer.AcceptedQuantity = currentAcceptedQuantity + request.AcceptedQuantity;
 
                 // Step 9: Save Changes
                 await _context.SaveChangesAsync(cancellationToken);

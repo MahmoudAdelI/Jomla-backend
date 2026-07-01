@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +10,8 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
     public record AcceptGroupRequestOfferCommand(
       Guid OfferId,
       Guid BuyerId,
-      string BuyerEmail
+      string BuyerEmail,
+      int AcceptedQuantity
   ) : IRequest<AcceptGroupRequestOfferResponse>;
 
 
