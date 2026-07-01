@@ -55,6 +55,7 @@ namespace Jomla.Application.Features.Batches.Commands.FailBatch
             await _db.SaveChangesAsync(cancellationToken);
 
             // Notify each affected buyer
+            var notifications = new List<Notification>();
             foreach (var participant in batch.Participants)
             {
                 var notification = new Notification
@@ -68,21 +69,28 @@ namespace Jomla.Application.Features.Batches.Commands.FailBatch
                     IsRead = false,
                     CreatedAt = DateTime.UtcNow
                 };
-
+                notifications.Add(notification);
                 _db.Notifications.Add(notification);
+            }
+
+            if (notifications.Count > 0)
+            {
                 await _db.SaveChangesAsync(cancellationToken);
 
-                try
+                foreach (var notification in notifications)
                 {
-                    await _mediator.Publish(
-                        new NotificationCreatedEvent(notification.UserId, notification.Id),
-                        cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex,
-                        "Failed to push notification to buyer {BuyerId} for failed batch {BatchId}.",
-                        participant.BuyerId, batch.Id);
+                    try
+                    {
+                        await _mediator.Publish(
+                            new NotificationCreatedEvent(notification.UserId, notification.Id),
+                            cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex,
+                            "Failed to push notification to buyer {BuyerId} for failed batch {BatchId}.",
+                            notification.UserId, batch.Id);
+                    }
                 }
             }
 
