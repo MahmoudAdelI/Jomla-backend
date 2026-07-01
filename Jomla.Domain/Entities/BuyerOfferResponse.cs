@@ -1,4 +1,4 @@
-﻿namespace Jomla.Domain.Entities
+namespace Jomla.Domain.Entities
 {
     public class BuyerOfferResponse
     {
@@ -7,6 +7,7 @@
         public Guid BuyerId { get; set; }
         public AppUser Buyer { get; set; } = null!;
         public BuyerOfferResponseType Response { get; set; }
+        public int AcceptedQuantity { get; set; }
         public string? StripePaymentIntentId { get; set; }
         public DateTime RespondedAt { get; set; }
     }
