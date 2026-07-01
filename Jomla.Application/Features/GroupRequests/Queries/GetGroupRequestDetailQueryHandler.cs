@@ -64,7 +64,11 @@ namespace Jomla.Application.Features.GroupRequests.Queries
                     o.CreatedAt,
                     o.ExpiresAt,
                     o.RoundNumber
-                )).ToList()
+                )).ToList(),
+                groupRequest.Participants
+                    .Where(p => p.Status == GroupRequestParticipantStatus.Active)
+                    .Select(p => p.BuyerId)
+                    .ToList()
             );
         }
     }
