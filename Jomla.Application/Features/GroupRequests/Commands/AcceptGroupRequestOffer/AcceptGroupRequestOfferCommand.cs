@@ -21,6 +21,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
         public Guid? OfferId { get; set; }
         public Guid? GroupRequestId { get; set; }
         public string? PaymentIntentId { get; set; }
+        public string? ClientSecret { get; set; }
         public int? AcceptedQuantity { get; set; }
         public decimal? TotalAmount { get; set; }
         public string? Message { get; set; }

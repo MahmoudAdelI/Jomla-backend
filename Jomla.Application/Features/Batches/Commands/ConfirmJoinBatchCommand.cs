@@ -94,6 +94,21 @@ namespace Jomla.Application.Features.Batches.Commands
                 };
             }
 
+            // 3.5️⃣ Re-validate capacity
+            int spaceRemaining = batch.TargetQuantity - batch.CurrentQuantity;
+            if (request.Quantity > spaceRemaining)
+            {
+                // Rollback Stripe payment hold to prevent charging buyer
+                await _stripePaymentService.CancelPaymentAsync(request.PaymentIntentId, cancellationToken);
+                return new ConfirmJoinBatchResponse
+                {
+                    Success = false,
+                    Error = $"Only {spaceRemaining} slots available.",
+                    ErrorCode = "INSUFFICIENT_SLOTS",
+                    StatusCode = 409
+                };
+            }
+
             // 4️⃣ Verify Stripe PaymentIntent status
             var paymentResult = await _stripePaymentService.GetPaymentIntentAsync(request.PaymentIntentId, cancellationToken);
             if (!paymentResult.Success)
@@ -114,6 +129,23 @@ namespace Jomla.Application.Features.Batches.Commands
                     Success = false,
                     Error = $"Stripe payment intent status is '{paymentResult.Status}', but 'requires_capture' or 'succeeded' is required.",
                     ErrorCode = "PAYMENT_NOT_AUTHORIZED",
+                    StatusCode = 400
+                };
+            }
+
+            // 4.5️⃣ Verify Payment amount matches request.Quantity
+            decimal expectedAmount = request.Quantity * batch.Offer.UnitPrice * (1 - batch.Offer.DiscountPercentage / 100m);
+            long expectedAmountInCents = (long)Math.Round(expectedAmount * 100, MidpointRounding.AwayFromZero);
+
+            if (paymentResult.Amount != expectedAmountInCents)
+            {
+                // Rollback Stripe payment hold
+                await _stripePaymentService.CancelPaymentAsync(request.PaymentIntentId, cancellationToken);
+                return new ConfirmJoinBatchResponse
+                {
+                    Success = false,
+                    Error = "Payment amount does not match the requested quantity.",
+                    ErrorCode = "PAYMENT_AMOUNT_MISMATCH",
                     StatusCode = 400
                 };
             }

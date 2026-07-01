@@ -87,74 +87,18 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 return new AcceptGroupRequestOfferResponse { Success = false, Error = "Payment hold failed" };
             }
 
-            //  FIX 2: Wrap DB operations in try-catch to cancel payment hold if DB fails
-            try
-            {
-                // Step 8: Create or update buyer response
-                if (existingResponse == null)
-                {
-                    existingResponse = new BuyerOfferResponse
-                    {
-                        OfferId = request.OfferId,
-                        BuyerId = request.BuyerId,
-                        Response = BuyerOfferResponseType.Accepted,
-                        AcceptedQuantity = request.AcceptedQuantity,
-                        StripePaymentIntentId = paymentResult.PaymentIntentId,
-                        RespondedAt = DateTime.UtcNow
-                    };
-                    _context.BuyerOfferResponses.Add(existingResponse);
-                    offer.Responses.Add(existingResponse);
-                }
-                else
-                {
-                    existingResponse.Response = BuyerOfferResponseType.Accepted;
-                    existingResponse.AcceptedQuantity = request.AcceptedQuantity;
-                    existingResponse.StripePaymentIntentId = paymentResult.PaymentIntentId;
-                    existingResponse.RespondedAt = DateTime.UtcNow;
-                }
-
-                // Update the persisted AcceptedQuantity counter on the offer
-                offer.AcceptedQuantity = currentAcceptedQuantity + request.AcceptedQuantity;
-
-                // Step 9: Save Changes
-                await _context.SaveChangesAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to save buyer offer response for buyer {BuyerId}. Cancelling payment hold {PaymentIntentId}",
-                    request.BuyerId, paymentResult.PaymentIntentId);
-
-                // Revert/Cancel Stripe Payment Hold if DB save failed
-                await _stripePaymentService.CancelPaymentAsync(paymentResult.PaymentIntentId);
-
-                return new AcceptGroupRequestOfferResponse { Success = false, Error = "An error occurred while saving your response. Payment hold was released." };
-            }
-
-            // Step 10: Calculate updated total accepted quantity
-            var updatedAcceptedQuantity = offer.AcceptedQuantity;
-
-            // Step 11: Check if offer is complete
-            bool isComplete = updatedAcceptedQuantity >= offer.QuantityAvailable;
-
-            if (isComplete)
-            {
-                // Offload to background job — the accepting buyer's request must not block
-                // on all other buyers' Stripe captures completing synchronously.
-                _jobDispatcher.Enqueue<IGroupRequestOfferFillJob>(j => j.ExecuteAsync(request.OfferId));
-            }
-
             return new AcceptGroupRequestOfferResponse
             {
                 Success = true,
                 OfferId = request.OfferId,
                 GroupRequestId = offer.GroupRequestId,
                 PaymentIntentId = paymentResult.PaymentIntentId,
-                AcceptedQuantity = updatedAcceptedQuantity,
+                ClientSecret = paymentResult.ClientSecret,
+                AcceptedQuantity = request.AcceptedQuantity,
                 TotalAmount = totalAmount,
-                Message = isComplete
-                    ? "Offer accepted! All slots filled, processing..."
-                    : $"Offer accepted! {updatedAcceptedQuantity}/{offer.QuantityAvailable} slots filled"
+                Message = "Payment intent created successfully. Please confirm payment."
             };
+
         }
     }
 }
