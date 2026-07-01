@@ -22,30 +22,22 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
         string PaymentIntentId
     ) : IRequest<bool>;
 
-    public class ConfirmAcceptGroupRequestOfferCommandHandler : IRequestHandler<ConfirmAcceptGroupRequestOfferCommand, bool>
+    public class ConfirmAcceptGroupRequestOfferCommandHandler(
+        IAppDbContext context,
+        IStripePaymentService stripePaymentService,
+        IBackgroundJobDispatcher jobDispatcher,
+        ILogger<ConfirmAcceptGroupRequestOfferCommandHandler> logger) : IRequestHandler<ConfirmAcceptGroupRequestOfferCommand, bool>
     {
-        private readonly IAppDbContext _context;
-        private readonly IStripePaymentService _stripePaymentService;
-        private readonly IBackgroundJobDispatcher _jobDispatcher;
-        private readonly ILogger<ConfirmAcceptGroupRequestOfferCommandHandler> _logger;
-
-        public ConfirmAcceptGroupRequestOfferCommandHandler(
-            IAppDbContext context,
-            IStripePaymentService stripePaymentService,
-            IBackgroundJobDispatcher jobDispatcher,
-            ILogger<ConfirmAcceptGroupRequestOfferCommandHandler> logger)
-        {
-            _context = context;
-            _stripePaymentService = stripePaymentService;
-            _jobDispatcher = jobDispatcher;
-            _logger = logger;
-        }
+        private readonly IAppDbContext _context = context;
+        private readonly IStripePaymentService _stripePaymentService = stripePaymentService;
+        private readonly IBackgroundJobDispatcher _jobDispatcher = jobDispatcher;
+        private readonly ILogger<ConfirmAcceptGroupRequestOfferCommandHandler> _logger = logger;
 
         public async Task<bool> Handle(
             ConfirmAcceptGroupRequestOfferCommand request,
             CancellationToken cancellationToken)
         {
-            // 1️⃣ Fetch offer with group request and participants
+            // Fetch offer with group request and participants
             var offer = await _context.GroupRequestOffers
                 .Include(o => o.GroupRequest)
                     .ThenInclude(gr => gr.Participants)
@@ -55,29 +47,29 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
             if (offer == null)
                 throw new NotFoundException(nameof(GroupRequestOffer), request.OfferId);
 
-            // 2️⃣ Validate offer is Open
+            // Validate offer is Open
             if (offer.Status != GroupRequestOfferStatus.Open)
                 throw new ConflictException($"Offer status is {offer.Status}.");
 
-            // 3️⃣ Validate group request is active
+            // Validate group request is active
             if (offer.GroupRequest.Status != GroupRequestStatus.Active)
                 throw new ConflictException("Group request is not active.");
 
-            // 4️⃣ Find buyer participant
+            // Find buyer participant
             var participant = offer.GroupRequest.Participants
                 .FirstOrDefault(p => p.BuyerId == request.BuyerId && p.Status == GroupRequestParticipantStatus.Active);
 
             if (participant == null)
                 throw new ForbiddenException("You are not an active participant in this group request.");
 
-            // 5️⃣ Check if already accepted
+            // Check if already accepted
             var existingResponse = offer.Responses
                 .FirstOrDefault(r => r.BuyerId == request.BuyerId);
 
             if (existingResponse != null && existingResponse.Response == BuyerOfferResponseType.Accepted)
                 throw new ConflictException("You have already accepted this offer.");
 
-            // 6️⃣ Re-validate capacity (Prevent overselling)
+            // Re-validate capacity (Prevent overselling)
             int remaining = offer.QuantityAvailable - offer.AcceptedQuantity;
             if (request.AcceptedQuantity <= 0)
                 throw new BadRequestException("Accepted quantity must be at least 1.");
@@ -89,7 +81,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 throw new ConflictException($"Only {remaining} slot(s) remaining. You cannot accept more than that.");
             }
 
-            // 7️⃣ Verify Stripe PaymentIntent status
+            // Verify Stripe PaymentIntent status
             var paymentResult = await _stripePaymentService.GetPaymentIntentAsync(request.PaymentIntentId, cancellationToken);
             if (!paymentResult.Success)
                 throw new BadRequestException($"Could not verify payment: {paymentResult.Error}");
@@ -97,7 +89,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
             if (paymentResult.Status != "requires_capture" && paymentResult.Status != "succeeded")
                 throw new BadRequestException($"Stripe payment intent status is '{paymentResult.Status}', but 'requires_capture' or 'succeeded' is required.");
 
-            // 8️⃣ Verify Payment amount matches expected amount
+            // Verify Payment amount matches expected amount
             decimal expectedAmount = request.AcceptedQuantity * offer.CurrentUnitPrice;
             long expectedAmountInCents = (long)Math.Round(expectedAmount * 100, MidpointRounding.AwayFromZero);
 
@@ -108,7 +100,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 throw new BadRequestException("Payment amount does not match the requested quantity.");
             }
 
-            // 9️⃣ Create or update buyer response
+            // Create or update buyer response
             var currentAcceptedQuantity = offer.AcceptedQuantity;
             try
             {
@@ -150,7 +142,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 throw new ConflictException("An error occurred while saving your response. Payment hold was released.");
             }
 
-            // 🔟 Check if offer is complete
+            // Check if offer is complete
             bool isComplete = offer.AcceptedQuantity >= offer.QuantityAvailable;
 
             if (isComplete)
