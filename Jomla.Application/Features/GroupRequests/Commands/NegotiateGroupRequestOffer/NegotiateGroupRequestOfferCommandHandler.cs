@@ -34,7 +34,6 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
 
             // 2. flip current round to Countered
             offer.Status = GroupRequestOfferStatus.Countered;
-            await _db.SaveChangesAsync(cancellationToken);
 
             // 3. ask agent for next price
             var newPrice = await _negotiationAgent.GetNextPriceAsync(offer, request.categoryName);
@@ -79,23 +78,26 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
                 parentResponse.Response = BuyerOfferResponseType.MovedToNextRound;
             }
 
-            // 6. schedule expiry job for child offer
-            childOffer.JobId = _jobDispatcher.Schedule<IGroupRequestOfferExpiryJob>(job =>
-                job.ExcuteAsync(childOffer.Id),
-                new DateTimeOffset(childOffer.ExpiresAt, TimeSpan.Zero));
-
             _db.GroupRequestOffers.Add(childOffer);
 
-            // 6b. log the negotiation step
+            // 5c. log the negotiation step
             var log = new NegotiationLog
             {
-                OfferId = childOffer.Id,
+                Offer = childOffer,
                 PreviousPrice = offer.CurrentUnitPrice,
                 NewPrice = newPrice,
                 ReasoningSummary = $"AI Agent countered with a new price of {newPrice:C}.",
                 ActedAt = DateTime.UtcNow
             };
             _db.NegotiationLogs.Add(log);
+
+            // Save changes first to obtain the SQL Server-generated sequential GUID for childOffer.Id
+            await _db.SaveChangesAsync(cancellationToken);
+
+            // 6. schedule expiry job for child offer using the generated sequential ID
+            childOffer.JobId = _jobDispatcher.Schedule<IGroupRequestOfferExpiryJob>(job =>
+                job.ExcuteAsync(childOffer.Id),
+                new DateTimeOffset(childOffer.ExpiresAt, TimeSpan.Zero));
 
             // 7. notify all active participants about the new offer
             var participantIds = offer.GroupRequest.Participants
@@ -113,7 +115,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
                 CreatedAt = DateTime.UtcNow
             }).ToList();
 
-            // 7b. notify the supplier about the AI agent counter-offer
+            // 7b. notify the supplier about the AI agent counter-offer (using the generated ID)
             var supplierNotification = new Notification
             {
                 UserId = offer.SupplierId,
@@ -128,6 +130,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
 
             _db.Notifications.AddRange(notifications);
 
+            // Save the scheduled JobId and the new notifications
             await _db.SaveChangesAsync(cancellationToken);
 
             foreach (var notification in notifications)

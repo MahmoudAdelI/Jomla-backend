@@ -107,6 +107,9 @@ namespace Jomla.API
             {
                 using (var scope = app.Services.CreateScope())
                 {
+                    var dbContext = scope.ServiceProvider.GetRequiredService<Jomla.Infrastructure.Persistance.AppDbContext>();
+                    await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.MigrateAsync(dbContext.Database);
+
                     var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
                     didSeed = await seeder.SeedAsync();
                     await seeder.SeedAdminAsync();
@@ -133,29 +136,20 @@ namespace Jomla.API
 
 
             // Initialize Qdrant collections
-            using (var scope = app.Services.CreateScope())
+            using (var qdrantScope = app.Services.CreateScope())
             {
-                var initializer = scope.ServiceProvider
+                var initializer = qdrantScope.ServiceProvider
                     .GetRequiredService<NegotiationRoundsCollectionInitializer>();
-                await initializer.InitializeAsync();
 
                 if (seedDatabase && didSeed)
                 {
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            using var bgScope = app.Services.CreateScope();
-                            var syncJob = bgScope.ServiceProvider.GetRequiredService<INegotiationRoundSyncJob>();
-                            await syncJob.ExcuteAsync();
-                        }
-                        catch (Exception ex)
-                        {
-                            using var bgScope = app.Services.CreateScope();
-                            var logger = bgScope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-                            logger.LogWarning(ex, "Background task failed to sync negotiation rounds to Qdrant.");
-                        }
-                    });
+                    await initializer.RecreateCollectionAsync();
+                    var syncJob = qdrantScope.ServiceProvider.GetRequiredService<INegotiationRoundSyncJob>();
+                    await syncJob.ExcuteAsync();
+                }
+                else
+                {
+                    await initializer.InitializeAsync();
                 }
             }
 
