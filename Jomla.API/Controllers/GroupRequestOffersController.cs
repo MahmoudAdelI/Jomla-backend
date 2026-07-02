@@ -19,23 +19,26 @@ namespace Jomla.API.Controllers;
 [Route("api/[controller]")]
 [Authorize]
 public class GroupRequestOffersController(IMediator mediator,
- IBackgroundJobClient backgroundJobClient ) : ControllerBase
+ IBackgroundJobClient backgroundJobClient) : ControllerBase
 {
     private readonly IMediator _mediator = mediator;
-    private readonly IBackgroundJobClient _backgroundJobClient= backgroundJobClient;
+    private readonly IBackgroundJobClient _backgroundJobClient = backgroundJobClient;
 
     [HttpPost("{id:guid}/accept")]
     [Produces("application/json")]
     [EndpointSummary("Buyer accepts a merchant's offer and creates a payment hold via Stripe.")]
     [ProducesResponseType(typeof(AcceptGroupRequestOfferResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+
     public async Task<IActionResult> AcceptOffer(Guid id, [FromBody] AcceptOfferRequest request)
     {
         var buyerId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var buyerEmail = User.FindFirstValue(ClaimTypes.Email)!;
 
         var result = await _mediator.Send(
-            new AcceptGroupRequestOfferCommand(id, buyerId, buyerEmail, request.ConfirmPartialQuantity));
+
+        new AcceptGroupRequestOfferCommand(id, buyerId, buyerEmail, request.AcceptedQuantity));
 
         return Ok(result);
     }
@@ -57,7 +60,7 @@ public class GroupRequestOffersController(IMediator mediator,
     public IActionResult CancelOffer(Guid id)
     {
         var buyerId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
- 
+
         _backgroundJobClient.Enqueue<ISender>(sender =>
             sender.Send(new CancelGroupRequestOfferCommand(id, buyerId), CancellationToken.None));
 
@@ -76,9 +79,9 @@ public class GroupRequestOffersController(IMediator mediator,
         var result = await _mediator.Send(new GetGroupRequestOfferDetailQuery(id));
         return Ok(result);
     }
+}
+public class AcceptOfferRequest
+{
+    public int AcceptedQuantity { get; set; }
 
-    public class AcceptOfferRequest
-    {
-        public bool ConfirmPartialQuantity { get; set; } = false;
-    }
 }

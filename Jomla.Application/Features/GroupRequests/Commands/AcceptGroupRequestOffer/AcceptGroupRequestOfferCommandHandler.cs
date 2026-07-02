@@ -4,22 +4,21 @@ using Jomla.Domain;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
-using Jomla.Application.Jobs.Fulfillment;
-using Jomla.Application.Jobs.JobDispatcher;
+using Jomla.Application.Common.Exceptions;
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOffer
 {
     public class AcceptGroupRequestOfferCommandHandler(
         IAppDbContext context,
         IStripePaymentService stripePaymentService,
-        IMediator mediator,
-        IBackgroundJobDispatcher jobDispatcher,
         ILogger<AcceptGroupRequestOfferCommandHandler> logger) : IRequestHandler<AcceptGroupRequestOfferCommand, AcceptGroupRequestOfferResponse>
     {
         private readonly IAppDbContext _context = context;
         private readonly IStripePaymentService _stripePaymentService = stripePaymentService;
-        private readonly IMediator _mediator = mediator;
-        private readonly IBackgroundJobDispatcher _jobDispatcher = jobDispatcher;
         private readonly ILogger<AcceptGroupRequestOfferCommandHandler> _logger = logger;
 
         public async Task<AcceptGroupRequestOfferResponse> Handle(
@@ -34,145 +33,65 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 .FirstOrDefaultAsync(o => o.Id == request.OfferId, cancellationToken);
 
             if (offer == null)
-                return new AcceptGroupRequestOfferResponse { Success = false, Error = "Offer not found" };
+                throw new NotFoundException(nameof(GroupRequestOffer), request.OfferId);
 
             // Step 2: Validate offer is Open
             if (offer.Status != GroupRequestOfferStatus.Open)
-                return new AcceptGroupRequestOfferResponse { Success = false, Error = $"Offer is {offer.Status}" };
+                throw new ConflictException($"Offer status is {offer.Status}.");
 
             // Step 3: Validate group request is active
             if (offer.GroupRequest.Status != GroupRequestStatus.Active)
-                return new AcceptGroupRequestOfferResponse { Success = false, Error = "Group request is not active" };
+                throw new ConflictException("Group request is not active.");
 
             // Step 4: Find buyer participant
             var participant = offer.GroupRequest.Participants
                 .FirstOrDefault(p => p.BuyerId == request.BuyerId && p.Status == GroupRequestParticipantStatus.Active);
 
             if (participant == null)
-                return new AcceptGroupRequestOfferResponse { Success = false, Error = "You are not an active participant in this group request" };
+                throw new ForbiddenException("You are not an active participant in this group request.");
 
             // Step 5: Check if already accepted
             var existingResponse = offer.Responses
                 .FirstOrDefault(r => r.BuyerId == request.BuyerId);
 
             if (existingResponse != null && existingResponse.Response == BuyerOfferResponseType.Accepted)
-                return new AcceptGroupRequestOfferResponse { Success = false, Error = "You have already accepted this offer" };
+                throw new ConflictException("You have already accepted this offer.");
 
-            // Step 6: Check available quantity BEFORE processing payment
-            var currentAcceptedQuantity = offer.AcceptedQuantity;
-            var remainingSlots = offer.QuantityAvailable - currentAcceptedQuantity;
+            // Validate AcceptedQuantity bounds
+            int remaining = offer.QuantityAvailable - offer.AcceptedQuantity;
 
-            if (participant.Quantity > remainingSlots)
-            {
-                // No slots left at all — hard reject
-                if (remainingSlots <= 0)
-                {
-                    return new AcceptGroupRequestOfferResponse
-                    {
-                        Success = false,
-                        Error = "No slots remaining in this offer."
-                    };
-                }
+            if (request.AcceptedQuantity <= 0)
+                throw new BadRequestException("Accepted quantity must be at least 1.");
 
-                // Buyer hasn't confirmed the reduced quantity yet — return the available amount and stop
-                if (!request.ConfirmPartialQuantity)
-                {
-                    return new AcceptGroupRequestOfferResponse
-                    {
-                        Success = false,
-                        RequiresConfirmation = true,
-                        Message = $"Only {remainingSlots} slots remaining out of your requested {participant.Quantity}.",
-                        AvailableSlots = remainingSlots
-                    };
-                }
+            if (request.AcceptedQuantity > remaining)
+                throw new ConflictException($"Only {remaining} slot(s) remaining. You cannot accept more than that.");
 
-                // Buyer confirmed — reduce their quantity to what's actually available
-                participant.Quantity = remainingSlots;
-            }
+            // Calculate payment amount using the buyer-chosen accepted quantity
+            decimal totalAmount = request.AcceptedQuantity * offer.CurrentUnitPrice;
 
-            // Step 7: Calculate payment amount based on the (possibly adjusted) quantity
-            decimal totalAmount = participant.Quantity * offer.CurrentUnitPrice;
-
-            // Step 8: Create Stripe payment hold
+            // Step 7: Create Stripe payment hold
             var paymentResult = await _stripePaymentService.CreatePaymentHoldAsync(
                 request.BuyerId.ToString(),
                 request.BuyerEmail,
                 totalAmount,
-                request.OfferId);
+                request.OfferId,
+                cancellationToken: cancellationToken);
 
             if (!paymentResult.Success)
             {
                 _logger.LogWarning("Payment hold failed for buyer {BuyerId} on offer {OfferId}: {Error}",
                     request.BuyerId, request.OfferId, paymentResult.Error);
-                return new AcceptGroupRequestOfferResponse { Success = false, Error = "Payment hold failed" };
-            }
-
-            // Step 9: Wrap DB operations in try-catch to cancel payment hold if DB fails
-            try
-            {
-                // Create or update buyer response
-                if (existingResponse == null)
-                {
-                    existingResponse = new BuyerOfferResponse
-                    {
-                        OfferId = request.OfferId,
-                        BuyerId = request.BuyerId,
-                        Response = BuyerOfferResponseType.Accepted,
-                        StripePaymentIntentId = paymentResult.PaymentIntentId,
-                        RespondedAt = DateTime.UtcNow
-                    };
-                    _context.BuyerOfferResponses.Add(existingResponse);
-                    offer.Responses.Add(existingResponse); // Fix in-memory collection tracking
-                }
-                else
-                {
-                    existingResponse.Response = BuyerOfferResponseType.Accepted;
-                    existingResponse.StripePaymentIntentId = paymentResult.PaymentIntentId;
-                    existingResponse.RespondedAt = DateTime.UtcNow;
-                }
-
-                // Update the persisted AcceptedQuantity counter using the (possibly adjusted) quantity
-                offer.AcceptedQuantity = currentAcceptedQuantity + participant.Quantity;
-
-                // Save Changes
-                await _context.SaveChangesAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to save buyer offer response for buyer {BuyerId}. Cancelling payment hold {PaymentIntentId}",
-                    request.BuyerId, paymentResult.PaymentIntentId);
-
-                // Revert/Cancel Stripe Payment Hold if DB save failed
-                await _stripePaymentService.CancelPaymentAsync(paymentResult.PaymentIntentId);
-
-                return new AcceptGroupRequestOfferResponse { Success = false, Error = "An error occurred while saving your response. Payment hold was released." };
-            }
-
-            // Step 10: Calculate updated total accepted quantity
-            var updatedAcceptedQuantity = offer.AcceptedQuantity;
-
-            // Step 11: Check if offer is complete
-            bool isComplete = updatedAcceptedQuantity >= offer.QuantityAvailable;
-
-            if (isComplete)
-            {
-                // Offload to background job — the accepting buyer's request must not block
-                // on all other buyers' Stripe captures completing synchronously.
-                _jobDispatcher.Enqueue<IGroupRequestOfferFillJob>(j => j.ExecuteAsync(request.OfferId));
+                throw new BadRequestException($"Payment hold failed: {paymentResult.Error}");
             }
 
             return new AcceptGroupRequestOfferResponse
             {
-                Success = true,
                 OfferId = request.OfferId,
                 GroupRequestId = offer.GroupRequestId,
                 PaymentIntentId = paymentResult.PaymentIntentId,
                 ClientSecret = paymentResult.ClientSecret,
-                AcceptedQuantity = updatedAcceptedQuantity,
-                TotalAmount = totalAmount,
-                Message = isComplete
-                    ? "Offer accepted! All slots filled, processing..."
-                    : $"Offer accepted! {updatedAcceptedQuantity}/{offer.QuantityAvailable} slots filled"
+                AcceptedQuantity = request.AcceptedQuantity,
+                TotalAmount = totalAmount
             };
         }
     }

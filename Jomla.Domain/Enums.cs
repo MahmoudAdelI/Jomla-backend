@@ -23,6 +23,8 @@ namespace Jomla.Domain
         GroupRequestFlagged,
         BatchOpenedWithReducedQuantity,  
         OfferCountered,
+        OfferDeactivated,
+        BatchCanceledBySupplier,
     }
     public enum ModerationStatus { Pending, Approved, Flagged }
 

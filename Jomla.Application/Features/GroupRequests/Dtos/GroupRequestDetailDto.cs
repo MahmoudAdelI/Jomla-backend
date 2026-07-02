@@ -20,7 +20,8 @@ namespace Jomla.Application.Features.GroupRequests.Dtos
      Guid InitiatorId,
      string CategoryName,
      int ParticipantsCount,
-     List<GroupRequestOfferDto> Offers
+     List<GroupRequestOfferDto> Offers,
+     List<Guid> ParticipantIds
     );
 
 }

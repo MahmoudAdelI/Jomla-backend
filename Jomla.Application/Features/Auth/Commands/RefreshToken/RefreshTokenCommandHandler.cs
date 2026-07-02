@@ -33,7 +33,8 @@ namespace Jomla.Application.Features.Auth.Commands.RefreshToken
                 user.FirstName,
                 user.LastName,
                 newRefreshToken.Token,
-                newRefreshToken.ExpiresOn
+                newRefreshToken.ExpiresOn,
+                 user.ImageUrl
             );
         }
     }

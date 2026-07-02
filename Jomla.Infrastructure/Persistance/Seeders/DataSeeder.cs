@@ -303,7 +303,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
         private List<SupplierOffer> SeedSupplierOffers(List<AppUser> suppliers, List<Category> categories)
         {
             var leafCategories = categories
-                .Where(c => !categories.Any(child => child.ParentId == c.Id))
+                .Where(c => !categories.Any(child => child.ParentId == c.Id) && c.Name != "Other")
                 .ToList();
 
             var random = new Random(45);
@@ -489,7 +489,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
         List<AppUser> buyers, List<Category> categories)
         {
             var leafCategories = categories
-                .Where(c => !categories.Any(child => child.ParentId == c.Id))
+                .Where(c => !categories.Any(child => child.ParentId == c.Id) && c.Name != "Other")
                 .ToList();
 
             var random = new Random(47);

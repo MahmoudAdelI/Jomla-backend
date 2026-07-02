@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +11,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
       Guid OfferId,
       Guid BuyerId,
       string BuyerEmail,
-      bool ConfirmPartialQuantity = false  // Buyer agreed to accept the reduced quantity
+      int AcceptedQuantity
   ) : IRequest<AcceptGroupRequestOfferResponse>;
 
 

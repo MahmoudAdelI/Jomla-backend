@@ -1,6 +1,7 @@
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.GroupRequests.Dtos;
 using Jomla.Domain;
+using Jomla.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -22,32 +23,50 @@ namespace Jomla.Application.Features.GroupRequests.Queries.GetGroupRequests
 
         public async Task<PagedResult<GroupRequestListItemDto>> Handle(GetGroupRequestsQuery request, CancellationToken cancellationToken)
         {
-            var targetStatus = GroupRequestStatus.Active;
-            if (!string.IsNullOrWhiteSpace(request.Status) &&
-                Enum.TryParse<GroupRequestStatus>(request.Status, out var parsedStatus))
+            IQueryable<GroupRequest> query;
+
+            if (request.BuyerId.HasValue)
             {
-                targetStatus = parsedStatus;
+                // Wishlist (owner view): show ALL of the buyer's own requests
+                // regardless of moderation status or group request status
+                query = _context.GroupRequests
+                    .Include(r => r.Category)
+                    .Include(r => r.Participants)
+                    .Where(r => r.InitiatorId == request.BuyerId.Value)
+                    .AsQueryable();
+
+                // Optional status filter from UI (All = no filter)
+                if (!string.IsNullOrWhiteSpace(request.Status) &&
+                    Enum.TryParse<GroupRequestStatus>(request.Status, out var ownerStatus))
+                {
+                    query = query.Where(r => r.Status == ownerStatus);
+                }
+            }
+            else
+            {
+                // Public Discover page: only show approved + active requests
+                var targetStatus = GroupRequestStatus.Active;
+                if (!string.IsNullOrWhiteSpace(request.Status) &&
+                    Enum.TryParse<GroupRequestStatus>(request.Status, out var parsedStatus))
+                {
+                    targetStatus = parsedStatus;
+                }
+
+                query = _context.GroupRequests
+                    .Include(r => r.Category)
+                    .Include(r => r.Participants)
+                    .Where(r => r.ModerationStatus == ModerationStatus.Approved
+                             && r.Status == targetStatus)
+                    .AsQueryable();
             }
 
-            var query = _context.GroupRequests
-                .Include(r => r.Category)
-                .Include(r => r.Participants)
-                .Where(r => r.ModerationStatus == ModerationStatus.Approved
-                         && r.Status == targetStatus)
-                .AsQueryable();
-
-            // Filtering
+            // Filtering (common to both paths)
             if (request.CategoryId.HasValue)
                 query = query.Where(r => r.CategoryId == request.CategoryId.Value);
 
             if (!string.IsNullOrWhiteSpace(request.TitleSearch))
                 query = query.Where(r => r.Title.Contains(request.TitleSearch));
 
-            if (request.BuyerId.HasValue)
-            {
-                query = query.Where(r => r.InitiatorId == request.BuyerId.Value ||
-                                         r.Participants.Any(p => p.BuyerId == request.BuyerId.Value && p.Status == GroupRequestParticipantStatus.Active));
-            }
 
             // Total count
             var totalCount = await query.CountAsync(cancellationToken);
