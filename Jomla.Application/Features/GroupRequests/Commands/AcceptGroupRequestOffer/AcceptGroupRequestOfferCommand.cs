@@ -17,16 +17,12 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
 
     public class AcceptGroupRequestOfferResponse
     {
-        public bool Success { get; set; }
-        public bool RequiresConfirmation { get; set; }  // True when buyer needs to confirm a reduced quantity
-        public Guid? OfferId { get; set; }
-        public Guid? GroupRequestId { get; set; }
-        public string? PaymentIntentId { get; set; }
-        public string? ClientSecret { get; set; }
-        public int? AcceptedQuantity { get; set; }
-        public decimal? TotalAmount { get; set; }
-        public string? Message { get; set; }
-        public string? Error { get; set; }
-        public int? AvailableSlots { get; set; }  // Remaining slots when quantity exceeds capacity
+        public Guid OfferId { get; set; }
+        public Guid GroupRequestId { get; set; }
+        public string PaymentIntentId { get; set; } = null!;
+        public string ClientSecret { get; set; } = null!;
+        public int AcceptedQuantity { get; set; }
+        public decimal TotalAmount { get; set; }
     }
+
 }

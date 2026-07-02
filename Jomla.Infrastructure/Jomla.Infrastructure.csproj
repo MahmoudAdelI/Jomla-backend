@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -28,6 +28,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Jomla.Application\Jomla.Application.csproj" />
     <ProjectReference Include="..\Jomla.Domain\Jomla.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Persistance\Seeders\SeedData\*.json" />
   </ItemGroup>
 
 </Project>

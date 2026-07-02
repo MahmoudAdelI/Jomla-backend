@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 
 namespace Jomla.Application.Features.Offers.Commands.CreateOffer
 {
@@ -45,9 +45,9 @@ namespace Jomla.Application.Features.Offers.Commands.CreateOffer
                     .WithMessage("Minimum fallback quantity must not exceed the batch target quantity.")
                 .When(x => x.MinFallbackQuantity.HasValue);
 
-            // VariantAttributes — must be a valid JSON object if provided
+            // VariantAttributes — max length 1000 if provided
             RuleFor(x => x.VariantAttributes)
-                .Must(BeValidJsonObject).WithMessage("Variant attributes must be a valid JSON object.")
+                .MaximumLength(1000).WithMessage("Variant attributes must not exceed 1000 characters.")
                 .When(x => x.VariantAttributes is not null);
 
             // ExpiresAt
@@ -65,19 +65,6 @@ namespace Jomla.Application.Features.Offers.Commands.CreateOffer
                 .Must(file => new[] { "image/jpeg", "image/png", "image/webp" }.Contains(file.ContentType))
                     .WithMessage("Only JPEG, PNG, and WebP images are accepted.")
                 .When(x => x.Images is not null);
-        }
-        private static bool BeValidJsonObject(string? json)
-        {
-            if (json is null) return true;
-            try
-            {
-                using var doc = System.Text.Json.JsonDocument.Parse(json);
-                return doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object;
-            }
-            catch
-            {
-                return false;
-            }
         }
     }
 }

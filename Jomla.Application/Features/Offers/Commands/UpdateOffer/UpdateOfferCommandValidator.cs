@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Jomla.Application.Common.Extensions;
 
 namespace Jomla.Application.Features.Offers.Commands.UpdateOffer
@@ -26,7 +26,7 @@ namespace Jomla.Application.Features.Offers.Commands.UpdateOffer
 
             // VariantAttributes
             RuleFor(x => x.VariantAttributes)
-                .IsValidJson()
+                .MaximumLength(1000).WithMessage("Variant attributes must not exceed 1000 characters.")
                 .When(x => x.VariantAttributes is not null);
 
             // UnitPrice

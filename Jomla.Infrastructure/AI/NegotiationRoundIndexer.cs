@@ -1,4 +1,4 @@
-﻿using Google.Protobuf.Collections;
+using Google.Protobuf.Collections;
 using Jomla.Application.Common.Constants;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Domain;
@@ -42,6 +42,7 @@ namespace Jomla.Infrastructure.AI
             var payload = new MapField<string, Value>
             {
                 ["offer_id"] = new Value { StringValue = offer.Id.ToString() },
+                ["group_request_id"] = new Value { StringValue = offer.GroupRequestId.ToString() },
                 ["category_id"] = new Value { StringValue = offer.GroupRequest.CategoryId.ToString() },
                 ["category_name"] = new Value { StringValue = categoryName },
                 ["round_number"] = new Value { IntegerValue = offer.RoundNumber },

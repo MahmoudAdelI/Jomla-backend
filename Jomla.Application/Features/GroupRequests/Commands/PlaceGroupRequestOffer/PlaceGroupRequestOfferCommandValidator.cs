@@ -1,10 +1,4 @@
-﻿using FluentValidation;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
+using FluentValidation;
 
 namespace Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOffer
 {
@@ -25,7 +19,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOff
                 .WithMessage("Quantity must be greater than zero.");
 
             RuleFor(x => x.ExpiresAt)
-                 .Must(x => x > DateTime.UtcNow)
+                 .Must(x => x > DateTimeOffset.UtcNow)
                    .WithMessage("Expiry date must be in the future.");
 
             RuleFor(x => x.MinUnitPrice)
@@ -49,28 +43,6 @@ namespace Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOff
                     !x.MinFallbackQuantity.HasValue ||
                     x.MinFallbackQuantity.Value <= x.QuantityAvailable)
                 .WithMessage("Minimum fallback quantity cannot exceed available quantity.");
-
-            RuleFor(x => x.VariantAttributes)
-                .Must(BeValidJsonObject)
-                .When(x => !string.IsNullOrWhiteSpace(x.VariantAttributes))
-                .WithMessage("Variant attributes must be a valid JSON object.");
-        }
-
-        private static bool BeValidJsonObject(string? json)
-        {
-            if (string.IsNullOrWhiteSpace(json))
-                return true;
-
-            try
-            {
-                using var document = JsonDocument.Parse(json);
-
-                return document.RootElement.ValueKind == JsonValueKind.Object;
-            }
-            catch
-            {
-                return false;
-            }
         }
     }
 }

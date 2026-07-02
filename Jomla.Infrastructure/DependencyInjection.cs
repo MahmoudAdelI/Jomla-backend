@@ -72,6 +72,7 @@ namespace Jomla.Infrastructure
             services.AddScoped<ISupplierMatchingJob, SupplierMatchingJob>();
             services.AddScoped<IGroupRequestAutoCloseJob, GroupRequestAutoCloseJob>();
             services.AddScoped<IGroupRequestOfferExpiryJob, GroupRequestOfferExpiryJob>();
+            services.AddScoped<IGroupRequestOfferFillJob, GroupRequestOfferFillJob>();
             services.AddScoped<INegotiationRoundIndexJob, NegotiationRoundIndexJob>();
             services.AddScoped<INegotiationRoundSyncJob, NegotiationRoundSyncJob>();
             services.AddScoped<IGroupRequestOfferFillJob, GroupRequestOfferFillJob>();
@@ -130,18 +131,35 @@ namespace Jomla.Infrastructure
             #region AI
             var token = config["AI:Token"]
                 ?? throw new InvalidOperationException("AI:Token is not configured.");
+            var endpointString = config["AI:Endpoint"];
+            var endpoint = !string.IsNullOrWhiteSpace(endpointString) ? new Uri(endpointString) : null;
 
-            services.AddOpenAIChatCompletion(
-                modelId: config["AI:ModelId"]!,
-                endpoint: new Uri(config["AI:Endpoint"]!),
-                apiKey: token);
+            if (endpoint != null)
+            {
+                services.AddOpenAIChatCompletion(
+                    modelId: config["AI:ModelId"]!,
+                    endpoint: endpoint,
+                    apiKey: token);
+            }
+            else
+            {
+                services.AddOpenAIChatCompletion(
+                    modelId: config["AI:ModelId"]!,
+                    apiKey: token);
+            }
 
             #pragma warning disable CS0618
+            var clientOptions = new OpenAIClientOptions();
+            if (endpoint != null)
+            {
+                clientOptions.Endpoint = endpoint;
+            }
+
             services.AddOpenAITextEmbeddingGeneration(
                 modelId: config["AI:EmbeddingModelId"]!,
                 openAIClient: new OpenAIClient(
                     new ApiKeyCredential(token),
-                    new OpenAIClientOptions { Endpoint = new Uri(config["AI:Endpoint"]!) }
+                    clientOptions
                 ));
             #pragma warning restore CS0618
 

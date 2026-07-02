@@ -5,20 +5,24 @@ using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Jobs.Sync;
 using Jomla.Domain;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Jomla.Infrastructure.Jobs.Sync
 {
     public class NegotiationRoundSyncJob(
         IAppDbContext db,
-        INegotiationRoundIndexer roundIndexer) : INegotiationRoundSyncJob
+        INegotiationRoundIndexer roundIndexer,
+        ILogger<NegotiationRoundSyncJob> logger) : INegotiationRoundSyncJob
     {
         private readonly IAppDbContext _db = db;
         private readonly INegotiationRoundIndexer _roundIndexer = roundIndexer;
+        private readonly ILogger<NegotiationRoundSyncJob> _logger = logger;
 
         public async Task ExcuteAsync()
         {
             var offers = await _db.GroupRequestOffers
                 .AsSplitQuery()
+                .Where(o => o.Status != GroupRequestOfferStatus.Open)
                 .Include(o => o.Responses)
                 .Include(o => o.GroupRequest)
                     .ThenInclude(gr => gr.Participants)
@@ -26,7 +30,12 @@ namespace Jomla.Infrastructure.Jobs.Sync
                     .ThenInclude(gr => gr.Category)
                 .ToListAsync();
 
-            var tasks = offers.Select(async offer =>
+            _logger.LogInformation("Starting sequential Qdrant sync for {Count} offers...", offers.Count);
+
+            int succeeded = 0;
+            int failed = 0;
+
+            foreach (var offer in offers)
             {
                 var categoryName = offer.GroupRequest?.Category?.Name ?? "General";
                 var totalParticipants = offer.GroupRequest?.Participants
@@ -35,14 +44,19 @@ namespace Jomla.Infrastructure.Jobs.Sync
                 try
                 {
                     await _roundIndexer.IndexAsync(offer, categoryName, totalParticipants);
+                    succeeded++;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // Continue indexing others even if one fails
+                    _logger.LogError(ex, "Failed to index Offer {OfferId} to Qdrant.", offer.Id);
+                    failed++;
                 }
-            });
 
-            await Task.WhenAll(tasks);
+                // Add delay to prevent hitting GitHub Models API rate limits
+                await Task.Delay(150);
+            }
+
+            _logger.LogInformation("Qdrant sync complete. Succeeded: {Succeeded}, Failed: {Failed}.", succeeded, failed);
         }
     }
 }
