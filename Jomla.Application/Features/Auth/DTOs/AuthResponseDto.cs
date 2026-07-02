@@ -9,6 +9,7 @@ namespace Jomla.Application.Features.Auth.DTOs
         string FirstName,
         string LastName,
         [property: JsonIgnore] string RefreshToken,
-        DateTime RefreshTokenExpiresOn
+        DateTime RefreshTokenExpiresOn,
+         string? ImageUrl = null
         );
 }
