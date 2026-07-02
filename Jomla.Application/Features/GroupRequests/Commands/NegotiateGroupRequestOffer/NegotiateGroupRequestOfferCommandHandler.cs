@@ -34,7 +34,6 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
 
             // 2. flip current round to Countered
             offer.Status = GroupRequestOfferStatus.Countered;
-            await _db.SaveChangesAsync(cancellationToken);
 
             // 3. ask agent for next price
             var newPrice = await _negotiationAgent.GetNextPriceAsync(offer, request.categoryName);
