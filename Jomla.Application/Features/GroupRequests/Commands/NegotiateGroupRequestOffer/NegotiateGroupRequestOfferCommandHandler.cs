@@ -6,6 +6,7 @@ using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Jomla.Application.Features.GroupRequests.Queries;
 
 namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupRequestOffer
 {
@@ -137,7 +138,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
 
             try
             {
-                var detail = await _mediator.Send(new Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestDetailQuery(offer.GroupRequestId), cancellationToken);
+                var detail = await _mediator.Send(new GetGroupRequestDetailQuery(offer.GroupRequestId), cancellationToken);
                 if (detail != null)
                 {
                     await _realtimeService.SendGroupRequestUpdatedAsync(offer.GroupRequestId, detail);

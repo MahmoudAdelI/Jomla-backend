@@ -1,6 +1,7 @@
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Batches.Commands.CreateBatch;
 using Jomla.Application.Features.Notifications;
+using Jomla.Application.Features.Offers.Queries.GetOfferById;
 using Jomla.Application.Jobs.JobDispatcher;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
@@ -61,7 +62,7 @@ namespace Jomla.Application.Features.Admin.Commands.ApproveOffer
 
             try
             {
-                var offerDto = await _mediator.Send(new Jomla.Application.Features.Offers.Queries.GetOfferById.GetOfferByIdQuery(offer.Id), cancellationToken);
+                var offerDto = await _mediator.Send(new GetOfferByIdQuery(offer.Id), cancellationToken);
                 if (offerDto != null)
                 {
                     await _realtimeService.SendOfferStatusChangedAsync(offer.SupplierId, offerDto);

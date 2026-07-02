@@ -11,6 +11,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Jomla.Application.Features.GroupRequests.Commands.ReactivateGroupRequest;
+using Jomla.Application.Features.GroupRequests.Queries;
 
 namespace Jomla.Application.Features.GroupRequests.Commands.JoinGroupRequest
 {
@@ -104,7 +105,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.JoinGroupRequest
 
             try
             {
-                var detail = await _mediator.Send(new Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestDetailQuery(request.GroupRequestId), cancellationToken);
+                var detail = await _mediator.Send(new GetGroupRequestDetailQuery(request.GroupRequestId), cancellationToken);
                 if (detail != null)
                 {
                     await _realtimeService.SendGroupRequestUpdatedAsync(request.GroupRequestId, detail);

@@ -4,6 +4,7 @@ using Jomla.Domain;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Jomla.Application.Features.GroupRequests.Queries;
 using System;
 using System.Linq;
 using System.Threading;
@@ -94,7 +95,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.FailGroupRequestOffe
 
                 try
                 {
-                    var detail = await _mediator.Send(new Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestDetailQuery(offer.GroupRequestId), cancellationToken);
+                    var detail = await _mediator.Send(new GetGroupRequestDetailQuery(offer.GroupRequestId), cancellationToken);
                     if (detail != null)
                     {
                         await _realtimeService.SendGroupRequestUpdatedAsync(offer.GroupRequestId, detail);

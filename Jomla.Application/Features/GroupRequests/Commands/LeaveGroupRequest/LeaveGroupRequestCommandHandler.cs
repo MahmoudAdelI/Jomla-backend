@@ -1,6 +1,7 @@
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Jobs.Closing;
 using Jomla.Application.Jobs.JobDispatcher;
+using Jomla.Application.Features.GroupRequests.Queries;
 using Jomla.Domain;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -76,7 +77,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.LeaveGroupRequest
 
             try
             {
-                var detail = await _mediator.Send(new Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestDetailQuery(request.GroupRequestId), cancellationToken);
+                var detail = await _mediator.Send(new GetGroupRequestDetailQuery(request.GroupRequestId), cancellationToken);
                 if (detail != null)
                 {
                     await _realtimeService.SendGroupRequestUpdatedAsync(request.GroupRequestId, detail);

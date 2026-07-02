@@ -1,5 +1,6 @@
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Notifications;
+using Jomla.Application.Features.Offers.Queries.GetOfferById;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
@@ -56,7 +57,7 @@ namespace Jomla.Application.Features.Admin.Commands.RejectOffer
 
             try
             {
-                var offerDto = await _mediator.Send(new Jomla.Application.Features.Offers.Queries.GetOfferById.GetOfferByIdQuery(offer.Id), cancellationToken);
+                var offerDto = await _mediator.Send(new GetOfferByIdQuery(offer.Id), cancellationToken);
                 if (offerDto != null)
                 {
                     await _realtimeService.SendOfferStatusChangedAsync(offer.SupplierId, offerDto);
