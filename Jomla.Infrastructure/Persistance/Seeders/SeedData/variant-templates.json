@@ -1,0 +1,67 @@
+{
+  "Large Appliances": {
+    "color": ["Silver", "White", "Black"],
+    "capacity": ["350L", "450L", "600L", "10kg", "1.5 Ton"]
+  },
+  "Small Appliances": {
+    "color": ["Black", "Silver", "Red"],
+    "capacity": ["25L", "30L"]
+  },
+  "Laptops": {
+    "color": ["Silver", "Black", "Gray"],
+    "storage": ["256GB", "512GB", "1TB"],
+    "ram": ["8GB", "16GB"]
+  },
+  "Computer Accessories": {
+    "color": ["Black", "Gray", "Navy"]
+  },
+  "Smartphones": {
+    "color": ["Black", "White", "Blue", "Gold"],
+    "storage": ["64GB", "128GB", "256GB"]
+  },
+  "Cameras": {
+    "color": ["Black", "Silver"]
+  },
+  "Office Furniture": {
+    "color": ["Black", "Gray", "Brown"],
+    "material": ["Mesh", "Leather", "Fabric"]
+  },
+  "Furniture": {
+    "color": ["Gray", "Beige", "Brown"],
+    "material": ["Fabric", "Leather"]
+  },
+  "Bedding": {
+    "color": ["White", "Gray", "Blue"],
+    "size": ["Twin", "Queen", "King"]
+  },
+  "Home Decor": {
+    "color": ["Multicolor", "Beige", "Gray"]
+  },
+  "Beverages": {
+    "flavor": ["Natural", "Orange", "Espresso", "Cola"],
+    "size": ["1.5L", "1L", "1kg", "330ml"]
+  },
+  "Snacks & Sweets": {
+    "type": ["Protein", "Dark Chocolate", "Mixed Roasted", "Salted Chips"]
+  },
+  "Pantry Staples": {
+    "volume/weight": ["5L", "10kg", "Case of 24", "Pack of 12"]
+  },
+  "Baby Care": {
+    "size/type": ["Diapers Size 4", "Wipes Bulk Case", "Formula Stage 1"]
+  },
+  "Cookware & Dining": {
+    "material": ["Non-Stick", "Stainless Steel", "Ceramic"]
+  },
+  "Clothing": {
+    "color": ["Black", "Navy", "White", "Heather Gray"],
+    "size": ["S", "M", "L", "XL"]
+  },
+  "Footwear": {
+    "color": ["Black", "Brown", "White", "Navy"],
+    "size": ["40", "41", "42", "43", "44"]
+  },
+  "Bags & Accessories": {
+    "color": ["Black", "Navy", "Charcoal"]
+  }
+}

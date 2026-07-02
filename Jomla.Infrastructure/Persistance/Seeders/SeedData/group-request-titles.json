@@ -1,0 +1,212 @@
+{
+  "Large Appliances": [
+    {
+      "title": "Double-door refrigerators for branch offices",
+      "imageUrl": "https://images.unsplash.com/photo-1571875257727-256c39da42af?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Chest freezers for restaurant supply",
+      "imageUrl": "https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Front-load washing machines for staff housing",
+      "imageUrl": "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Commercial dishwashers for cafeteria",
+      "imageUrl": "https://images.unsplash.com/photo-1581622558663-b2e33377dfb2?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Split ACs for new office building",
+      "imageUrl": "https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Small Appliances": [
+    {
+      "title": "Microwaves for office pantry",
+      "imageUrl": "https://images.unsplash.com/photo-1617043786394-f977fa12eddf?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Coffee machines for office branches",
+      "imageUrl": "https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Blenders for juice bar chain",
+      "imageUrl": "https://images.unsplash.com/photo-1578643463396-0997cb5328c1?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Laptops": [
+    {
+      "title": "Business laptops for new hires",
+      "imageUrl": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Laptops for training center",
+      "imageUrl": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Computer Accessories": [
+    {
+      "title": "Wireless mouse and keyboard sets for office",
+      "imageUrl": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Laptop backpacks for onboarding kits",
+      "imageUrl": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Smartphones": [
+    {
+      "title": "Company phones for sales team",
+      "imageUrl": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Tablets for retail checkout stations",
+      "imageUrl": "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Cameras": [
+    {
+      "title": "Security cameras for warehouse",
+      "imageUrl": "https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Power banks and accessories for field staff",
+      "imageUrl": "https://images.unsplash.com/photo-1609081219090-a6d81d3085bf?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Paper Products": [
+    {
+      "title": "A4 paper reams for office restock",
+      "imageUrl": "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Writing Instruments": [
+    {
+      "title": "Pens and markers for branches",
+      "imageUrl": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Office Furniture": [
+    {
+      "title": "Office chairs for new branch",
+      "imageUrl": "https://images.unsplash.com/photo-1505797149-43b0069ec26b?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Standing desks for HQ renovation",
+      "imageUrl": "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Printing Supplies": [
+    {
+      "title": "Toner cartridges for office printers",
+      "imageUrl": "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Furniture": [
+    {
+      "title": "Sofas for office lounge",
+      "imageUrl": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Dining tables for cafeteria",
+      "imageUrl": "https://images.unsplash.com/photo-1577140917170-285929fb55b7?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Bedding": [
+    {
+      "title": "Bedsheets for staff dormitory",
+      "imageUrl": "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Home Decor": [
+    {
+      "title": "Wall art for office decoration",
+      "imageUrl": "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Throw pillows for lounge area",
+      "imageUrl": "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Beverages": [
+    {
+      "title": "Bottled water and juices for offices",
+      "imageUrl": "https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Espresso coffee beans for office coffee machines",
+      "imageUrl": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Snacks & Sweets": [
+    {
+      "title": "Snack bars and dark chocolates for pantry",
+      "imageUrl": "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Mixed nuts bulk supply for kitchen",
+      "imageUrl": "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Pantry Staples": [
+    {
+      "title": "Bulk olive oil and basmati rice for restaurant",
+      "imageUrl": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Pasta and tomato paste cases for cafeteria",
+      "imageUrl": "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Baby Care": [
+    {
+      "title": "Diapers and wipes for daycare center restock",
+      "imageUrl": "https://images.unsplash.com/photo-1555252333-9f8e92e65df9?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Organic baby formula for nurseries",
+      "imageUrl": "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Cookware & Dining": [
+    {
+      "title": "Dinnerware and cutlery sets for office kitchen",
+      "imageUrl": "https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Non-stick cookware for staff cooking classes",
+      "imageUrl": "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Clothing": [
+    {
+      "title": "Uniform crewneck t-shirts for staff",
+      "imageUrl": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Corporate polo shirts for event",
+      "imageUrl": "https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Footwear": [
+    {
+      "title": "Safety boots for logistics warehouse",
+      "imageUrl": "https://images.unsplash.com/photo-1539185441755-769473a23570?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Casual sneakers for event staff",
+      "imageUrl": "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=600&q=80"
+    }
+  ],
+  "Bags & Accessories": [
+    {
+      "title": "Waterproof duffle bags for fitness club",
+      "imageUrl": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      "title": "Travel suitcases for sales team trips",
+      "imageUrl": "https://images.unsplash.com/photo-1565026057447-bc90a3dceb87?auto=format&fit=crop&w=600&q=80"
+    }
+  ]
+}

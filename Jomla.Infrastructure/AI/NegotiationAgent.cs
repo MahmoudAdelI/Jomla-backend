@@ -22,7 +22,7 @@ namespace Jomla.Infrastructure.AI
         private readonly QdrantClient _qdrantClient = qdrantClient;
         private readonly ILogger<NegotiationAgent> _logger = logger;
 
-        private const int TopK = 3;
+        private const int TopK = 5;
         public async Task<decimal> GetNextPriceAsync(GroupRequestOffer offer, string categoryName)
         {
             _logger.LogInformation("NegotiationAgent starting price recommendation for Offer {OfferId} (Category: {CategoryName}). CurrentPrice: {CurrentPrice}, Floor: {Floor}.", 

@@ -22,6 +22,7 @@ namespace Jomla.Infrastructure.Jobs.Sync
         {
             var offers = await _db.GroupRequestOffers
                 .AsSplitQuery()
+                .Where(o => o.Status != GroupRequestOfferStatus.Open)
                 .Include(o => o.Responses)
                 .Include(o => o.GroupRequest)
                     .ThenInclude(gr => gr.Participants)

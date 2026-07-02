@@ -22,19 +22,19 @@ namespace Jomla.Infrastructure.Persistance.Qdrant
                     Size = VectorSize,
                     Distance = Distance.Cosine
                 });
+
+                // Create payload index for category_id to allow filtering
+                await _qdrantClient.CreatePayloadIndexAsync(
+                    collectionName: QdrantCollections.NegotiationRounds,
+                    fieldName: "category_id",
+                    schemaType: PayloadSchemaType.Keyword);
+
+                // Create payload index for group_request_id to allow filtering
+                await _qdrantClient.CreatePayloadIndexAsync(
+                    collectionName: QdrantCollections.NegotiationRounds,
+                    fieldName: "group_request_id",
+                    schemaType: PayloadSchemaType.Keyword);
             }
-
-            // Create payload index for category_id to allow filtering
-            await _qdrantClient.CreatePayloadIndexAsync(
-                collectionName: QdrantCollections.NegotiationRounds,
-                fieldName: "category_id",
-                schemaType: PayloadSchemaType.Keyword);
-
-            // Create payload index for group_request_id to allow filtering
-            await _qdrantClient.CreatePayloadIndexAsync(
-                collectionName: QdrantCollections.NegotiationRounds,
-                fieldName: "group_request_id",
-                schemaType: PayloadSchemaType.Keyword);
         }
 
         public async Task RecreateCollectionAsync()

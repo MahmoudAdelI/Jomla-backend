@@ -9,80 +9,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
 {
     public class DataSeeder(AppDbContext _db, UserManager<AppUser> _userManager, RoleManager<IdentityRole<Guid>> _roleManager)
     {
-        private static readonly Dictionary<string, string[]> ProductTitlesByCategory = new()
-        {
-            ["Large Appliances"] = new[] { "Double-Door Refrigerator 450L", "Compact Mini Fridge 90L", "Side-by-Side Refrigerator 600L", "Chest Freezer 200L", "Upright Freezer 300L", "Front-Load Washing Machine 8kg", "Top-Load Washing Machine 10kg", "Built-In Dishwasher 12 Place Settings", "Freestanding Dishwasher 14 Place Settings", "Split Air Conditioner 1.5 Ton", "Window Air Conditioner 1 Ton" },
-            ["Small Appliances"] = new[] { "Digital Microwave Oven 25L", "Convection Microwave Oven 30L", "Automatic Drip Coffee Maker", "Espresso Machine with Grinder", "Heavy-Duty Countertop Blender", "Commercial Smoothie Blender" },
-            ["Laptops"] = new[] { "Business Laptop 14-inch Core i5", "Ultrabook 13-inch Core i7" },
-            ["Computer Accessories"] = new[] { "Wireless Mouse and Keyboard Combo", "USB-C Docking Station", "Padded Laptop Backpack 15.6-inch", "Laptop Sleeve Case 14-inch" },
-            ["Smartphones"] = new[] { "Android Smartphone 128GB", "Smartphone 256GB Dual SIM", "10-inch Android Tablet", "Tablet with Stylus 11-inch" },
-            ["Cameras"] = new[] { "Digital DSLR Camera Kit", "4K Action Camera", "Tempered Glass Screen Protector Pack", "Fast Charging Power Bank 20000mAh" },
-            ["Paper Products"] = new[] { "A4 Copy Paper Ream Pack (5x500)", "Sticky Notes Bulk Pack" },
-            ["Writing Instruments"] = new[] { "Ballpoint Pens Box of 50", "Whiteboard Markers Set of 12" },
-            ["Office Furniture"] = new[] { "Ergonomic Office Chair", "Adjustable Standing Desk" },
-            ["Printing Supplies"] = new[] { "Toner Cartridge Multipack", "Inkjet Printer Ink Set" },
-            ["Furniture"] = new[] { "3-Seater Fabric Sofa", "Dining Table Set (6-Seater)" },
-            ["Bedding"] = new[] { "Queen Size Bedsheet Set", "Microfiber Comforter Set" },
-            ["Home Decor"] = new[] { "Wall Art Canvas Set of 3", "Decorative Throw Pillow Set" },
-            // Supermarket & Groceries
-            ["Beverages"] = new[] { "Mineral Water 1.5L Case (12 Pack)", "Organic Orange Juice 1L Case (6 Pack)", "Premium Espresso Coffee Beans 1kg", "Assorted Soft Drinks Cans 330ml (24 Pack)" },
-            ["Snacks & Sweets"] = new[] { "Assorted Protein Bars Box (12 Pack)", "Organic Dark Chocolate Bars (10 Pack)", "Bulk Roasted Mixed Nuts Bag 1kg", "Salted Potato Chips Family Pack (15 Pack)" },
-            ["Pantry Staples"] = new[] { "Extra Virgin Olive Oil 5L Bottle", "Premium Basmati Rice 10kg Bag", "Canned Tomato Paste Bulk Case (24 Pack)", "Organic Penne Rigate Pasta 500g (12 Pack)" },
-            ["Baby Care"] = new[] { "Premium Baby Diapers Pack (Size 4)", "Sensitive Baby Wipes Bulk (12x80 Pack)", "Organic Baby Formula Stage 1 800g" },
-            // Home & Kitchen / Cookware & Dining
-            ["Cookware & Dining"] = new[] { "Non-Stick Cookware Set (10-Piece)", "Stainless Steel Cutlery Set (24-Piece)", "Ceramic Dinnerware Set (16-Piece)", "Insulated Stainless Steel Water Bottle" },
-            // Fashion & Apparel
-            ["Clothing"] = new[] { "Unisex 100% Cotton Crewneck T-Shirt", "Corporate Polo Shirt Bulk Pack (5-Pack)", "Premium Denim Jeans Straight Fit", "Heavyweight Fleece Hoodie" },
-            ["Footwear"] = new[] { "Ergonomic Leather Safety Shoes", "Casual Canvas Lace-Up Sneakers", "Classic Leather Dress Shoes", "Lightweight Running Athletic Shoes" },
-            ["Bags & Accessories"] = new[] { "Waterproof Travel Duffle Bag", "Classic Leather Wallet & Belt Gift Set", "Hard Shell Spinner Suitcase (3-Piece Set)" }
-        };
-
-        private static readonly Dictionary<string, string[]> GroupRequestTitlesByCategory = new()
-        {
-            ["Large Appliances"] = new[] { "Double-door refrigerators for branch offices", "Chest freezers for restaurant supply", "Front-load washing machines for staff housing", "Commercial dishwashers for cafeteria", "Split ACs for new office building" },
-            ["Small Appliances"] = new[] { "Microwaves for office pantry", "Coffee machines for office branches", "Blenders for juice bar chain" },
-            ["Laptops"] = new[] { "Business laptops for new hires", "Laptops for training center" },
-            ["Computer Accessories"] = new[] { "Wireless mouse and keyboard sets for office", "Laptop backpacks for onboarding kits" },
-            ["Smartphones"] = new[] { "Company phones for sales team", "Tablets for retail checkout stations" },
-            ["Cameras"] = new[] { "Security cameras for warehouse", "Power banks and accessories for field staff" },
-            ["Paper Products"] = new[] { "A4 paper reams for office restock" },
-            ["Writing Instruments"] = new[] { "Pens and markers for branches" },
-            ["Office Furniture"] = new[] { "Office chairs for new branch", "Standing desks for HQ renovation" },
-            ["Printing Supplies"] = new[] { "Toner cartridges for office printers" },
-            ["Furniture"] = new[] { "Sofas for office lounge", "Dining tables for cafeteria" },
-            ["Bedding"] = new[] { "Bedsheets for staff dormitory" },
-            ["Home Decor"] = new[] { "Wall art for office decoration", "Throw pillows for lounge area" },
-            ["Beverages"] = new[] { "Bottled water and juices for offices", "Espresso coffee beans for office coffee machines" },
-            ["Snacks & Sweets"] = new[] { "Snack bars and dark chocolates for pantry", "Mixed nuts bulk supply for kitchen" },
-            ["Pantry Staples"] = new[] { "Bulk olive oil and basmati rice for restaurant", "Pasta and tomato paste cases for cafeteria" },
-            ["Baby Care"] = new[] { "Diapers and wipes for daycare center restock", "Organic baby formula for nurseries" },
-            ["Cookware & Dining"] = new[] { "Dinnerware and cutlery sets for office kitchen", "Non-stick cookware for staff cooking classes" },
-            ["Clothing"] = new[] { "Uniform crewneck t-shirts for staff", "Corporate polo shirts for event" },
-            ["Footwear"] = new[] { "Safety boots for logistics warehouse", "Casual sneakers for event staff" },
-            ["Bags & Accessories"] = new[] { "Waterproof duffle bags for fitness club", "Travel suitcases for sales team trips" }
-        };
-
-        private static readonly Dictionary<string, Func<Random, Dictionary<string, string>>> VariantGeneratorsByCategory = new()
-        {
-            ["Large Appliances"] = r => new() { ["color"] = Pick(r, "Silver", "White", "Black"), ["capacity"] = Pick(r, "350L", "450L", "600L", "10kg", "1.5 Ton") },
-            ["Small Appliances"] = r => new() { ["color"] = Pick(r, "Black", "Silver", "Red"), ["capacity"] = Pick(r, "25L", "30L") },
-            ["Laptops"] = r => new() { ["color"] = Pick(r, "Silver", "Black", "Gray"), ["storage"] = Pick(r, "256GB", "512GB", "1TB"), ["ram"] = Pick(r, "8GB", "16GB") },
-            ["Computer Accessories"] = r => new() { ["color"] = Pick(r, "Black", "Gray", "Navy") },
-            ["Smartphones"] = r => new() { ["color"] = Pick(r, "Black", "White", "Blue", "Gold"), ["storage"] = Pick(r, "64GB", "128GB", "256GB") },
-            ["Cameras"] = r => new() { ["color"] = Pick(r, "Black", "Silver") },
-            ["Office Furniture"] = r => new() { ["color"] = Pick(r, "Black", "Gray", "Brown"), ["material"] = Pick(r, "Mesh", "Leather", "Fabric") },
-            ["Furniture"] = r => new() { ["color"] = Pick(r, "Gray", "Beige", "Brown"), ["material"] = Pick(r, "Fabric", "Leather") },
-            ["Bedding"] = r => new() { ["color"] = Pick(r, "White", "Gray", "Blue"), ["size"] = Pick(r, "Twin", "Queen", "King") },
-            ["Home Decor"] = r => new() { ["color"] = Pick(r, "Multicolor", "Beige", "Gray") },
-            ["Beverages"] = r => new() { ["flavor"] = Pick(r, "Natural", "Orange", "Espresso", "Cola"), ["size"] = Pick(r, "1.5L", "1L", "1kg", "330ml") },
-            ["Snacks & Sweets"] = r => new() { ["type"] = Pick(r, "Protein", "Dark Chocolate", "Mixed Roasted", "Salted Chips") },
-            ["Pantry Staples"] = r => new() { ["volume/weight"] = Pick(r, "5L", "10kg", "Case of 24", "Pack of 12") },
-            ["Baby Care"] = r => new() { ["size/type"] = Pick(r, "Diapers Size 4", "Wipes Bulk Case", "Formula Stage 1") },
-            ["Cookware & Dining"] = r => new() { ["material"] = Pick(r, "Non-Stick", "Stainless Steel", "Ceramic") },
-            ["Clothing"] = r => new() { ["color"] = Pick(r, "Black", "Navy", "White", "Heather Gray"), ["size"] = Pick(r, "S", "M", "L", "XL") },
-            ["Footwear"] = r => new() { ["color"] = Pick(r, "Black", "Brown", "White", "Navy"), ["size"] = Pick(r, "40", "41", "42", "43", "44") },
-            ["Bags & Accessories"] = r => new() { ["color"] = Pick(r, "Black", "Navy", "Charcoal") }
-        };
+        // Static dictionaries moved to embedded JSON resource files
 
         public async Task<bool> SeedAsync()
         {
@@ -311,13 +238,20 @@ namespace Jomla.Infrastructure.Persistance.Seeders
 
             foreach (var supplier in suppliers)
             {
+                if (offers.Count >= 12)
+                    break;
+
                 var offerCount = random.Next(1, 4); // 1-3 offers per supplier
 
                 for (int i = 0; i < offerCount; i++)
                 {
+                    if (offers.Count >= 12)
+                        break;
+
                     var category = leafCategories[random.Next(leafCategories.Count)];
-                    var titlePool = ProductTitlesByCategory[category.Name];
-                    var title = titlePool[random.Next(titlePool.Length)];
+                    var itemPool = SeedDataLoader.Products[category.Name];
+                    var item = itemPool[random.Next(itemPool.Count)];
+                    var title = item.Title;
 
                     var batchTarget = random.Next(2, 11) * 10; // 20-100, round numbers
                     var unitPrice = Math.Round((decimal)(random.NextDouble() * 480 + 20), 2);
@@ -337,7 +271,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                         TotalQuantityAvailable = batchTarget * random.Next(2, 4), // enough for 2-3 batches
                         MinFallbackQuantity = random.Next(0, 2) == 1 ? (int)(batchTarget * 0.6) : null,
                         VariantAttributes = GenerateVariantAttributes(category.Name, random),
-                        ImageUrls = null,
+                        ImageUrls = JsonSerializer.Serialize(new[] { item.ImageUrl }),
                         Status = SupplierOfferStatus.Active,
                         ModerationStatus = ModerationStatus.Approved,
                         CreatedAt = createdAt,
@@ -502,8 +436,9 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             {
                 var initiator = buyers[random.Next(buyers.Count)];
                 var category = leafCategories[random.Next(leafCategories.Count)];
-                var titlePool = GroupRequestTitlesByCategory[category.Name];
-                var title = titlePool[random.Next(titlePool.Length)];
+                var itemPool = SeedDataLoader.GroupRequestTitles[category.Name];
+                var item = itemPool[random.Next(itemPool.Count)];
+                var title = item.Title;
                 var createdAt = DateTime.UtcNow.AddDays(-random.Next(1, 30));
 
                 var statusRoll = random.Next(0, 10);
@@ -575,6 +510,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                     InitiatorId = initiator.Id,
                     CategoryId = category.Id,
                     Title = title,
+                    ImageUrls = JsonSerializer.Serialize(new[] { item.ImageUrl }),
                     CurrentQuantity = currentQuantity,
                     Status = status,
                     ModerationStatus = ModerationStatus.Approved,
@@ -882,17 +818,21 @@ namespace Jomla.Infrastructure.Persistance.Seeders
 
         private static string? GenerateVariantAttributes(string categoryName, Random random, double chance = 0.7)
         {
-            if (!VariantGeneratorsByCategory.TryGetValue(categoryName, out var generator))
+            if (!SeedDataLoader.VariantTemplates.TryGetValue(categoryName, out var attributes))
                 return null; // category has no meaningful variants (e.g. Paper Products, Printing Supplies)
 
             if (random.NextDouble() > chance)
                 return null; // this particular offer happens to not specify variants
 
-            return JsonSerializer.Serialize(generator(random));
+            var result = attributes.ToDictionary(
+                kv => kv.Key,
+                kv => kv.Value[random.Next(kv.Value.Count)]
+            );
+
+            return JsonSerializer.Serialize(result);
         }
         private static string SanitizeForEmail(string input) =>
             new string(input.Where(char.IsLetterOrDigit).ToArray());
-        private static string Pick(Random r, params string[] options) => options[r.Next(options.Length)];
 
         public async Task SeedAdminAsync()
         {
