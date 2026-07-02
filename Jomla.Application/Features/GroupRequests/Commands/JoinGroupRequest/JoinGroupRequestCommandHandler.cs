@@ -19,15 +19,18 @@ namespace Jomla.Application.Features.GroupRequests.Commands.JoinGroupRequest
         private readonly IAppDbContext _context;
         private readonly IBackgroundJobDispatcher _jobDispatcher;
         private readonly IMediator _mediator;
+        private readonly IRealtimeService _realtimeService;
 
         public JoinGroupRequestCommandHandler(
             IAppDbContext context,
             IBackgroundJobDispatcher jobDispatcher,
-            IMediator mediator)
+            IMediator mediator,
+            IRealtimeService realtimeService)
         {
             _context = context;
             _jobDispatcher = jobDispatcher;
             _mediator = mediator;
+            _realtimeService = realtimeService;
         }
 
         public async Task<JoinGroupRequestResponse> Handle(JoinGroupRequestCommand request, CancellationToken cancellationToken)
@@ -98,6 +101,19 @@ namespace Jomla.Application.Features.GroupRequests.Commands.JoinGroupRequest
             }
 
             await transaction.CommitAsync(cancellationToken);
+
+            try
+            {
+                var detail = await _mediator.Send(new Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestDetailQuery(request.GroupRequestId), cancellationToken);
+                if (detail != null)
+                {
+                    await _realtimeService.SendGroupRequestUpdatedAsync(request.GroupRequestId, detail);
+                }
+            }
+            catch
+            {
+                // Prevent SignalR exceptions from blocking user action
+            }
 
             return new JoinGroupRequestResponse(true, null);
         }

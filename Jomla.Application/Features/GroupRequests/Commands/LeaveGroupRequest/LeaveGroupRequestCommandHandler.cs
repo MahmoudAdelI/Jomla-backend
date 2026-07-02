@@ -16,13 +16,19 @@ namespace Jomla.Application.Features.GroupRequests.Commands.LeaveGroupRequest
     {
         private readonly IAppDbContext _context;
         private readonly IBackgroundJobDispatcher _jobDispatcher;
+        private readonly IMediator _mediator;
+        private readonly IRealtimeService _realtimeService;
 
         public LeaveGroupRequestCommandHandler(
             IAppDbContext context,
-            IBackgroundJobDispatcher jobDispatcher)
+            IBackgroundJobDispatcher jobDispatcher,
+            IMediator mediator,
+            IRealtimeService realtimeService)
         {
             _context = context;
             _jobDispatcher = jobDispatcher;
+            _mediator = mediator;
+            _realtimeService = realtimeService;
         }
 
         public async Task<LeaveGroupRequestResponse> Handle(LeaveGroupRequestCommand request, CancellationToken cancellationToken)
@@ -67,6 +73,19 @@ namespace Jomla.Application.Features.GroupRequests.Commands.LeaveGroupRequest
             }
 
             await transaction.CommitAsync(cancellationToken);
+
+            try
+            {
+                var detail = await _mediator.Send(new Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestDetailQuery(request.GroupRequestId), cancellationToken);
+                if (detail != null)
+                {
+                    await _realtimeService.SendGroupRequestUpdatedAsync(request.GroupRequestId, detail);
+                }
+            }
+            catch
+            {
+                // Prevent SignalR exceptions from blocking user action
+            }
 
             return new LeaveGroupRequestResponse(true, null);
         }

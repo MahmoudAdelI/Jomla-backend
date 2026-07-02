@@ -16,11 +16,16 @@ namespace Jomla.Application.Features.Admin.Commands.RejectGroupRequest
     {
         private readonly IAppDbContext _context;
         private readonly IMediator _mediator;
+        private readonly IRealtimeService _realtimeService;
 
-        public RejectGroupRequestCommandHandler(IAppDbContext context, IMediator mediator)
+        public RejectGroupRequestCommandHandler(
+            IAppDbContext context, 
+            IMediator mediator,
+            IRealtimeService realtimeService)
         {
             _context = context;
             _mediator = mediator;
+            _realtimeService = realtimeService;
         }
 
         public async Task Handle(RejectGroupRequestCommand request, CancellationToken cancellationToken)
@@ -48,6 +53,20 @@ namespace Jomla.Application.Features.Admin.Commands.RejectGroupRequest
 
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                var detail = await _mediator.Send(new Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestDetailQuery(request.GroupRequestId), cancellationToken);
+                if (detail != null)
+                {
+                    await _realtimeService.SendGroupRequestUpdatedAsync(request.GroupRequestId, detail);
+                }
+                await _realtimeService.SendFlaggedItemResolvedAsync(request.GroupRequestId);
+            }
+            catch
+            {
+                // Non-blocking SignalR fallback
+            }
 
             await _mediator.Publish(new NotificationCreatedEvent(notification.UserId, notification.Id), cancellationToken);
         }

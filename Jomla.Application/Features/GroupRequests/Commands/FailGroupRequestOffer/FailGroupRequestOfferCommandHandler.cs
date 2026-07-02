@@ -16,15 +16,21 @@ namespace Jomla.Application.Features.GroupRequests.Commands.FailGroupRequestOffe
         private readonly IAppDbContext _context;
         private readonly IStripePaymentService _stripePaymentService;
         private readonly ILogger<FailGroupRequestOfferCommandHandler> _logger;
+        private readonly IMediator _mediator;
+        private readonly IRealtimeService _realtimeService;
 
         public FailGroupRequestOfferCommandHandler(
             IAppDbContext context,
             IStripePaymentService stripePaymentService,
-            ILogger<FailGroupRequestOfferCommandHandler> logger)
+            ILogger<FailGroupRequestOfferCommandHandler> logger,
+            IMediator mediator,
+            IRealtimeService realtimeService)
         {
             _context = context;
             _stripePaymentService = stripePaymentService;
             _logger = logger;
+            _mediator = mediator;
+            _realtimeService = realtimeService;
         }
 
         public async Task Handle(FailGroupRequestOfferCommand request, CancellationToken cancellationToken)
@@ -85,6 +91,19 @@ namespace Jomla.Application.Features.GroupRequests.Commands.FailGroupRequestOffe
                 // 5️⃣ حفظ التغييرات في الداتابيز وعمل Commit للـ Transaction
                 await _context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
+
+                try
+                {
+                    var detail = await _mediator.Send(new Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestDetailQuery(offer.GroupRequestId), cancellationToken);
+                    if (detail != null)
+                    {
+                        await _realtimeService.SendGroupRequestUpdatedAsync(offer.GroupRequestId, detail);
+                    }
+                }
+                catch
+                {
+                    // Non-blocking SignalR fallback
+                }
             }
             catch (Exception ex)
             {

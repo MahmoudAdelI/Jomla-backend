@@ -18,12 +18,16 @@ namespace Jomla.Application.Features.Admin.Commands.ApproveOffer
     {
         private readonly IAppDbContext _context;
         private readonly IMediator _mediator;
-        private readonly IBackgroundJobDispatcher _jobDispatcher;
+        private readonly IRealtimeService _realtimeService;
 
-        public ApproveOfferCommandHandler(IAppDbContext context, IMediator mediator)
+        public ApproveOfferCommandHandler(
+            IAppDbContext context, 
+            IMediator mediator,
+            IRealtimeService realtimeService)
         {
             _context = context;
             _mediator = mediator;
+            _realtimeService = realtimeService;
         }
 
         public async Task Handle(ApproveOfferCommand request, CancellationToken cancellationToken)
@@ -54,6 +58,21 @@ namespace Jomla.Application.Features.Admin.Commands.ApproveOffer
             await _context.SaveChangesAsync(cancellationToken);
 
             await _mediator.Send(new CreateBatchCommand(offer.Id), cancellationToken);
+
+            try
+            {
+                var offerDto = await _mediator.Send(new Jomla.Application.Features.Offers.Queries.GetOfferById.GetOfferByIdQuery(offer.Id), cancellationToken);
+                if (offerDto != null)
+                {
+                    await _realtimeService.SendOfferStatusChangedAsync(offer.SupplierId, offerDto);
+                }
+                await _realtimeService.SendFlaggedItemResolvedAsync(offer.Id);
+            }
+            catch
+            {
+                // Non-blocking SignalR fallback
+            }
+
             await _mediator.Publish(new NotificationCreatedEvent(notification.UserId, notification.Id), cancellationToken);
         }
     }

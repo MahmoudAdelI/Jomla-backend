@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Jomla.API.Hubs
@@ -7,10 +7,22 @@ namespace Jomla.API.Hubs
     public class JomlaHub : Hub<IJomlaClient>
     {
         public async Task JoinOfferGroup(Guid offerId)
-            => await Groups.AddToGroupAsync(Context.ConnectionId, $"offer:{offerId}");
+            => await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.OfferGroup(offerId));
 
         public async Task LeaveOfferGroup(Guid offerId)
             => await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroups.OfferGroup(offerId));
+
+        public async Task JoinGroupRequestGroup(Guid groupRequestId)
+            => await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.GroupRequestGroup(groupRequestId));
+
+        public async Task LeaveGroupRequestGroup(Guid groupRequestId)
+            => await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroups.GroupRequestGroup(groupRequestId));
+
+        public async Task JoinAdminGroup()
+            => await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.AdminGroup());
+
+        public async Task LeaveAdminGroup()
+            => await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroups.AdminGroup());
 
         public override async Task OnConnectedAsync()
         {
