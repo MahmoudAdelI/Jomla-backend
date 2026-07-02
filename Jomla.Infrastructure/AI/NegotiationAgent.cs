@@ -55,6 +55,20 @@ namespace Jomla.Infrastructure.AI
                             }
                         }
                     }
+                },
+                MustNot =
+                {
+                    new Condition
+                    {
+                        Field = new FieldCondition
+                        {
+                            Key = "group_request_id",
+                            Match = new Match
+                            {
+                                Keyword = offer.GroupRequestId.ToString()
+                            }
+                        }
+                    }
                 }
             },
             limit: TopK);
