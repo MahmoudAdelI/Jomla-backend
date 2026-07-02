@@ -69,7 +69,6 @@ namespace Jomla.Infrastructure.Persistance.Seeders
         {
             // Level 1 Departments
             var electronics = new Category { Id = Guid.NewGuid(), Name = "Electronics & Appliances" };
-            var supermarket = new Category { Id = Guid.NewGuid(), Name = "Supermarket & Groceries" };
             var homeKitchen = new Category { Id = Guid.NewGuid(), Name = "Home & Kitchen" };
             var officeSupplies = new Category { Id = Guid.NewGuid(), Name = "Office Supplies" };
             var fashion = new Category { Id = Guid.NewGuid(), Name = "Fashion & Apparel" };
@@ -82,12 +81,6 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             var smallAppliances = new Category { Id = Guid.NewGuid(), Name = "Small Appliances", ParentId = electronics.Id };
             var computerAccessories = new Category { Id = Guid.NewGuid(), Name = "Computer Accessories", ParentId = electronics.Id };
             var cameras = new Category { Id = Guid.NewGuid(), Name = "Cameras", ParentId = electronics.Id };
-
-            // Level 2 Subcategories under Supermarket & Groceries
-            var beverages = new Category { Id = Guid.NewGuid(), Name = "Beverages", ParentId = supermarket.Id };
-            var snacksSweets = new Category { Id = Guid.NewGuid(), Name = "Snacks & Sweets", ParentId = supermarket.Id };
-            var pantryStaples = new Category { Id = Guid.NewGuid(), Name = "Pantry Staples", ParentId = supermarket.Id };
-            var babyCare = new Category { Id = Guid.NewGuid(), Name = "Baby Care", ParentId = supermarket.Id };
 
             // Level 2 Subcategories under Home & Kitchen
             var furniture = new Category { Id = Guid.NewGuid(), Name = "Furniture", ParentId = homeKitchen.Id };
@@ -108,9 +101,8 @@ namespace Jomla.Infrastructure.Persistance.Seeders
 
             var categories = new List<Category>
             {
-                electronics, supermarket, homeKitchen, officeSupplies, fashion, other,
+                electronics, homeKitchen, officeSupplies, fashion, other,
                 laptops, smartphones, largeAppliances, smallAppliances, computerAccessories, cameras,
-                beverages, snacksSweets, pantryStaples, babyCare,
                 furniture, bedding, homeDecor, cookwareDining,
                 paperProducts, writingInstruments, officeFurniture, printingSupplies,
                 clothing, footwear, bagsAccessories
@@ -205,12 +197,31 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             var random = new Random(44);
             var prefs = new List<SupplierCategoryPreference>();
 
+            var leafCategories = categories
+                .Where(c => !categories.Any(child => child.ParentId == c.Id) && c.Name != "Other")
+                .ToList();
+
+            var appliances = leafCategories
+                .Where(c => c.Name == "Large Appliances" || c.Name == "Small Appliances")
+                .ToList();
+
             foreach(var supplier in suppliers)
             {
                 var pickCount = random.Next(1, 5); // 1 to 4 categories per seller
-                var pickedCategories = categories
+                var pickedCategories = new List<Category>();
+
+                // 80% chance to prefer at least one appliance category
+                if (random.NextDouble() < 0.8 && appliances.Count > 0)
+                {
+                    pickedCategories.Add(appliances[random.Next(appliances.Count)]);
+                }
+
+                var remainingLeafs = leafCategories
+                    .Except(pickedCategories)
                     .OrderBy(_ => random.Next())
-                    .Take(pickCount);
+                    .ToList();
+
+                pickedCategories.AddRange(remainingLeafs.Take(Math.Max(0, pickCount - pickedCategories.Count)));
 
                 foreach (var category in pickedCategories)
                 {
@@ -248,7 +259,20 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                     if (offers.Count >= 12)
                         break;
 
-                    var category = leafCategories[random.Next(leafCategories.Count)];
+                    Category category;
+                    var applianceCategories = leafCategories
+                        .Where(c => c.Name == "Large Appliances" || c.Name == "Small Appliances")
+                        .ToList();
+
+                    if (random.NextDouble() < 0.75 && applianceCategories.Count > 0)
+                    {
+                        category = applianceCategories[random.Next(applianceCategories.Count)];
+                    }
+                    else
+                    {
+                        category = leafCategories[random.Next(leafCategories.Count)];
+                    }
+
                     var itemPool = SeedDataLoader.Products[category.Name];
                     var item = itemPool[random.Next(itemPool.Count)];
                     var title = item.Title;
@@ -435,7 +459,20 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             for (int i = 0; i < requestCount; i++)
             {
                 var initiator = buyers[random.Next(buyers.Count)];
-                var category = leafCategories[random.Next(leafCategories.Count)];
+                Category category;
+                var applianceCategories = leafCategories
+                    .Where(c => c.Name == "Large Appliances" || c.Name == "Small Appliances")
+                    .ToList();
+
+                if (random.NextDouble() < 0.75 && applianceCategories.Count > 0)
+                {
+                    category = applianceCategories[random.Next(applianceCategories.Count)];
+                }
+                else
+                {
+                    category = leafCategories[random.Next(leafCategories.Count)];
+                }
+
                 var itemPool = SeedDataLoader.GroupRequestTitles[category.Name];
                 var item = itemPool[random.Next(itemPool.Count)];
                 var title = item.Title;

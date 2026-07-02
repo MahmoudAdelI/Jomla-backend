@@ -37,19 +37,6 @@
   "Home Decor": {
     "color": ["Multicolor", "Beige", "Gray"]
   },
-  "Beverages": {
-    "flavor": ["Natural", "Orange", "Espresso", "Cola"],
-    "size": ["1.5L", "1L", "1kg", "330ml"]
-  },
-  "Snacks & Sweets": {
-    "type": ["Protein", "Dark Chocolate", "Mixed Roasted", "Salted Chips"]
-  },
-  "Pantry Staples": {
-    "volume/weight": ["5L", "10kg", "Case of 24", "Pack of 12"]
-  },
-  "Baby Care": {
-    "size/type": ["Diapers Size 4", "Wipes Bulk Case", "Formula Stage 1"]
-  },
   "Cookware & Dining": {
     "material": ["Non-Stick", "Stainless Steel", "Ceramic"]
   },
