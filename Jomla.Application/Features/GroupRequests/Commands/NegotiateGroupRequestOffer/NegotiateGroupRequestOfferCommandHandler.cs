@@ -45,6 +45,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
             // 5. create child offer row
             var childOffer = new GroupRequestOffer
             {
+                Id = Guid.NewGuid(),
                 GroupRequestId = offer.GroupRequestId,
                 SupplierId = offer.SupplierId,
                 UnitPrice = offer.UnitPrice,
