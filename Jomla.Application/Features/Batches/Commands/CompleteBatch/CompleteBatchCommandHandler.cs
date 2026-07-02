@@ -17,17 +17,20 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
         private readonly IStripePaymentService _stripePaymentService;
         private readonly IMediator _mediator;
         private readonly ILogger<CompleteBatchCommandHandler> _logger;
+        private readonly IRealtimeService _realtimeService;
 
         public CompleteBatchCommandHandler(
             IAppDbContext context,
             IStripePaymentService stripePaymentService,
             IMediator mediator,
-            ILogger<CompleteBatchCommandHandler> logger)
+            ILogger<CompleteBatchCommandHandler> logger,
+            IRealtimeService realtimeService)
         {
             _context = context;
             _stripePaymentService = stripePaymentService;
             _mediator = mediator;
             _logger = logger;
+            _realtimeService = realtimeService;
         }
 
         public async Task Handle(CompleteBatchCommand request, CancellationToken cancellationToken)
@@ -200,6 +203,18 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                     _logger.LogWarning(ex,
                         "Real-time notification failed for user {UserId} - financials unaffected",
                         notification.UserId);
+                }
+            }
+
+            foreach (var participant in activeParticipants)
+            {
+                try
+                {
+                    await _realtimeService.SendUserBatchStatusChangedAsync(participant.BuyerId, batch.Id, "Completed");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send UserBatchStatusChanged SignalR event to buyer {BuyerId}", participant.BuyerId);
                 }
             }
 

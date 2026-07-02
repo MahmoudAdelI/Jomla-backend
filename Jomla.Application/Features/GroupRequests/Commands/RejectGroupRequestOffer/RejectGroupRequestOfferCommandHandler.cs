@@ -17,15 +17,18 @@ namespace Jomla.Application.Features.GroupRequests.Commands.RejectGroupRequestOf
         private readonly IAppDbContext _context;
         private readonly IMediator _mediator;
         private readonly ILogger<RejectGroupRequestOfferCommandHandler> _logger;
+        private readonly IRealtimeService _realtimeService;
 
         public RejectGroupRequestOfferCommandHandler(
             IAppDbContext context,
             IMediator mediator,
-            ILogger<RejectGroupRequestOfferCommandHandler> logger)
+            ILogger<RejectGroupRequestOfferCommandHandler> logger,
+            IRealtimeService realtimeService)
         {
             _context = context;
             _mediator = mediator;
             _logger = logger;
+            _realtimeService = realtimeService;
         }
 
         public async Task<RejectGroupRequestOfferResponse> Handle(RejectGroupRequestOfferCommand request, CancellationToken cancellationToken)
@@ -93,13 +96,24 @@ namespace Jomla.Application.Features.GroupRequests.Commands.RejectGroupRequestOf
 
             _logger.LogInformation("Buyer {BuyerId} rejected offer {OfferId}.", request.BuyerId, request.OfferId);
 
-            // Check if rejection threshold is met for negotiation (e.g., 3 rejections)
             var rejectionsCount = offer.Responses.Count(r => r.Response == BuyerOfferResponseType.Rejected);
-            
             if (rejectionsCount >= 3)
             {
                 _logger.LogInformation("Rejection threshold met (3+) for offer {OfferId}. Triggering AI Negotiation Agent.", offer.Id);
                 await _mediator.Send(new NegotiateGroupRequestOfferCommand(offer.Id, offer.GroupRequest.Category.Name), cancellationToken);
+            }
+
+            try
+            {
+                var detail = await _mediator.Send(new Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestDetailQuery(offer.GroupRequestId), cancellationToken);
+                if (detail != null)
+                {
+                    await _realtimeService.SendGroupRequestUpdatedAsync(offer.GroupRequestId, detail);
+                }
+            }
+            catch
+            {
+                // Non-blocking SignalR fallback
             }
 
             return new RejectGroupRequestOfferResponse { Success = true };

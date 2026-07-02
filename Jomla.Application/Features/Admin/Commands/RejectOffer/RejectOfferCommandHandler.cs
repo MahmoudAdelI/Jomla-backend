@@ -1,5 +1,6 @@
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Notifications;
+using Jomla.Application.Features.Offers.Queries.GetOfferById;
 using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
@@ -16,11 +17,16 @@ namespace Jomla.Application.Features.Admin.Commands.RejectOffer
     {
         private readonly IAppDbContext _context;
         private readonly IMediator _mediator;
+        private readonly IRealtimeService _realtimeService;
 
-        public RejectOfferCommandHandler(IAppDbContext context, IMediator mediator)
+        public RejectOfferCommandHandler(
+            IAppDbContext context, 
+            IMediator mediator,
+            IRealtimeService realtimeService)
         {
             _context = context;
             _mediator = mediator;
+            _realtimeService = realtimeService;
         }
 
         public async Task Handle(RejectOfferCommand request, CancellationToken cancellationToken)
@@ -48,6 +54,20 @@ namespace Jomla.Application.Features.Admin.Commands.RejectOffer
 
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                var offerDto = await _mediator.Send(new GetOfferByIdQuery(offer.Id), cancellationToken);
+                if (offerDto != null)
+                {
+                    await _realtimeService.SendOfferStatusChangedAsync(offer.SupplierId, offerDto);
+                }
+                await _realtimeService.SendFlaggedItemResolvedAsync(offer.Id);
+            }
+            catch
+            {
+                // Non-blocking SignalR fallback
+            }
 
             await _mediator.Publish(new NotificationCreatedEvent(notification.UserId, notification.Id), cancellationToken);
         }

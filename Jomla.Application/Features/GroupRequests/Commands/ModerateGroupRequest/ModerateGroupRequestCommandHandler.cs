@@ -7,6 +7,7 @@ using Jomla.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using Jomla.Application.Features.GroupRequests.Queries;
 
 namespace Jomla.Application.Features.GroupRequests.Commands.ModerateGroupRequest
 {
@@ -14,12 +15,14 @@ namespace Jomla.Application.Features.GroupRequests.Commands.ModerateGroupRequest
         IAppDbContext db,
         IModerationAgent moderation,
         IMediator mediator,
-        IBackgroundJobDispatcher jobDispatcher) : IRequestHandler<ModerateGroupRequestCommand>
+        IBackgroundJobDispatcher jobDispatcher,
+        IRealtimeService realtimeService) : IRequestHandler<ModerateGroupRequestCommand>
     {
         private readonly IAppDbContext _db = db;
         private readonly IModerationAgent _moderation = moderation;
         private readonly IMediator _mediator = mediator;
         private readonly IBackgroundJobDispatcher _jobDispatcher = jobDispatcher;
+        private readonly IRealtimeService _realtimeService = realtimeService;
 
         public async Task Handle(ModerateGroupRequestCommand request, CancellationToken cancellationToken)
         {
@@ -69,6 +72,24 @@ namespace Jomla.Application.Features.GroupRequests.Commands.ModerateGroupRequest
             {
                 _jobDispatcher.Enqueue<ISupplierMatchingJob>(j =>
                     j.ExecuteAsync(groupRequest.Id, groupRequest.CategoryId, groupRequest.CurrentQuantity));
+            }
+
+            try
+            {
+                var detail = await _mediator.Send(new GetGroupRequestDetailQuery(groupRequest.Id), cancellationToken);
+                if (detail != null)
+                {
+                    await _realtimeService.SendGroupRequestUpdatedAsync(groupRequest.Id, detail);
+                }
+
+                if (!result.IsApproved)
+                {
+                    await _realtimeService.SendFlaggedItemCreatedAsync("GroupRequest", groupRequest.Id);
+                }
+            }
+            catch
+            {
+                // Non-blocking SignalR fallback
             }
 
             await _mediator.Publish(new NotificationCreatedEvent(notification.UserId, notification.Id), cancellationToken);

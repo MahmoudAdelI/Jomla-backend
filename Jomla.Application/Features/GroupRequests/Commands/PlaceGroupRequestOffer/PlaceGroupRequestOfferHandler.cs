@@ -7,6 +7,7 @@ using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Jomla.Application.Features.GroupRequests.Queries;
 
 namespace Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOffer;
 
@@ -14,7 +15,8 @@ public sealed class PlaceGroupRequestOfferHandler(
     IAppDbContext db,
     IIdentityService identityService,
     IBackgroundJobDispatcher backgroundJobDispatcher,
-    IMediator mediator) : IRequestHandler<PlaceGroupRequestOfferCommand, Guid>
+    IMediator mediator,
+    IRealtimeService realtimeService) : IRequestHandler<PlaceGroupRequestOfferCommand, Guid>
 {
     public async Task<Guid> Handle(PlaceGroupRequestOfferCommand request, CancellationToken cancellationToken)
     {
@@ -124,6 +126,19 @@ public sealed class PlaceGroupRequestOfferHandler(
         offer.JobId = jobId;
 
         await db.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            var detail = await mediator.Send(new GetGroupRequestDetailQuery(request.GroupRequestId), cancellationToken);
+            if (detail != null)
+            {
+                await realtimeService.SendGroupRequestUpdatedAsync(request.GroupRequestId, detail);
+            }
+        }
+        catch
+        {
+            // Non-blocking SignalR fallback
+        }
 
         // Trigger real-time SignalR notifications
         foreach (var notification in notifications)

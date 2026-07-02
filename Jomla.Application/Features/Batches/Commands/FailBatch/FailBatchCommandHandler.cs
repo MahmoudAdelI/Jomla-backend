@@ -14,13 +14,15 @@ namespace Jomla.Application.Features.Batches.Commands.FailBatch
         IAppDbContext db,
         IStripePaymentService stripe,
         IMediator mediator,
-        ILogger<FailBatchCommandHandler> logger
+        ILogger<FailBatchCommandHandler> logger,
+        IRealtimeService realtimeService
         ) : IRequestHandler<FailBatchCommand>
     {
         private readonly IAppDbContext _db = db;
         private readonly IStripePaymentService _stripe = stripe;
         private readonly IMediator _mediator = mediator;
         private readonly ILogger<FailBatchCommandHandler> _logger = logger;
+        private readonly IRealtimeService _realtimeService = realtimeService;
 
         public async Task Handle(FailBatchCommand request, CancellationToken cancellationToken)
         {
@@ -101,6 +103,18 @@ namespace Jomla.Application.Features.Batches.Commands.FailBatch
             {
                 _logger.LogWarning(ex,
                     "Failed to publish BatchUpdatedEvent for failed batch {BatchId}.", batch.Id);
+            }
+
+            foreach (var participant in batch.Participants)
+            {
+                try
+                {
+                    await _realtimeService.SendUserBatchStatusChangedAsync(participant.BuyerId, batch.Id, "Failed");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send UserBatchStatusChanged SignalR event to buyer {BuyerId}", participant.BuyerId);
+                }
             }
         }
     }

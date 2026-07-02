@@ -129,46 +129,6 @@
       "imageUrl": "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=600&q=80"
     }
   ],
-  "Beverages": [
-    {
-      "title": "Bottled water and juices for offices",
-      "imageUrl": "https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=crop&w=600&q=80"
-    },
-    {
-      "title": "Espresso coffee beans for office coffee machines",
-      "imageUrl": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=600&q=80"
-    }
-  ],
-  "Snacks & Sweets": [
-    {
-      "title": "Snack bars and dark chocolates for pantry",
-      "imageUrl": "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=600&q=80"
-    },
-    {
-      "title": "Mixed nuts bulk supply for kitchen",
-      "imageUrl": "https://images.unsplash.com/photo-1599599810769-bcde5a160d32?auto=format&fit=crop&w=600&q=80"
-    }
-  ],
-  "Pantry Staples": [
-    {
-      "title": "Bulk olive oil and basmati rice for restaurant",
-      "imageUrl": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80"
-    },
-    {
-      "title": "Pasta and tomato paste cases for cafeteria",
-      "imageUrl": "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&w=600&q=80"
-    }
-  ],
-  "Baby Care": [
-    {
-      "title": "Diapers and wipes for daycare center restock",
-      "imageUrl": "https://images.unsplash.com/photo-1555252333-9f8e92e65df9?auto=format&fit=crop&w=600&q=80"
-    },
-    {
-      "title": "Organic baby formula for nurseries",
-      "imageUrl": "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&w=600&q=80"
-    }
-  ],
   "Cookware & Dining": [
     {
       "title": "Dinnerware and cutlery sets for office kitchen",

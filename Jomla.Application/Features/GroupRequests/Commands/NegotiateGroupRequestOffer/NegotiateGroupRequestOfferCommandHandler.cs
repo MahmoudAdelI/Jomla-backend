@@ -6,6 +6,7 @@ using Jomla.Domain;
 using Jomla.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Jomla.Application.Features.GroupRequests.Queries;
 
 namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupRequestOffer
 {
@@ -13,13 +14,15 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
         IAppDbContext db,
         INegotiationAgent negotiationAgent,
         IMediator mediator,
-        IBackgroundJobDispatcher jobDispatcher
+        IBackgroundJobDispatcher jobDispatcher,
+        IRealtimeService realtimeService
         ) : IRequestHandler<NegotiateGroupRequestOfferCommand>
     {
         private readonly IAppDbContext _db = db;
         private readonly INegotiationAgent _negotiationAgent = negotiationAgent;
         private readonly IMediator _mediator = mediator;
         private readonly IBackgroundJobDispatcher _jobDispatcher = jobDispatcher;
+        private readonly IRealtimeService _realtimeService = realtimeService;
 
         public  async Task Handle(NegotiateGroupRequestOfferCommand request, CancellationToken cancellationToken)
         {
@@ -132,6 +135,19 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
 
             // Save the scheduled JobId and the new notifications
             await _db.SaveChangesAsync(cancellationToken);
+
+            try
+            {
+                var detail = await _mediator.Send(new GetGroupRequestDetailQuery(offer.GroupRequestId), cancellationToken);
+                if (detail != null)
+                {
+                    await _realtimeService.SendGroupRequestUpdatedAsync(offer.GroupRequestId, detail);
+                }
+            }
+            catch
+            {
+                // Non-blocking SignalR fallback
+            }
 
             foreach (var notification in notifications)
             {

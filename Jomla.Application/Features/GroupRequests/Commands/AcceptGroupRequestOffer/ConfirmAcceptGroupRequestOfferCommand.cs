@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using Jomla.Application.Jobs.Fulfillment;
 using Jomla.Application.Jobs.JobDispatcher;
+using Jomla.Application.Features.GroupRequests.Queries;
 using Jomla.Application.Common.Exceptions;
 using System;
 using System.Linq;
@@ -26,7 +27,9 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
         IAppDbContext context,
         IStripePaymentService stripePaymentService,
         IBackgroundJobDispatcher jobDispatcher,
-        ILogger<ConfirmAcceptGroupRequestOfferCommandHandler> logger) : IRequestHandler<ConfirmAcceptGroupRequestOfferCommand, bool>
+        ILogger<ConfirmAcceptGroupRequestOfferCommandHandler> logger,
+        IRealtimeService realtimeService,
+        IMediator mediator) : IRequestHandler<ConfirmAcceptGroupRequestOfferCommand, bool>
     {
         private readonly IAppDbContext _context = context;
         private readonly IStripePaymentService _stripePaymentService = stripePaymentService;
@@ -140,6 +143,19 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                 await _stripePaymentService.CancelPaymentAsync(request.PaymentIntentId, cancellationToken);
 
                 throw new ConflictException("An error occurred while saving your response. Payment hold was released.");
+            }
+
+            try
+            {
+                var detail = await mediator.Send(new GetGroupRequestDetailQuery(offer.GroupRequestId), cancellationToken);
+                if (detail != null)
+                {
+                    await realtimeService.SendGroupRequestUpdatedAsync(offer.GroupRequestId, detail);
+                }
+            }
+            catch
+            {
+                // Non-blocking SignalR fallback
             }
 
             // Check if offer is complete
