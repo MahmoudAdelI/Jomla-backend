@@ -89,7 +89,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
             // 6b. log the negotiation step
             var log = new NegotiationLog
             {
-                OfferId = childOffer.Id,
+                Offer = childOffer,
                 PreviousPrice = offer.CurrentUnitPrice,
                 NewPrice = newPrice,
                 ReasoningSummary = $"AI Agent countered with a new price of {newPrice:C}.",
