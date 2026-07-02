@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Constants;
+using Jomla.Application.Common.Constants;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 
@@ -15,14 +15,20 @@ namespace Jomla.Infrastructure.Persistance.Qdrant
         {
             // check if collection already exists — skip creation if so
             var collections = await _qdrantClient.ListCollectionsAsync();
-            if (collections.Any(c => c == QdrantCollections.NegotiationRounds))
-                return;
-
-            await _qdrantClient.CreateCollectionAsync(QdrantCollections.NegotiationRounds, new VectorParams
+            if (!collections.Any(c => c == QdrantCollections.NegotiationRounds))
             {
-                Size = VectorSize,
-                Distance = Distance.Cosine
-            });
+                await _qdrantClient.CreateCollectionAsync(QdrantCollections.NegotiationRounds, new VectorParams
+                {
+                    Size = VectorSize,
+                    Distance = Distance.Cosine
+                });
+            }
+
+            // Create payload index for category_id to allow filtering
+            await _qdrantClient.CreatePayloadIndexAsync(
+                collectionName: QdrantCollections.NegotiationRounds,
+                fieldName: "category_id",
+                schemaType: PayloadSchemaType.Keyword);
         }
     }
 }
