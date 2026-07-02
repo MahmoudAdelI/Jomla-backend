@@ -23,12 +23,20 @@ namespace Jomla.Infrastructure.AI
         private readonly ILogger<NegotiationAgent> _logger = logger;
 
         private const int TopK = 5;
+        private const int MaxNegotiationRounds = 4;
         public async Task<decimal> GetNextPriceAsync(GroupRequestOffer offer, string categoryName)
         {
             _logger.LogInformation("NegotiationAgent starting price recommendation for Offer {OfferId} (Category: {CategoryName}). CurrentPrice: {CurrentPrice}, Floor: {Floor}.", 
                 offer.Id, categoryName, offer.CurrentUnitPrice, offer.MinUnitPrice ?? offer.UnitPrice);
 
             var floor = offer.MinUnitPrice ?? offer.UnitPrice;
+
+            if (offer.RoundNumber >= MaxNegotiationRounds)
+            {
+                _logger.LogInformation("Offer {OfferId} has reached or exceeded max negotiation rounds ({MaxRounds}). Dropping directly to floor price {Floor}.", 
+                    offer.Id, MaxNegotiationRounds, floor);
+                return floor;
+            }
 
             // 1. build embedding text for similarity search
             var embeddingText =
@@ -118,7 +126,7 @@ namespace Jomla.Infrastructure.AI
                 Similar past negotiation rounds for context:
                 {ragContext}
 
-                Recommend the next unit price. It must be between {floor} and {offer.CurrentUnitPrice} (exclusive lower, inclusive upper).
+                Recommend the next unit price. It must be between {floor} (inclusive) and {offer.CurrentUnitPrice} (exclusive).
                 """;
             history.AddUserMessage(userMessage);
 
