@@ -36,5 +36,15 @@ namespace Jomla.Infrastructure.Persistance.Qdrant
                 fieldName: "group_request_id",
                 schemaType: PayloadSchemaType.Keyword);
         }
+
+        public async Task RecreateCollectionAsync()
+        {
+            var collections = await _qdrantClient.ListCollectionsAsync();
+            if (collections.Any(c => c == QdrantCollections.NegotiationRounds))
+            {
+                await _qdrantClient.DeleteCollectionAsync(QdrantCollections.NegotiationRounds);
+            }
+            await InitializeAsync();
+        }
     }
 }

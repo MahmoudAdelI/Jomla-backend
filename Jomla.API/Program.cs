@@ -146,6 +146,8 @@ namespace Jomla.API
                         try
                         {
                             using var bgScope = app.Services.CreateScope();
+                            var initializer = bgScope.ServiceProvider.GetRequiredService<NegotiationRoundsCollectionInitializer>();
+                            await initializer.RecreateCollectionAsync();
                             var syncJob = bgScope.ServiceProvider.GetRequiredService<INegotiationRoundSyncJob>();
                             await syncJob.ExcuteAsync();
                         }
