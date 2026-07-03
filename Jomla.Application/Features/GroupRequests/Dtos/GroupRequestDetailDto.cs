@@ -18,10 +18,16 @@ namespace Jomla.Application.Features.GroupRequests.Dtos
      string? ModerationReason,
      DateTime CreatedAt,
      Guid InitiatorId,
+     string InitiatorName,
      string CategoryName,
      int ParticipantsCount,
      List<GroupRequestOfferDto> Offers,
-     List<Guid> ParticipantIds
+     List<GroupRequestParticipantDto> Participants
     );
 
+    public record GroupRequestParticipantDto(
+        Guid Id,
+        string Name,
+        int Quantity
+    );
 }

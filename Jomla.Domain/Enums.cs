@@ -9,7 +9,7 @@ namespace Jomla.Domain
     public enum GroupRequestAlertStatus { Pending, Responded, Ignored }
     public enum OrderStatus { Pending, Paid, Failed , Refunded }
     public enum BatchParticipantStatus { Active, Left }
-    public enum GroupRequestParticipantStatus { Active, Left }
+    public enum GroupRequestParticipantStatus { Active, Left, Fulfilled }
     public enum NotificationType
     {
         OfferExpired,

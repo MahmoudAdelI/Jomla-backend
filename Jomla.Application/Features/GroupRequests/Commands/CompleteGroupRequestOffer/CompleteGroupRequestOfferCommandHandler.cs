@@ -11,6 +11,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Jomla.Application.Features.GroupRequests.Queries;
+using Jomla.Application.Jobs.Closing;
+using Jomla.Application.Jobs.JobDispatcher;
+
 namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequestOffer
 {
     public class CompleteGroupRequestOfferCommandHandler : IRequestHandler<CompleteGroupRequestOfferCommand>
@@ -18,22 +22,29 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
         private readonly IAppDbContext _context;
         private readonly IStripePaymentService _stripePaymentService;
         private readonly IMediator _mediator;
+        private readonly IRealtimeService _realtimeService;
+        private readonly IBackgroundJobDispatcher _jobDispatcher;
         private readonly ILogger<CompleteGroupRequestOfferCommandHandler> _logger;
 
         public CompleteGroupRequestOfferCommandHandler(
             IAppDbContext context,
             IStripePaymentService stripePaymentService,
             IMediator mediator,
+            IRealtimeService realtimeService,
+            IBackgroundJobDispatcher jobDispatcher,
             ILogger<CompleteGroupRequestOfferCommandHandler> logger)
         {
             _context = context;
             _stripePaymentService = stripePaymentService;
             _mediator = mediator;
+            _realtimeService = realtimeService;
+            _jobDispatcher = jobDispatcher;
             _logger = logger;
         }
 
         public async Task Handle(CompleteGroupRequestOfferCommand request, CancellationToken cancellationToken)
         {
+            GroupRequestOffer? offer = null;
 
             //  PHASE 1: DB Transaction (Fast — No Stripe calls)
             // Lock the offer and create Pending orders before touching Stripe
@@ -43,7 +54,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
                 try
                 {
                     // Fetch the offer with all accepted responses and active participants
-                    var offer = await _context.GroupRequestOffers
+                    offer = await _context.GroupRequestOffers
                         .Include(o => o.Responses)
                         .Include(o => o.GroupRequest)
                             .ThenInclude(gr => gr.Participants)
@@ -175,6 +186,14 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
                     order.Status = OrderStatus.Paid;
                     order.PaidAt = DateTime.UtcNow;
                     successfulBuyerIds.Add(order.BuyerId);
+
+                    var participant = offer!.GroupRequest.Participants
+                        .FirstOrDefault(p => p.BuyerId == order.BuyerId);
+                    if (participant != null)
+                    {
+                        participant.Status = GroupRequestParticipantStatus.Fulfilled;
+                        offer.GroupRequest.CurrentQuantity -= participant.Quantity;
+                    }
                 }
                 else
                 {
@@ -218,6 +237,15 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
                         {
                             refundedOrder.Status = OrderStatus.Refunded;
                             refundedOrder.PaidAt = null;
+
+                            var participant = offer!.GroupRequest.Participants
+                                .FirstOrDefault(p => p.BuyerId == buyerId);
+                            if (participant != null)
+                            {
+                                participant.Status = GroupRequestParticipantStatus.Active;
+                                offer.GroupRequest.CurrentQuantity += participant.Quantity;
+                            }
+
                             await _context.SaveChangesAsync(cancellationToken);
                         }
                     }
@@ -237,10 +265,20 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
             // PHASE 3: Notifications (After everything is done successfully)
             // Save all notifications in a single bulk insert, then fire real-time events
 
-            var groupRequestId = await _context.GroupRequestOffers
-                .Where(o => o.Id == request.OfferId)
-                .Select(o => o.GroupRequestId)
-                .FirstOrDefaultAsync(cancellationToken);
+            if (offer!.GroupRequest.CurrentQuantity <= 0)
+            {
+                offer.GroupRequest.CurrentQuantity = 0;
+                
+                if (offer.GroupRequest.Status != GroupRequestStatus.Inactive && offer.GroupRequest.Status != GroupRequestStatus.Closed)
+                {
+                    offer.GroupRequest.Status = GroupRequestStatus.Inactive;
+                    offer.GroupRequest.InactiveSince = DateTime.UtcNow;
+
+                    _jobDispatcher.Schedule<IGroupRequestAutoCloseJob>(
+                        j => j.ExecuteAsync(offer.GroupRequestId),
+                        DateTimeOffset.UtcNow.AddHours(24));
+                }
+            }
 
             // Build all notifications at once — single DB round trip
             var notifications = successfulBuyerIds.Select(buyerId => new Notification
@@ -249,7 +287,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
                 Type = NotificationType.GroupRequestOfferFilled,
                 Title = "Group Request Offer Filled",
                 Body = "Your accepted group request offer has been filled and payment was captured.",
-                EntityId = groupRequestId,
+                EntityId = offer!.GroupRequestId,
                 EntityType = nameof(GroupRequest),
                 IsRead = false,
                 CreatedAt = DateTime.UtcNow
@@ -277,6 +315,19 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
                             notification.UserId);
                     }
                 }
+            }
+
+            try
+            {
+                var detail = await _mediator.Send(new GetGroupRequestDetailQuery(offer!.GroupRequestId), cancellationToken);
+                if (detail != null)
+                {
+                    await _realtimeService.SendGroupRequestUpdatedAsync(offer!.GroupRequestId, detail);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send GroupRequestUpdated SignalR broadcast for GroupRequest {GroupRequestId}", offer!.GroupRequestId);
             }
 
             _logger.LogInformation(
