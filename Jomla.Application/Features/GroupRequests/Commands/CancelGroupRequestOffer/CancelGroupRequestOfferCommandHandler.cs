@@ -1,4 +1,5 @@
 using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Features.GroupRequests.Queries;
 using Jomla.Domain;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -9,11 +10,15 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CancelGroupRequestOf
     public class CancelGroupRequestOfferCommandHandler(
         IAppDbContext context,
         IStripePaymentService stripePaymentService,
-        ILogger<CancelGroupRequestOfferCommandHandler> logger) : IRequestHandler<CancelGroupRequestOfferCommand>
+        ILogger<CancelGroupRequestOfferCommandHandler> logger,
+        IRealtimeService realtimeService,
+        IMediator mediator) : IRequestHandler<CancelGroupRequestOfferCommand>
     {
         private readonly IAppDbContext _context = context;
         private readonly IStripePaymentService _stripePaymentService = stripePaymentService;
         private readonly ILogger<CancelGroupRequestOfferCommandHandler> _logger = logger;
+        private readonly IRealtimeService _realtimeService = realtimeService;
+        private readonly IMediator _mediator = mediator;
 
         public async Task Handle(CancelGroupRequestOfferCommand request, CancellationToken cancellationToken)
             {
@@ -98,6 +103,19 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CancelGroupRequestOf
                 // 5️⃣ Persist changes. If this fails, Hangfire will retry the whole method.
                 // Thanks to Guards 1 & 2, retrying will NOT cause double-refunds on Stripe!
                 await _context.SaveChangesAsync(cancellationToken);
+
+                try
+                {
+                    var detail = await _mediator.Send(new GetGroupRequestDetailQuery(offer.GroupRequestId), cancellationToken);
+                    if (detail != null)
+                    {
+                        await _realtimeService.SendGroupRequestUpdatedAsync(offer.GroupRequestId, detail);
+                    }
+                }
+                catch
+                {
+                    // Non-blocking SignalR fallback
+                }
 
                 _logger.LogInformation("Buyer {BuyerId} successfully left the offer {OfferId} and DB is synchronized.", request.BuyerId, request.OfferId);
             }

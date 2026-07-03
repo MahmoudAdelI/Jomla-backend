@@ -23,52 +23,73 @@ namespace Jomla.Application.Features.GroupRequests.Queries
 
         public async Task<GroupRequestDetailDto?> Handle(GetGroupRequestDetailQuery request, CancellationToken cancellationToken)
         {
-            var groupRequest = await _context.GroupRequests
-                .Include(r => r.Category)
-                .Include(r => r.Participants)
-                .Include(r => r.Offers)
-                    .ThenInclude(o => o.Supplier)
-                .FirstOrDefaultAsync(r => r.Id == request.GroupRequestId, cancellationToken);
+            var data = await _context.GroupRequests
+                .Where(r => r.Id == request.GroupRequestId)
+                .Select(r => new
+                {
+                    r.Id,
+                    r.Title,
+                    r.Description,
+                    r.ImageUrls,
+                    r.CurrentQuantity,
+                    Status = r.Status.ToString(),
+                    ModerationStatus = r.ModerationStatus.ToString(),
+                    r.ModerationReason,
+                    r.CreatedAt,
+                    r.InitiatorId,
+                    InitiatorName = r.Initiator != null ? (r.Initiator.FirstName + " " + r.Initiator.LastName).Trim() : "Unknown",
+                    CategoryName = r.Category.Name,
+                    ParticipantsCount = r.Participants.Count(p => p.Status == GroupRequestParticipantStatus.Active),
+                    Offers = r.Offers.Select(o => new GroupRequestOfferDto(
+                        o.Id,
+                        o.SupplierId,
+                        o.Supplier != null ? (o.Supplier.FirstName + " " + o.Supplier.LastName).Trim() : "Unknown Supplier",
+                        o.UnitPrice,
+                        o.MinUnitPrice,
+                        o.CurrentUnitPrice,
+                        o.QuantityAvailable,
+                        o.MinFallbackQuantity,
+                        o.AcceptedQuantity,
+                        o.Status.ToString(),
+                        o.CreatedAt,
+                        o.ExpiresAt,
+                        o.RoundNumber,
+                        o.Responses.Where(res => res.Response == BuyerOfferResponseType.Accepted).Select(res => res.BuyerId).ToList()
+                    )).ToList(),
+                    Participants = r.Participants
+                        .Where(p => p.Status == GroupRequestParticipantStatus.Active)
+                        .Select(p => new GroupRequestParticipantDto(
+                            p.BuyerId,
+                            p.Buyer != null ? (p.Buyer.FirstName + " " + p.Buyer.LastName).Trim() : "Unknown",
+                            p.Quantity
+                        ))
+                        .ToList()
+                })
+                .FirstOrDefaultAsync(cancellationToken);
 
-            if (groupRequest == null)
+            if (data == null)
                 return null;
 
-            var imageUrlsList = string.IsNullOrEmpty(groupRequest.ImageUrls)
+            var imageUrlsList = string.IsNullOrEmpty(data.ImageUrls)
                 ? new List<string>()
-                : JsonSerializer.Deserialize<List<string>>(groupRequest.ImageUrls) ?? new List<string>();
+                : JsonSerializer.Deserialize<List<string>>(data.ImageUrls) ?? new List<string>();
 
             return new GroupRequestDetailDto(
-                groupRequest.Id,
-                groupRequest.Title,
-                groupRequest.Description,
+                data.Id,
+                data.Title,
+                data.Description,
                 imageUrlsList,
-                groupRequest.CurrentQuantity,
-                groupRequest.Status.ToString(),
-                groupRequest.ModerationStatus.ToString(),
-                groupRequest.ModerationReason,
-                groupRequest.CreatedAt,
-                groupRequest.InitiatorId,
-                groupRequest.Category.Name,
-                groupRequest.Participants.Count(p => p.Status == GroupRequestParticipantStatus.Active),
-                groupRequest.Offers.Select(o => new GroupRequestOfferDto(
-                    o.Id,
-                    o.SupplierId,
-                    o.Supplier != null ? $"{o.Supplier.FirstName} {o.Supplier.LastName}".Trim() : "Unknown Supplier",
-                    o.UnitPrice,
-                    o.MinUnitPrice,
-                    o.CurrentUnitPrice,
-                    o.QuantityAvailable,
-                    o.MinFallbackQuantity,
-                    o.AcceptedQuantity,
-                    o.Status.ToString(),
-                    o.CreatedAt,
-                    o.ExpiresAt,
-                    o.RoundNumber
-                )).ToList(),
-                groupRequest.Participants
-                    .Where(p => p.Status == GroupRequestParticipantStatus.Active)
-                    .Select(p => p.BuyerId)
-                    .ToList()
+                data.CurrentQuantity,
+                data.Status,
+                data.ModerationStatus,
+                data.ModerationReason,
+                data.CreatedAt,
+                data.InitiatorId,
+                data.InitiatorName,
+                data.CategoryName,
+                data.ParticipantsCount,
+                data.Offers,
+                data.Participants
             );
         }
     }
