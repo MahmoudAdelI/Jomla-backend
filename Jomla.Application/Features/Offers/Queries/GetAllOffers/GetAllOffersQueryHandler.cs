@@ -43,6 +43,8 @@ public sealed class GetAllOffersQueryHandler(
             var activeBatch = x.Batches.FirstOrDefault(b => b.Status == BatchStatus.Open);
             var committedUnits = activeBatch?.CurrentQuantity ?? 0;
             var buyerCount = activeBatch?.Participants?.Count(p => p.Status == BatchParticipantStatus.Active) ?? 0;
+            var hasJoined = request.CurrentUserId.HasValue && activeBatch != null &&
+                            activeBatch.Participants.Any(p => p.BuyerId == request.CurrentUserId.Value && p.Status == BatchParticipantStatus.Active);
 
             return new OfferDto(
                 x.Id,
@@ -73,7 +75,8 @@ public sealed class GetAllOffersQueryHandler(
                         b.CreatedAt,
                         b.CompletedAt
                     ))
-                    .ToList()
+                    .ToList(),
+                hasJoined
             );
         }).ToList();
 

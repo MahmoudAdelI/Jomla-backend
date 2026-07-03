@@ -11,6 +11,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using System.Security.Claims;
+
 namespace Jomla.API.Controllers;
 
 [ApiController]
@@ -40,6 +42,10 @@ public class OffersController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> GetAllOffers(
         [FromQuery] GetAllOffersQuery query)
     {
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        Guid? currentUserId = string.IsNullOrEmpty(userIdString) ? null : Guid.Parse(userIdString);
+        query = query with { CurrentUserId = currentUserId };
+
         var result = await mediator.Send(query);
 
         return Ok(result);

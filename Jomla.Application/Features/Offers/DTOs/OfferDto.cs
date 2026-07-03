@@ -22,7 +22,8 @@ namespace Jomla.Application.Features.Offers.DTOs
         int HubTargetQuantity,
         int BuyerCount,
         int? MinFallbackQuantity,
-        List<OfferBatchDto> Batches
+        List<OfferBatchDto> Batches,
+        bool HasJoinedActiveBatch = false
     );
 
     public sealed record OfferBatchDto(
