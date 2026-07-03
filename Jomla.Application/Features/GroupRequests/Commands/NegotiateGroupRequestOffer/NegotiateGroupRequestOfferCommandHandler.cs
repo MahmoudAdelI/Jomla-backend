@@ -118,15 +118,15 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
                 CreatedAt = DateTime.UtcNow
             }).ToList();
 
-            // 7b. notify the supplier about the AI agent counter-offer (using the generated ID)
+            // 7b. notify the supplier about the AI agent counter-offer (using the GroupRequest ID)
             var supplierNotification = new Notification
             {
                 UserId = offer.SupplierId,
                 Type = NotificationType.OfferCountered,
                 Title = "AI Counter-Offer Created",
                 Body = $"Your agent countered with a new price of {newPrice:C} for {offer.GroupRequest.Title}.",
-                EntityId = childOffer.Id,
-                EntityType = nameof(GroupRequestOffer),
+                EntityId = offer.GroupRequestId,
+                EntityType = nameof(GroupRequest),
                 CreatedAt = DateTime.UtcNow
             };
             notifications.Add(supplierNotification);

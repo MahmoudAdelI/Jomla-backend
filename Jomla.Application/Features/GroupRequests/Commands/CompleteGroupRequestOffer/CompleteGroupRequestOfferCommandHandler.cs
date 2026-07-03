@@ -237,6 +237,10 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
             // PHASE 3: Notifications (After everything is done successfully)
             // Save all notifications in a single bulk insert, then fire real-time events
 
+            var groupRequestId = await _context.GroupRequestOffers
+                .Where(o => o.Id == request.OfferId)
+                .Select(o => o.GroupRequestId)
+                .FirstOrDefaultAsync(cancellationToken);
 
             // Build all notifications at once — single DB round trip
             var notifications = successfulBuyerIds.Select(buyerId => new Notification
@@ -245,8 +249,8 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
                 Type = NotificationType.GroupRequestOfferFilled,
                 Title = "Group Request Offer Filled",
                 Body = "Your accepted group request offer has been filled and payment was captured.",
-                EntityId = request.OfferId,
-                EntityType = nameof(GroupRequestOffer),
+                EntityId = groupRequestId,
+                EntityType = nameof(GroupRequest),
                 IsRead = false,
                 CreatedAt = DateTime.UtcNow
             }).ToList();
