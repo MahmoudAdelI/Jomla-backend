@@ -1,4 +1,4 @@
-﻿using Jomla.Domain;
+using Jomla.Domain;
 using Jomla.Domain.Entities;
 
 namespace Jomla.Application.Common.Extensions;
@@ -32,6 +32,16 @@ public static class SortingExtensions
                 descending
                     ? query.OrderByDescending(x => x.ExpiresAt)
                     : query.OrderBy(x => x.ExpiresAt),
+
+            OfferSortBy.MostBuyers =>
+                descending
+                    ? query.OrderByDescending(x => x.Batches.Where(b => b.Status == BatchStatus.Open).SelectMany(b => b.Participants).Count(p => p.Status == BatchParticipantStatus.Active))
+                    : query.OrderBy(x => x.Batches.Where(b => b.Status == BatchStatus.Open).SelectMany(b => b.Participants).Count(p => p.Status == BatchParticipantStatus.Active)),
+
+            OfferSortBy.MostFilled =>
+                descending
+                    ? query.OrderByDescending(x => x.Batches.Where(b => b.Status == BatchStatus.Open).Sum(b => (int?)b.CurrentQuantity) ?? 0)
+                    : query.OrderBy(x => x.Batches.Where(b => b.Status == BatchStatus.Open).Sum(b => (int?)b.CurrentQuantity) ?? 0),
 
             _ =>
                 descending
