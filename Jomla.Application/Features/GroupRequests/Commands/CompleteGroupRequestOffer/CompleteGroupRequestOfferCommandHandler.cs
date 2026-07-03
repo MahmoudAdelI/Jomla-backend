@@ -12,6 +12,8 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Jomla.Application.Features.GroupRequests.Queries;
+using Jomla.Application.Jobs.Closing;
+using Jomla.Application.Jobs.JobDispatcher;
 
 namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequestOffer
 {
@@ -21,6 +23,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
         private readonly IStripePaymentService _stripePaymentService;
         private readonly IMediator _mediator;
         private readonly IRealtimeService _realtimeService;
+        private readonly IBackgroundJobDispatcher _jobDispatcher;
         private readonly ILogger<CompleteGroupRequestOfferCommandHandler> _logger;
 
         public CompleteGroupRequestOfferCommandHandler(
@@ -28,12 +31,14 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
             IStripePaymentService stripePaymentService,
             IMediator mediator,
             IRealtimeService realtimeService,
+            IBackgroundJobDispatcher jobDispatcher,
             ILogger<CompleteGroupRequestOfferCommandHandler> logger)
         {
             _context = context;
             _stripePaymentService = stripePaymentService;
             _mediator = mediator;
             _realtimeService = realtimeService;
+            _jobDispatcher = jobDispatcher;
             _logger = logger;
         }
 
@@ -187,6 +192,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
                     if (participant != null)
                     {
                         participant.Status = GroupRequestParticipantStatus.Fulfilled;
+                        offer.GroupRequest.CurrentQuantity -= participant.Quantity;
                     }
                 }
                 else
@@ -231,6 +237,15 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
                         {
                             refundedOrder.Status = OrderStatus.Refunded;
                             refundedOrder.PaidAt = null;
+
+                            var participant = offer!.GroupRequest.Participants
+                                .FirstOrDefault(p => p.BuyerId == buyerId);
+                            if (participant != null)
+                            {
+                                participant.Status = GroupRequestParticipantStatus.Active;
+                                offer.GroupRequest.CurrentQuantity += participant.Quantity;
+                            }
+
                             await _context.SaveChangesAsync(cancellationToken);
                         }
                     }
@@ -249,6 +264,21 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
 
             // PHASE 3: Notifications (After everything is done successfully)
             // Save all notifications in a single bulk insert, then fire real-time events
+
+            if (offer!.GroupRequest.CurrentQuantity <= 0)
+            {
+                offer.GroupRequest.CurrentQuantity = 0;
+                
+                if (offer.GroupRequest.Status != GroupRequestStatus.Inactive && offer.GroupRequest.Status != GroupRequestStatus.Closed)
+                {
+                    offer.GroupRequest.Status = GroupRequestStatus.Inactive;
+                    offer.GroupRequest.InactiveSince = DateTime.UtcNow;
+
+                    _jobDispatcher.Schedule<IGroupRequestAutoCloseJob>(
+                        j => j.ExecuteAsync(offer.GroupRequestId),
+                        DateTimeOffset.UtcNow.AddHours(24));
+                }
+            }
 
             // Build all notifications at once — single DB round trip
             var notifications = successfulBuyerIds.Select(buyerId => new Notification
