@@ -112,7 +112,7 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                         {
                             BuyerId = participant.BuyerId,
                             BatchId = batch.Id,
-                            OfferId = batch.OfferId,
+                            OfferId = null,
                             Quantity = participant.Quantity,
                             TotalAmount = participant.Quantity * batch.Offer.UnitPrice * (1 - batch.Offer.DiscountPercentage / 100m),
                             Status = captureResult.Success ? OrderStatus.Paid : OrderStatus.Failed,
