@@ -2,6 +2,7 @@ using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Jobs.Closing;
 using Jomla.Application.Jobs.JobDispatcher;
 using Jomla.Application.Features.GroupRequests.Queries;
+using Jomla.Application.Features.GroupRequests.Commands.CancelGroupRequestOffer;
 using Jomla.Domain;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -51,6 +52,24 @@ namespace Jomla.Application.Features.GroupRequests.Commands.LeaveGroupRequest
 
             if (participant == null)
                 return new LeaveGroupRequestResponse(false, "You are not a member of this group request.");
+
+            var acceptedResponses = await _context.BuyerOfferResponses
+                .Include(r => r.Offer)
+                .Where(r => r.Offer.GroupRequestId == request.GroupRequestId
+                         && r.BuyerId == request.BuyerId
+                         && r.Response == BuyerOfferResponseType.Accepted)
+                .ToListAsync(cancellationToken);
+
+            if (acceptedResponses.Any(r => r.Offer.Status == GroupRequestOfferStatus.Accepted))
+            {
+                return new LeaveGroupRequestResponse(false, "Cannot leave the group request while one of your accepted offers is being processed.");
+            }
+
+            var openResponses = acceptedResponses.Where(r => r.Offer.Status == GroupRequestOfferStatus.Open).ToList();
+            foreach (var response in openResponses)
+            {
+                await _mediator.Send(new CancelGroupRequestOfferCommand(response.OfferId, request.BuyerId), cancellationToken);
+            }
 
             participant.Status = GroupRequestParticipantStatus.Left;
 
