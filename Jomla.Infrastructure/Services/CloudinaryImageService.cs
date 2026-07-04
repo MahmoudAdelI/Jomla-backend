@@ -48,7 +48,8 @@ public sealed class CloudinaryImageService : IImageService
         {
             File = new FileDescription(
                 file.FileName,
-                stream)
+                stream),
+            Format="jpg"
         };
 
         var result = await _cloudinary
