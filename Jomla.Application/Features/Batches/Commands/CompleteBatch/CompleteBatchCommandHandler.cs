@@ -45,6 +45,7 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
 
             // Step 2: Idempotency check - if already completed, only retry failed orders
             // Bug #4 Fix: filter out Left participants when checking for failed orders on retry
+            // Step 2: Idempotency check - if already completed, only retry failed OR missing orders
             if (batch.Status == BatchStatus.Completed)
             {
                 var activeBuyerIds = batch.Participants
@@ -52,13 +53,15 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                     .Select(p => p.BuyerId)
                     .ToList();
 
-                var hasFailedOrders = await _context.Orders
-                    .AnyAsync(o => o.BatchId == batch.Id
-                                && o.Status == OrderStatus.Failed
-                                && activeBuyerIds.Contains(o.BuyerId),
-                        cancellationToken);
+                var existingOrders = await _context.Orders
+                    .Where(o => o.BatchId == batch.Id && activeBuyerIds.Contains(o.BuyerId))
+                    .ToListAsync(cancellationToken);
 
-                if (!hasFailedOrders)
+                var buyersWithOrder = existingOrders.Select(o => o.BuyerId).ToHashSet();
+                var hasMissingOrders = activeBuyerIds.Except(buyersWithOrder).Any();
+                var hasFailedOrders = existingOrders.Any(o => o.Status == OrderStatus.Failed);
+
+                if (!hasFailedOrders && !hasMissingOrders)
                     return;
             }
             else
@@ -112,7 +115,7 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                         {
                             BuyerId = participant.BuyerId,
                             BatchId = batch.Id,
-                            OfferId = batch.OfferId,
+                            OfferId = null,
                             Quantity = participant.Quantity,
                             TotalAmount = participant.Quantity * batch.Offer.UnitPrice * (1 - batch.Offer.DiscountPercentage / 100m),
                             Status = captureResult.Success ? OrderStatus.Paid : OrderStatus.Failed,
