@@ -1,4 +1,4 @@
-﻿using Jomla.Domain;
+using Jomla.Domain;
 using Jomla.Domain.Entities;
 
 namespace Jomla.Application.Common.Extensions;
@@ -27,7 +27,7 @@ public static class OfferQueryExtensions
         if (!categoryId.HasValue)
             return query;
 
-        return query.Where(x => x.CategoryId == categoryId.Value);
+        return query.Where(x => x.CategoryId == categoryId.Value || x.Category.ParentId == categoryId.Value);
     }
 
     public static IQueryable<SupplierOffer> ApplyStatusFilter(

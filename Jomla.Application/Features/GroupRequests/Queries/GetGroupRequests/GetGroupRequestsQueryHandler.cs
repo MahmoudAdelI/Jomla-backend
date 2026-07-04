@@ -62,7 +62,7 @@ namespace Jomla.Application.Features.GroupRequests.Queries.GetGroupRequests
 
             // Filtering (common to both paths)
             if (request.CategoryId.HasValue)
-                query = query.Where(r => r.CategoryId == request.CategoryId.Value);
+                query = query.Where(r => r.CategoryId == request.CategoryId.Value || r.Category.ParentId == request.CategoryId.Value);
 
             if (!string.IsNullOrWhiteSpace(request.TitleSearch))
                 query = query.Where(r => r.Title.Contains(request.TitleSearch));

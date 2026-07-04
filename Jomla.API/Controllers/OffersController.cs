@@ -100,6 +100,15 @@ public class OffersController(IMediator mediator) : ControllerBase
         return Ok(new { Success = result });
     }
 
+    [HttpPost("{id:guid}/activate")]
+    [Authorize(Roles = nameof(UserRole.Supplier))]
+    public async Task<IActionResult> Activate(Guid id)
+    {
+        var result = await _mediator.Send(new Jomla.Application.Features.Offers.Commands.ActivateOffer.ActivateOfferCommand(id));
+
+        return Ok(new { Success = result });
+    }
+
     [HttpGet("my-offers")]
     [Authorize(Roles = nameof(UserRole.Supplier))]
     public async Task<IActionResult> GetMyOffers(
