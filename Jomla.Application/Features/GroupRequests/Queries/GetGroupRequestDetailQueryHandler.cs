@@ -54,7 +54,8 @@ namespace Jomla.Application.Features.GroupRequests.Queries
                         o.CreatedAt,
                         o.ExpiresAt,
                         o.RoundNumber,
-                        o.Responses.Where(res => res.Response == BuyerOfferResponseType.Accepted).Select(res => res.BuyerId).ToList()
+                        o.Responses.Where(res => res.Response == BuyerOfferResponseType.Accepted).Select(res => res.BuyerId).ToList(),
+                        o.Responses.Where(res => res.Response == BuyerOfferResponseType.Rejected).Select(res => res.BuyerId).ToList()
                     )).ToList(),
                     Participants = r.Participants
                         .Where(p => p.Status == GroupRequestParticipantStatus.Active)
