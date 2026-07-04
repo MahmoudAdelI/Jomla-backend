@@ -97,17 +97,7 @@ public class CreateGroupRequestCommandHandler : IRequestHandler<CreateGroupReque
 
         _context.GroupRequests.Add(groupRequest);
 
-        // Step 3: Create GroupRequestParticipant for the initiator (JoinedAt is database-generated)
-        // GroupRequest is set as navigation property since GroupRequest.Id is not populated yet
-        var participant = new GroupRequestParticipant
-        {
-            GroupRequest = groupRequest,
-            BuyerId = request.InitiatorId,
-            Quantity = request.Quantity,
-            Status = GroupRequestParticipantStatus.Active
-        };
 
-        _context.GroupRequestParticipants.Add(participant);
 
         // Step 4: Save transactions to the database
         await _context.SaveChangesAsync(cancellationToken);

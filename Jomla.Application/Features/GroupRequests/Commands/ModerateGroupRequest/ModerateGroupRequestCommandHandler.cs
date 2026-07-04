@@ -51,6 +51,18 @@ namespace Jomla.Application.Features.GroupRequests.Commands.ModerateGroupRequest
                 ? GroupRequestStatus.Active
                 : GroupRequestStatus.Inactive;
 
+            if (result.IsApproved)
+            {
+                var participant = new GroupRequestParticipant
+                {
+                    GroupRequestId = groupRequest.Id,
+                    BuyerId = groupRequest.InitiatorId,
+                    Quantity = groupRequest.CurrentQuantity,
+                    Status = GroupRequestParticipantStatus.Active
+                };
+                _db.GroupRequestParticipants.Add(participant);
+            }
+
             var notification = new Notification
             {
                 UserId = groupRequest.InitiatorId,
