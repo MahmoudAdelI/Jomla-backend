@@ -6,17 +6,53 @@ namespace Jomla.API.Hubs
     [Authorize]
     public class JomlaHub : Hub<IJomlaClient>
     {
-        public async Task JoinOfferGroup(Guid offerId)
-            => await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.OfferGroup(offerId));
+        public async Task JoinOfferGroup(string offerId)
+        {
+            if (Guid.TryParse(offerId, out var id))
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.OfferGroup(id));
+            }
+            else
+            {
+                throw new HubException($"Invalid offer ID format: {offerId}");
+            }
+        }
 
-        public async Task LeaveOfferGroup(Guid offerId)
-            => await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroups.OfferGroup(offerId));
+        public async Task LeaveOfferGroup(string offerId)
+        {
+            if (Guid.TryParse(offerId, out var id))
+            {
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroups.OfferGroup(id));
+            }
+            else
+            {
+                throw new HubException($"Invalid offer ID format: {offerId}");
+            }
+        }
 
-        public async Task JoinGroupRequestGroup(Guid groupRequestId)
-            => await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.GroupRequestGroup(groupRequestId));
+        public async Task JoinGroupRequestGroup(string groupRequestId)
+        {
+            if (Guid.TryParse(groupRequestId, out var id))
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.GroupRequestGroup(id));
+            }
+            else
+            {
+                throw new HubException($"Invalid group request ID format: {groupRequestId}");
+            }
+        }
 
-        public async Task LeaveGroupRequestGroup(Guid groupRequestId)
-            => await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroups.GroupRequestGroup(groupRequestId));
+        public async Task LeaveGroupRequestGroup(string groupRequestId)
+        {
+            if (Guid.TryParse(groupRequestId, out var id))
+            {
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroups.GroupRequestGroup(id));
+            }
+            else
+            {
+                throw new HubException($"Invalid group request ID format: {groupRequestId}");
+            }
+        }
 
         public async Task JoinAdminGroup()
             => await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.AdminGroup());
