@@ -6,6 +6,7 @@ using Jomla.Application.Features.GroupRequests.Commands.RejectGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Dtos;
 using Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestOffers;
 using Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestOfferDetail;
+using Jomla.Application.Features.GroupRequests.Queries.GetSupplierGroupRequestOffers;
 using Jomla.Domain;
 using Jomla.Domain.Constants;
 using MediatR;
@@ -97,6 +98,20 @@ public class GroupRequestOffersController(IMediator mediator,
     public async Task<IActionResult> GetOfferDetail(Guid id)
     {
         var result = await _mediator.Send(new GetGroupRequestOfferDetailQuery(id));
+        return Ok(result);
+    }
+
+    [HttpGet("my-offers")]
+    [Authorize(Roles = Roles.Supplier)]
+    [Produces("application/json")]
+    [EndpointSummary("Get all group request offers placed by the logged-in supplier.")]
+    [ProducesResponseType(typeof(PagedResult<SupplierGroupRequestOfferDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMyOffers(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var supplierId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await _mediator.Send(new GetSupplierGroupRequestOffersQuery(supplierId, page, pageSize));
         return Ok(result);
     }
 }
