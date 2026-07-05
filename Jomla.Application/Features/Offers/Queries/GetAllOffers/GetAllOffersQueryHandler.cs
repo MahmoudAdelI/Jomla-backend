@@ -20,6 +20,7 @@ public sealed class GetAllOffersQueryHandler(
     {
         IQueryable<SupplierOffer> query = db.SupplierOffers
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(x => x.Category)
             .Include(x => x.Supplier)
             .Include(x => x.Batches)

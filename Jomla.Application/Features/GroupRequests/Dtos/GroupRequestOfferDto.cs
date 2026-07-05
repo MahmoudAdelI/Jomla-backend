@@ -17,5 +17,6 @@ public sealed record GroupRequestOfferDto(
     DateTime ExpiresAt,
     int RoundNumber,
     List<Guid> AcceptedBuyerIds,
-    List<Guid> RejectedBuyerIds
+    List<Guid> RejectedBuyerIds,
+    string? VariantAttributes
 );

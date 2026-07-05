@@ -48,7 +48,14 @@ namespace Jomla.Infrastructure
             // request-scoped usage). IAppDbContext is wired manually because the factory
             // registration does not auto-register custom interfaces.
             services.AddDbContextFactory<AppDbContext>(opt =>
-                opt.UseSqlServer(config.GetConnectionString("Default"))
+                opt.UseSqlServer(
+                    config.GetConnectionString("Default"),
+                    sqlOptions => sqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorNumbersToAdd: null
+                    )
+                )
             );
             services.AddScoped<IAppDbContext>(provider =>
                 provider.GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContext());
