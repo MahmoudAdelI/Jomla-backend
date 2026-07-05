@@ -31,7 +31,7 @@ namespace Jomla.Infrastructure.Payments
             try
             {
                 // Convert dollars to cents (Stripe works with smallest currency unit)
-                var amountInCents = (long)(amountInDollars * 100);
+                var amountInCents = (long)Math.Round(amountInDollars * 100, MidpointRounding.AwayFromZero);
                 //PaymentIntentCreateOptions ورقة الطلب اللي بتكتب فيها اللي محتجاه
                 var options = new PaymentIntentCreateOptions
                 {
@@ -231,7 +231,74 @@ namespace Jomla.Infrastructure.Payments
                     Success = true,
                     PaymentIntentId = intent.Id,
                     Status = intent.Status,
-                    Amount = intent.Amount
+                    Amount = intent.Amount,
+                    PaymentMethodId = intent.PaymentMethodId
+                };
+            }
+            catch (StripeException ex)
+            {
+                return new StripePaymentIntentResult
+                {
+                    Success = false,
+                    Error = ex.Message,
+                    ErrorCode = ex.StripeError?.Code ?? "unknown_error"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new StripePaymentIntentResult
+                {
+                    Success = false,
+                    Error = $"Unexpected error: {ex.Message}",
+                    ErrorCode = "internal_error"
+                };
+            }
+        }
+
+        /// <summary>
+        /// Create a PaymentIntent with capture_method=manual, attach an existing PaymentMethod,
+        /// and immediately confirm it. Used for cycling holds on quantity updates.
+        /// </summary>
+        public async Task<StripePaymentIntentResult> CreateConfirmedPaymentHoldAsync(
+            string buyerId,
+            string buyerEmail,
+            decimal amountInDollars,
+            Guid batchId,
+            string paymentMethodId,
+            string currencyCode = "usd",
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var amountInCents = (long)Math.Round(amountInDollars * 100, MidpointRounding.AwayFromZero);
+                var options = new PaymentIntentCreateOptions
+                {
+                    Amount = amountInCents,
+                    Currency = currencyCode,
+                    CaptureMethod = "manual", // CRITICAL: hold now, capture later
+                    Description = $"Batch join for buyer {buyerId}",
+                    Metadata = new Dictionary<string, string>
+                    {
+                        { "batch_id", batchId.ToString() },
+                        { "buyer_id", buyerId },
+                        { "type", "batch_join" }
+                    },
+                    ReceiptEmail = buyerEmail,
+                    PaymentMethod = paymentMethodId,
+                    Confirm = true
+                };
+
+                var service = new PaymentIntentService();
+                var intent = await service.CreateAsync(options, cancellationToken: cancellationToken);
+
+                return new StripePaymentIntentResult
+                {
+                    Success = true,
+                    PaymentIntentId = intent.Id,
+                    ClientSecret = intent.ClientSecret,
+                    Status = intent.Status,
+                    Amount = intent.Amount,
+                    PaymentMethodId = intent.PaymentMethodId
                 };
             }
             catch (StripeException ex)

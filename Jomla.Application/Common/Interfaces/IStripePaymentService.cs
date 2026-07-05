@@ -49,6 +49,19 @@ namespace Jomla.Application.Common.Interfaces
         Task<StripePaymentIntentResult> GetPaymentIntentAsync(
             string paymentIntentId,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Create a PaymentIntent with capture_method=manual, attach an existing PaymentMethod,
+        /// and immediately confirm it. Used for cycling holds on quantity updates.
+        /// </summary>
+        Task<StripePaymentIntentResult> CreateConfirmedPaymentHoldAsync(
+            string buyerId,
+            string buyerEmail,
+            decimal amountInDollars,
+            Guid batchId,
+            string paymentMethodId,
+            string currencyCode = "usd",
+            CancellationToken cancellationToken = default);
     }
 
     /// <summary>
@@ -63,5 +76,6 @@ namespace Jomla.Application.Common.Interfaces
         public long? Amount { get; set; } // In cents
         public string Error { get; set; }
         public string ErrorCode { get; set; }
+        public string? PaymentMethodId { get; set; } // Reusable payment method ID
     }
 }

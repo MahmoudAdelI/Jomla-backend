@@ -172,11 +172,15 @@ public class UpdateBatchParticipantQuantityCommandHandlerTests : ApplicationTest
         Context.BatchParticipants.Add(participant);
         await Context.SaveChangesAsync();
 
-        StripePaymentService.CreatePaymentHoldAsync(
+        StripePaymentService.GetPaymentIntentAsync("pi_old", Arg.Any<CancellationToken>())
+            .Returns(new StripePaymentIntentResult { Success = true, PaymentIntentId = "pi_old", PaymentMethodId = "pm_old", Status = "requires_capture" });
+
+        StripePaymentService.CreateConfirmedPaymentHoldAsync(
             buyerId.ToString(),
             "buyer@email.com",
             360m, // 4 * 100 * 0.9 = 360
             batch.Id,
+            "pm_old",
             cancellationToken: Arg.Any<CancellationToken>()
         ).Returns(new StripePaymentIntentResult { Success = false, Error = "Failed authorization" });
 
@@ -210,17 +214,22 @@ public class UpdateBatchParticipantQuantityCommandHandlerTests : ApplicationTest
         Context.BatchParticipants.Add(participant);
         await Context.SaveChangesAsync();
 
-        StripePaymentService.CreatePaymentHoldAsync(
+        StripePaymentService.GetPaymentIntentAsync("pi_old", Arg.Any<CancellationToken>())
+            .Returns(new StripePaymentIntentResult { Success = true, PaymentIntentId = "pi_old", PaymentMethodId = "pm_old", Status = "requires_capture" });
+
+        StripePaymentService.CreateConfirmedPaymentHoldAsync(
             buyerId.ToString(),
             "buyer@email.com",
             360m,
             batch.Id,
+            "pm_old",
             cancellationToken: Arg.Any<CancellationToken>()
         ).Returns(new StripePaymentIntentResult
         {
             Success = true,
             PaymentIntentId = "pi_new",
-            ClientSecret = "secret_new"
+            ClientSecret = "secret_new",
+            Status = "requires_capture"
         });
 
         var command = new UpdateBatchParticipantQuantityCommand(batch.Id, buyerId, "buyer@email.com", 4); // delta = 2
@@ -271,17 +280,22 @@ public class UpdateBatchParticipantQuantityCommandHandlerTests : ApplicationTest
         Context.BatchParticipants.Add(participant);
         await Context.SaveChangesAsync();
 
-        StripePaymentService.CreatePaymentHoldAsync(
+        StripePaymentService.GetPaymentIntentAsync("pi_old", Arg.Any<CancellationToken>())
+            .Returns(new StripePaymentIntentResult { Success = true, PaymentIntentId = "pi_old", PaymentMethodId = "pm_old", Status = "requires_capture" });
+
+        StripePaymentService.CreateConfirmedPaymentHoldAsync(
             buyerId.ToString(),
             "buyer@email.com",
             360m,
             batch.Id,
+            "pm_old",
             cancellationToken: Arg.Any<CancellationToken>()
         ).Returns(new StripePaymentIntentResult
         {
             Success = true,
             PaymentIntentId = "pi_new",
-            ClientSecret = "secret_new"
+            ClientSecret = "secret_new",
+            Status = "requires_capture"
         });
 
         var command = new UpdateBatchParticipantQuantityCommand(batch.Id, buyerId, "buyer@email.com", 4); // delta = 2, new current = 10

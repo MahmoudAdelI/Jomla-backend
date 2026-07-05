@@ -81,17 +81,49 @@ namespace Jomla.Application.Features.Batches.Commands.UpdateBatch
             // 6️⃣ Calculate full new amount
             decimal newTotalAmount = request.NewQuantity * batch.Offer.UnitPrice * (1 - batch.Offer.DiscountPercentage / 100m);
 
-            // 7️⃣ Create NEW Stripe Payment Hold for the complete new amount
-            var paymentResult = await _stripePaymentService.CreatePaymentHoldAsync(
+            // 7️⃣ Retrieve old PaymentIntent to get the PaymentMethodId
+            string? paymentMethodId = null;
+            if (!string.IsNullOrEmpty(participant.StripePaymentIntentId))
+            {
+                var oldIntentResult = await _stripePaymentService.GetPaymentIntentAsync(participant.StripePaymentIntentId, cancellationToken);
+                if (oldIntentResult.Success && !string.IsNullOrEmpty(oldIntentResult.PaymentMethodId))
+                {
+                    paymentMethodId = oldIntentResult.PaymentMethodId;
+                }
+            }
+
+            if (string.IsNullOrEmpty(paymentMethodId))
+            {
+                return new UpdateBatchParticipantQuantityResponse
+                {
+                    Success = false,
+                    Error = "Could not retrieve the payment method from your previous payment hold. Please leave the batch and rejoin."
+                };
+            }
+
+            // 8️⃣ Create NEW Stripe Payment Hold for the complete new amount, confirming it immediately using the old payment method
+            var paymentResult = await _stripePaymentService.CreateConfirmedPaymentHoldAsync(
                 request.BuyerId.ToString(),
                 request.BuyerEmail,
                 newTotalAmount,
                 request.BatchId,
+                paymentMethodId,
                 cancellationToken: cancellationToken);
 
             if (!paymentResult.Success)
             {
                 return new UpdateBatchParticipantQuantityResponse { Success = false, Error = $"Stripe payment hold failed: {paymentResult.Error}" };
+            }
+
+            // Verify Stripe payment intent status
+            if (paymentResult.Status != "requires_capture" && paymentResult.Status != "succeeded")
+            {
+                await _stripePaymentService.CancelPaymentAsync(paymentResult.PaymentIntentId, cancellationToken);
+                return new UpdateBatchParticipantQuantityResponse
+                {
+                    Success = false,
+                    Error = $"Stripe payment authorization failed (status: {paymentResult.Status}). Please try again."
+                };
             }
 
             // Backup old intent to release it later
