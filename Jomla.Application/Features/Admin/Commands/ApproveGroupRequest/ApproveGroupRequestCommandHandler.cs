@@ -34,21 +34,31 @@ namespace Jomla.Application.Features.Admin.Commands.ApproveGroupRequest
             var groupRequest = await _context.GroupRequests
                 .FirstOrDefaultAsync(r => r.Id == request.GroupRequestId, cancellationToken);
 
-            if (groupRequest == null || groupRequest.ModerationStatus != ModerationStatus.Flagged)
+            if (groupRequest == null ||
+               (groupRequest.ModerationStatus != ModerationStatus.Flagged &&
+                groupRequest.ModerationStatus != ModerationStatus.Pending))
                 return;
 
             groupRequest.ModerationStatus = ModerationStatus.Approved;
             groupRequest.ModerationReason = null;
             groupRequest.Status = GroupRequestStatus.Active;
 
-            var participant = new GroupRequestParticipant
+            var existingParticipant = await _context.GroupRequestParticipants
+               .AnyAsync(p => p.GroupRequestId == groupRequest.Id && p.BuyerId == groupRequest.InitiatorId, cancellationToken);
+
+            if (!existingParticipant)
             {
-                GroupRequestId = groupRequest.Id,
-                BuyerId = groupRequest.InitiatorId,
-                Quantity = groupRequest.CurrentQuantity,
-                Status = GroupRequestParticipantStatus.Active
-            };
-            _context.GroupRequestParticipants.Add(participant);
+                var participant = new GroupRequestParticipant
+                {
+                    GroupRequestId = groupRequest.Id,
+                    BuyerId = groupRequest.InitiatorId,
+                    Quantity = groupRequest.CurrentQuantity,
+                    Status = GroupRequestParticipantStatus.Active
+                };
+                _context.GroupRequestParticipants.Add(participant);
+            }
+
+           
 
             var notification = new Notification
             {
