@@ -8,5 +8,7 @@ namespace Jomla.Application.Features.GroupRequests.Queries.GetSupplierGroupReque
 public sealed record GetSupplierGroupRequestOffersQuery(
     Guid SupplierId,
     int Page = 1,
-    int PageSize = 10
+    int PageSize = 10,
+    string? Search = null,
+    string? Status = null
 ) : IRequest<PagedResult<SupplierGroupRequestOfferDto>>;

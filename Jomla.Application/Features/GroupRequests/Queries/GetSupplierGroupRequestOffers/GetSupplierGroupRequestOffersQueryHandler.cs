@@ -21,6 +21,21 @@ public sealed class GetSupplierGroupRequestOffersQueryHandler(IAppDbContext db)
             .AsNoTracking()
             .Where(x => x.SupplierId == request.SupplierId);
 
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.Trim().ToLower();
+            query = query.Where(x => x.GroupRequest.Title.ToLower().Contains(search) || 
+                                     (x.VariantAttributes != null && x.VariantAttributes.ToLower().Contains(search)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Status) && !request.Status.Equals("All", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Enum.TryParse<Jomla.Domain.GroupRequestOfferStatus>(request.Status, true, out var statusEnum))
+            {
+                query = query.Where(x => x.Status == statusEnum);
+            }
+        }
+
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query

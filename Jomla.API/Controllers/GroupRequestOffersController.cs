@@ -108,10 +108,12 @@ public class GroupRequestOffersController(IMediator mediator,
     [ProducesResponseType(typeof(PagedResult<SupplierGroupRequestOfferDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMyOffers(
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10)
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null,
+        [FromQuery] string? status = null)
     {
         var supplierId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var result = await _mediator.Send(new GetSupplierGroupRequestOffersQuery(supplierId, page, pageSize));
+        var result = await _mediator.Send(new GetSupplierGroupRequestOffersQuery(supplierId, page, pageSize, search, status));
         return Ok(result);
     }
 }
