@@ -1,11 +1,14 @@
 ﻿using Jomla.Application.Common.BaseClass;
 using Jomla.Application.Features.Admin.Commands.ApproveGroupRequest;
 using Jomla.Application.Features.Admin.Commands.ApproveOffer;
+using Jomla.Application.Features.Admin.Commands.CreateAdmin;
 using Jomla.Application.Features.Admin.Commands.RejectGroupRequest;
 using Jomla.Application.Features.Admin.Commands.RejectOffer;
 using Jomla.Application.Features.Admin.Dtos;
 using Jomla.Application.Features.Admin.Queries.GetFlaggedGroupRequests;
 using Jomla.Application.Features.Admin.Queries.GetFlaggedOffers;
+using Jomla.Application.Features.Admin.Queries.GetPendingGroupRequests;
+using Jomla.Application.Features.Admin.Queries.GetPendingOffers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -96,10 +99,56 @@ namespace Jomla.API.Controllers
             await _mediator.Send(new RejectGroupRequestCommand(id, request.Reason));
             return NoContent();
         }
+
+
+        [HttpGet("pending-offers")]
+        [Produces("application/json")]
+        [EndpointSummary("Get all pending offers for admin review")]
+        [ProducesResponseType(typeof(PagedResponse<FlaggedOfferDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> GetPendingOffers([FromQuery] GetPendingOffersQuery query)
+        {
+            var result = await _mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpGet("pending-group-requests")]
+        [Produces("application/json")]
+        [EndpointSummary("Get all pending group requests for admin review")]
+        [ProducesResponseType(typeof(PagedResponse<FlaggedGroupRequestDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> GetPendingGroupRequests([FromQuery] GetPendingGroupRequestsQuery query)
+        {
+            var result = await _mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpPost("create-admin")]
+        [Produces("application/json")]
+        [EndpointSummary("Create a new admin user")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> CreateAdmin([FromBody] CreateAdminRequest request)
+        {
+            await _mediator.Send(new CreateAdminCommand(request.Email, request.Password, request.FirstName, request.LastName));
+            return NoContent();
+        }
     }
 
     public class AdminRejectRequest
     {
         public string Reason { get; set; } = string.Empty;
+    }
+
+
+    public class CreateAdminRequest
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
     }
 }
