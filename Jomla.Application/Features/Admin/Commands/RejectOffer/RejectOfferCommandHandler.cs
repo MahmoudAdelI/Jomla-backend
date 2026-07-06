@@ -34,7 +34,9 @@ namespace Jomla.Application.Features.Admin.Commands.RejectOffer
             var offer = await _context.SupplierOffers
                 .FirstOrDefaultAsync(o => o.Id == request.OfferId, cancellationToken);
 
-            if (offer == null || offer.ModerationStatus != ModerationStatus.Flagged)
+            if (offer == null ||
+                 (offer.ModerationStatus != ModerationStatus.Flagged &&
+                  offer.ModerationStatus != ModerationStatus.Pending))
                 return;
 
             offer.ModerationStatus = ModerationStatus.Flagged;

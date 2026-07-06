@@ -34,7 +34,9 @@ namespace Jomla.Application.Features.Admin.Commands.RejectGroupRequest
             var groupRequest = await _context.GroupRequests
                 .FirstOrDefaultAsync(r => r.Id == request.GroupRequestId, cancellationToken);
 
-            if (groupRequest == null || groupRequest.ModerationStatus != ModerationStatus.Flagged)
+            if (groupRequest == null ||
+                 (groupRequest.ModerationStatus != ModerationStatus.Flagged &&
+                  groupRequest.ModerationStatus != ModerationStatus.Pending))
                 return;
 
             groupRequest.ModerationStatus = ModerationStatus.Flagged;
