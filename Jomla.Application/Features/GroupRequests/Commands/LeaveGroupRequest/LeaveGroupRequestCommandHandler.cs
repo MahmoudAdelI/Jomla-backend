@@ -35,79 +35,84 @@ namespace Jomla.Application.Features.GroupRequests.Commands.LeaveGroupRequest
 
         public async Task<LeaveGroupRequestResponse> Handle(LeaveGroupRequestCommand request, CancellationToken cancellationToken)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-            var groupRequest = await _context.GetGroupRequestWithLockAsync(request.GroupRequestId, cancellationToken);
-
-            if (groupRequest == null)
-                return new LeaveGroupRequestResponse(false, "Group request not found.");
-
-            if (groupRequest.Status == GroupRequestStatus.Closed)
-                return new LeaveGroupRequestResponse(false, "Group request is closed.");
-
-            var participant = await _context.GroupRequestParticipants
-                .FirstOrDefaultAsync(p => p.GroupRequestId == request.GroupRequestId
-                                       && p.BuyerId == request.BuyerId
-                                       && p.Status == GroupRequestParticipantStatus.Active, cancellationToken);
-
-            if (participant == null)
-                return new LeaveGroupRequestResponse(false, "You are not a member of this group request.");
-
-            var acceptedResponses = await _context.BuyerOfferResponses
-                .Include(r => r.Offer)
-                .Where(r => r.Offer.GroupRequestId == request.GroupRequestId
-                         && r.BuyerId == request.BuyerId
-                         && r.Response == BuyerOfferResponseType.Accepted)
-                .ToListAsync(cancellationToken);
-
-            if (acceptedResponses.Any(r => r.Offer.Status == GroupRequestOfferStatus.Accepted))
+            return await strategy.ExecuteAsync(async () =>
             {
-                return new LeaveGroupRequestResponse(false, "Cannot leave the group request while one of your accepted offers is being processed.");
-            }
+                using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
-            var openResponses = acceptedResponses.Where(r => r.Offer.Status == GroupRequestOfferStatus.Open).ToList();
-            foreach (var response in openResponses)
-            {
-                await _mediator.Send(new CancelGroupRequestOfferCommand(response.OfferId, request.BuyerId), cancellationToken);
-            }
+                var groupRequest = await _context.GetGroupRequestWithLockAsync(request.GroupRequestId, cancellationToken);
 
-            participant.Status = GroupRequestParticipantStatus.Left;
+                if (groupRequest == null)
+                    return new LeaveGroupRequestResponse(false, "Group request not found.");
 
-            groupRequest.CurrentQuantity -= participant.Quantity;
+                if (groupRequest.Status == GroupRequestStatus.Closed)
+                    return new LeaveGroupRequestResponse(false, "Group request is closed.");
 
-            if (groupRequest.CurrentQuantity <= 0)
-            {
-                groupRequest.CurrentQuantity = 0;
-                groupRequest.Status = GroupRequestStatus.Inactive;
-                groupRequest.InactiveSince = DateTime.UtcNow;
+                var participant = await _context.GroupRequestParticipants
+                    .FirstOrDefaultAsync(p => p.GroupRequestId == request.GroupRequestId
+                                           && p.BuyerId == request.BuyerId
+                                           && p.Status == GroupRequestParticipantStatus.Active, cancellationToken);
 
-                await _context.SaveChangesAsync(cancellationToken);
+                if (participant == null)
+                    return new LeaveGroupRequestResponse(false, "You are not a member of this group request.");
 
-                _jobDispatcher.Schedule<IGroupRequestAutoCloseJob>(
-                    j => j.ExecuteAsync(request.GroupRequestId),
-                    DateTimeOffset.UtcNow.AddHours(24));
-            }
-            else
-            {
-                await _context.SaveChangesAsync(cancellationToken);
-            }
+                var acceptedResponses = await _context.BuyerOfferResponses
+                    .Include(r => r.Offer)
+                    .Where(r => r.Offer.GroupRequestId == request.GroupRequestId
+                             && r.BuyerId == request.BuyerId
+                             && r.Response == BuyerOfferResponseType.Accepted)
+                    .ToListAsync(cancellationToken);
 
-            await transaction.CommitAsync(cancellationToken);
-
-            try
-            {
-                var detail = await _mediator.Send(new GetGroupRequestDetailQuery(request.GroupRequestId), cancellationToken);
-                if (detail != null)
+                if (acceptedResponses.Any(r => r.Offer.Status == GroupRequestOfferStatus.Accepted))
                 {
-                    await _realtimeService.SendGroupRequestUpdatedAsync(request.GroupRequestId, detail);
+                    return new LeaveGroupRequestResponse(false, "Cannot leave the group request while one of your accepted offers is being processed.");
                 }
-            }
-            catch
-            {
-                // Prevent SignalR exceptions from blocking user action
-            }
 
-            return new LeaveGroupRequestResponse(true, null);
+                var openResponses = acceptedResponses.Where(r => r.Offer.Status == GroupRequestOfferStatus.Open).ToList();
+                foreach (var response in openResponses)
+                {
+                    await _mediator.Send(new CancelGroupRequestOfferCommand(response.OfferId, request.BuyerId), cancellationToken);
+                }
+
+                participant.Status = GroupRequestParticipantStatus.Left;
+
+                groupRequest.CurrentQuantity -= participant.Quantity;
+
+                if (groupRequest.CurrentQuantity <= 0)
+                {
+                    groupRequest.CurrentQuantity = 0;
+                    groupRequest.Status = GroupRequestStatus.Inactive;
+                    groupRequest.InactiveSince = DateTime.UtcNow;
+
+                    await _context.SaveChangesAsync(cancellationToken);
+
+                    _jobDispatcher.Schedule<IGroupRequestAutoCloseJob>(
+                        j => j.ExecuteAsync(request.GroupRequestId),
+                        DateTimeOffset.UtcNow.AddHours(24));
+                }
+                else
+                {
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+
+                await transaction.CommitAsync(cancellationToken);
+
+                try
+                {
+                    var detail = await _mediator.Send(new GetGroupRequestDetailQuery(request.GroupRequestId), cancellationToken);
+                    if (detail != null)
+                    {
+                        await _realtimeService.SendGroupRequestUpdatedAsync(request.GroupRequestId, detail);
+                    }
+                }
+                catch
+                {
+                    // Prevent SignalR exceptions from blocking user action
+                }
+
+                return new LeaveGroupRequestResponse(true, null);
+            });
         }
     }
 }

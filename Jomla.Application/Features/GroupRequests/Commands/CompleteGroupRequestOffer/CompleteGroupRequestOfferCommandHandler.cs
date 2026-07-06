@@ -49,101 +49,106 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
             //  PHASE 1: DB Transaction (Fast — No Stripe calls)
             // Lock the offer and create Pending orders before touching Stripe
 
-            using (var transaction = await _context.Database.BeginTransactionAsync(cancellationToken))
-            {
-                try
-                {
-                    // Fetch the offer with all accepted responses and active participants
-                    offer = await _context.GroupRequestOffers
-                        .Include(o => o.Responses)
-                        .Include(o => o.GroupRequest)
-                            .ThenInclude(gr => gr.Participants)
-                        .FirstOrDefaultAsync(o => o.Id == request.OfferId, cancellationToken);
+            var strategy = _context.Database.CreateExecutionStrategy();
 
-                    // If offer is missing or already processed, exit safely (idempotency guard)
-                    if (offer == null || offer.Status != GroupRequestOfferStatus.Open)
+            await strategy.ExecuteAsync(async () =>
+            {
+                using (var transaction = await _context.Database.BeginTransactionAsync(cancellationToken))
+                {
+                    try
+                    {
+                        // Fetch the offer with all accepted responses and active participants
+                        offer = await _context.GroupRequestOffers
+                            .Include(o => o.Responses)
+                            .Include(o => o.GroupRequest)
+                                .ThenInclude(gr => gr.Participants)
+                            .FirstOrDefaultAsync(o => o.Id == request.OfferId, cancellationToken);
+
+                        // If offer is missing or already processed, exit safely (idempotency guard)
+                        if (offer == null || offer.Status != GroupRequestOfferStatus.Open)
+                        {
+                            await transaction.RollbackAsync(cancellationToken);
+                            return;
+                        }
+
+                        // Lock the offer immediately to prevent any concurrent processing
+                        offer.Status = GroupRequestOfferStatus.Accepted;
+
+                        var activeResponses = offer.Responses
+                            .Where(r => r.Response == BuyerOfferResponseType.Accepted)
+                            .ToList();
+
+                        foreach (var response in activeResponses)
+                        {
+                            // Skip if buyer is no longer an active participant
+                            var participant = offer.GroupRequest.Participants
+                                .FirstOrDefault(p => p.BuyerId == response.BuyerId
+                                                  && p.Status == GroupRequestParticipantStatus.Active);
+
+                            if (participant == null)
+                            {
+                                _logger.LogWarning(
+                                    "Buyer {BuyerId} accepted offer {OfferId} but is not an active participant",
+                                    response.BuyerId, offer.Id);
+                                continue;
+                            }
+
+                            // Skip if payment intent is missing — cannot capture without it
+                            if (string.IsNullOrEmpty(response.StripePaymentIntentId))
+                            {
+                                _logger.LogWarning(
+                                    "StripePaymentIntentId is missing for buyer {BuyerId}",
+                                    response.BuyerId);
+                                continue;
+                            }
+
+                            // Check if an order already exists for this buyer on this offer (Retry safety)
+                            var existingOrder = await _context.Orders
+                                .FirstOrDefaultAsync(o => o.OfferId == offer.Id
+                                                       && o.BuyerId == response.BuyerId,
+                                                       cancellationToken);
+
+                            // Already paid — skip to avoid double charging
+                            if (existingOrder != null && existingOrder.Status == OrderStatus.Paid)
+                                continue;
+
+                            // No order yet — create one with Pending status (Stripe hasn't run yet)
+                            if (existingOrder == null)
+                            {
+                                _context.Orders.Add(new Order
+                                {
+                                    BuyerId = response.BuyerId,
+                                    BatchId = null,
+                                    OfferId = offer.Id,
+                                    Quantity = participant.Quantity,
+                                    TotalAmount = participant.Quantity * offer.CurrentUnitPrice,
+                                    Status = OrderStatus.Pending,
+                                    CreatedAt = DateTime.UtcNow
+                                });
+                            }
+                            // Order exists but failed previously — reset to Pending for retry
+                            else if (existingOrder.Status == OrderStatus.Failed)
+                            {
+                                existingOrder.Status = OrderStatus.Pending;
+                            }
+                        }
+
+                        // Persist the offer status change and all Pending orders to DB
+                        await _context.SaveChangesAsync(cancellationToken);
+
+                        // Commit the transaction — DB is now consistent before any Stripe calls
+                        await transaction.CommitAsync(cancellationToken);
+                    }
+                    catch (Exception ex)
                     {
                         await transaction.RollbackAsync(cancellationToken);
-                        return;
+                        _logger.LogError(ex,
+                            "Phase 1 failed: Could not prepare orders for offer {OfferId}",
+                            request.OfferId);
+                        throw;
                     }
-
-                    // Lock the offer immediately to prevent any concurrent processing
-                    offer.Status = GroupRequestOfferStatus.Accepted;
-
-                    var activeResponses = offer.Responses
-                        .Where(r => r.Response == BuyerOfferResponseType.Accepted)
-                        .ToList();
-
-                    foreach (var response in activeResponses)
-                    {
-                        // Skip if buyer is no longer an active participant
-                        var participant = offer.GroupRequest.Participants
-                            .FirstOrDefault(p => p.BuyerId == response.BuyerId
-                                              && p.Status == GroupRequestParticipantStatus.Active);
-
-                        if (participant == null)
-                        {
-                            _logger.LogWarning(
-                                "Buyer {BuyerId} accepted offer {OfferId} but is not an active participant",
-                                response.BuyerId, offer.Id);
-                            continue;
-                        }
-
-                        // Skip if payment intent is missing — cannot capture without it
-                        if (string.IsNullOrEmpty(response.StripePaymentIntentId))
-                        {
-                            _logger.LogWarning(
-                                "StripePaymentIntentId is missing for buyer {BuyerId}",
-                                response.BuyerId);
-                            continue;
-                        }
-
-                        // Check if an order already exists for this buyer on this offer (Retry safety)
-                        var existingOrder = await _context.Orders
-                            .FirstOrDefaultAsync(o => o.OfferId == offer.Id
-                                                   && o.BuyerId == response.BuyerId,
-                                                   cancellationToken);
-
-                        // Already paid — skip to avoid double charging
-                        if (existingOrder != null && existingOrder.Status == OrderStatus.Paid)
-                            continue;
-
-                        // No order yet — create one with Pending status (Stripe hasn't run yet)
-                        if (existingOrder == null)
-                        {
-                            _context.Orders.Add(new Order
-                            {
-                                BuyerId = response.BuyerId,
-                                BatchId = null,
-                                OfferId = offer.Id,
-                                Quantity = participant.Quantity,
-                                TotalAmount = participant.Quantity * offer.CurrentUnitPrice,
-                                Status = OrderStatus.Pending,
-                                CreatedAt = DateTime.UtcNow
-                            });
-                        }
-                        // Order exists but failed previously — reset to Pending for retry
-                        else if (existingOrder.Status == OrderStatus.Failed)
-                        {
-                            existingOrder.Status = OrderStatus.Pending;
-                        }
-                    }
-
-                    // Persist the offer status change and all Pending orders to DB
-                    await _context.SaveChangesAsync(cancellationToken);
-
-                    // Commit the transaction — DB is now consistent before any Stripe calls
-                    await transaction.CommitAsync(cancellationToken);
                 }
-                catch (Exception ex)
-                {
-                    await transaction.RollbackAsync(cancellationToken);
-                    _logger.LogError(ex,
-                        "Phase 1 failed: Could not prepare orders for offer {OfferId}",
-                        request.OfferId);
-                    throw;
-                }
-            }
+            });
 
             //  PHASE 2: Stripe Captures (Outside Transaction — Safe to Retry)
             // Each order is saved individually so retries can resume from where they stopped
