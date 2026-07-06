@@ -45,10 +45,42 @@ public sealed class UpdateOfferCommandHandler(
                 b.OfferId == request.Id &&
                 b.Status == BatchStatus.Open, cancellationToken);
 
-        // Compute once — reused in both the open-batch guard below and the moderation branch.
-        bool isContentChanged = offer.Title != request.Title ||
-                                offer.Description != request.Description ||
-                                (request.Images != null && request.Images.Count > 0);
+        // Determine if images have changed.
+        var finalImageUrls = new List<string>();
+        if (request.RetainedImages != null)
+        {
+            finalImageUrls.AddRange(request.RetainedImages);
+        }
+        else if (offer.ImageUrls != null)
+        {
+            try
+            {
+                var originalUrls = JsonSerializer.Deserialize<List<string>>(offer.ImageUrls);
+                if (originalUrls != null)
+                {
+                    finalImageUrls.AddRange(originalUrls);
+                }
+            }
+            catch {}
+        }
+
+        // Upload any new images:
+        if (request.Images is not null && request.Images.Count > 0)
+        {
+            foreach (var image in request.Images)
+            {
+                var url = await _imageService.UploadImageAsync(image, cancellationToken);
+                finalImageUrls.Add(url);
+            }
+        }
+
+        var serializedImages = JsonSerializer.Serialize(finalImageUrls);
+        bool areImagesChanged = offer.ImageUrls != serializedImages;
+
+        bool isTitleOrDescChanged = offer.Title != request.Title ||
+                                    offer.Description != request.Description;
+
+        bool isContentChanged = isTitleOrDescChanged || areImagesChanged;
 
         if (openBatch != null)
         {
@@ -61,9 +93,9 @@ public sealed class UpdateOfferCommandHandler(
                 throw new ConflictException("Cannot modify pricing, category, variants, or target quantities while there is an open batch.");
             }
 
-            if (isContentChanged)
+            if (isTitleOrDescChanged)
             {
-                throw new ConflictException("Cannot modify the title, description, or images of an offer while there is an open batch.");
+                throw new ConflictException("Cannot modify the title or description of an offer while there is an open batch.");
             }
 
             if (request.TotalQuantityAvailable < openBatch.CurrentQuantity)
@@ -73,8 +105,6 @@ public sealed class UpdateOfferCommandHandler(
         }
 
         // Apply all field updates.
-        // NOTE: isContentChanged was computed against the original offer values before this point,
-        // so the evaluation above is correct. From here on, the offer is mutated with the new values.
         offer.Title = request.Title;
         offer.Description = request.Description;
         offer.CategoryId = request.CategoryId;
@@ -86,22 +116,13 @@ public sealed class UpdateOfferCommandHandler(
         offer.VariantAttributes = request.VariantAttributes;
         offer.ExpiresAt = request.ExpiresAt;
 
+        if (areImagesChanged)
+        {
+            offer.ImageUrls = serializedImages;
+        }
+
         if (isContentChanged)
         {
-            // Upload images only when we know they'll actually be saved.
-            if (request.Images is not null && request.Images.Count > 0)
-            {
-                var imageUrls = new List<string>();
-
-                foreach (var image in request.Images)
-                {
-                    var url = await _imageService.UploadImageAsync(image, cancellationToken);
-                    imageUrls.Add(url);
-                }
-
-                offer.ImageUrls = JsonSerializer.Serialize(imageUrls);
-            }
-
             offer.Status = SupplierOfferStatus.PendingReview;
             offer.ModerationStatus = ModerationStatus.Pending;
             offer.ModerationReason = null;

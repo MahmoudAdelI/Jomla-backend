@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.AspNetCore.Http;
 
 namespace Jomla.Application.Features.Offers.Commands.UpdateOffer;
@@ -15,5 +15,6 @@ public sealed record UpdateOfferCommand(
     int BatchTargetQuantity,
     int? MinFallbackQuantity,
     DateTime? ExpiresAt,
+    List<string>? RetainedImages,
     List<IFormFile>? Images
 ) : IRequest<bool>;
