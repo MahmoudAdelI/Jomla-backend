@@ -33,38 +33,50 @@ public class CreateGroupRequestCommandHandler : IRequestHandler<CreateGroupReque
 
     public async Task<CreateGroupRequestResponse> Handle(CreateGroupRequestCommand request, CancellationToken cancellationToken)
     {
-        // Step 1: Get all categories and resolve the category ID using the CategoryAgent 
-        var categories = await _context.Categories
-            .Include(C => C.Parent)
-            .ToListAsync(cancellationToken);
-
-        if (categories.Count == 0)
-        {
-            return new CreateGroupRequestResponse(false, null, "No categories exist in the system.");
-        }
-
-        var categoryDtos = categories.Select(c => new CategoryDto(
-             c.Id,
-             c.Parent != null ? $"{c.Parent.Name} : {c.Name}" : c.Name
-        ));
-
         Guid categoryId;
-        try
+        if (request.CategoryId.HasValue && request.CategoryId.Value != Guid.Empty)
         {
-            categoryId = await _categoryAgent.ResolveCategoryAsync(request.Title, categoryDtos, cancellationToken);
-        }
-        catch
-        {
-            var fallbackCategory = categories.FirstOrDefault(c => c.Name.Equals("Other", StringComparison.OrdinalIgnoreCase))
-                ?? categories.FirstOrDefault(c => c.Name.Contains("Other", StringComparison.OrdinalIgnoreCase) || c.Name.Contains("General", StringComparison.OrdinalIgnoreCase))
-                ?? categories.FirstOrDefault();
-
-            if (fallbackCategory == null)
+            var selectedCategory = await _context.Categories.FirstOrDefaultAsync(c => c.Id == request.CategoryId.Value, cancellationToken);
+            if (selectedCategory == null)
             {
-                return new CreateGroupRequestResponse(false, null, "Failed to resolve a fallback category.");
+                return new CreateGroupRequestResponse(false, null, "The selected category does not exist.");
+            }
+            categoryId = selectedCategory.Id;
+        }
+        else
+        {
+            // Step 1: Get all categories and resolve the category ID using the CategoryAgent 
+            var categories = await _context.Categories
+                .Include(c => c.Parent)
+                .ToListAsync(cancellationToken);
+
+            if (categories.Count == 0)
+            {
+                return new CreateGroupRequestResponse(false, null, "No categories exist in the system.");
             }
 
-            categoryId = fallbackCategory.Id;
+            var categoryDtos = categories.Select(c => new CategoryDto(
+                 c.Id,
+                 c.Parent != null ? $"{c.Parent.Name} : {c.Name}" : c.Name
+            ));
+
+            try
+            {
+                categoryId = await _categoryAgent.ResolveCategoryAsync(request.Title, categoryDtos, cancellationToken);
+            }
+            catch
+            {
+                var fallbackCategory = categories.FirstOrDefault(c => c.Name.Equals("Other", StringComparison.OrdinalIgnoreCase))
+                    ?? categories.FirstOrDefault(c => c.Name.Contains("Other", StringComparison.OrdinalIgnoreCase) || c.Name.Contains("General", StringComparison.OrdinalIgnoreCase))
+                    ?? categories.FirstOrDefault();
+
+                if (fallbackCategory == null)
+                {
+                    return new CreateGroupRequestResponse(false, null, "Failed to resolve a fallback category.");
+                }
+
+                categoryId = fallbackCategory.Id;
+            }
         }
 
         var imageUrls = new List<string>();

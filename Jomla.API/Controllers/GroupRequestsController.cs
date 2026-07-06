@@ -49,7 +49,8 @@ namespace Jomla.API.Controllers
                 request.Title,
                 request.Quantity,
                 request.Description,
-                request.Images);
+                request.Images,
+                request.CategoryId);
 
             var result = await _mediator.Send(command);
 
@@ -207,6 +208,7 @@ namespace Jomla.API.Controllers
         public int Quantity { get; set; }
         public string? Description { get; set; }
         public List<IFormFile>? Images { get; set; }
+        public Guid? CategoryId { get; set; }
     }
 
     public class JoinGroupRequestRequest

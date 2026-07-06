@@ -370,3 +370,7 @@ appsettings.*.json
 
 # Agents customization directory
 .agents/
+
+
+architecture.md
+jomla-backend-component-interactions.md

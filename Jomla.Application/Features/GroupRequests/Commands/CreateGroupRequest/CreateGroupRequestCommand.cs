@@ -13,7 +13,8 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CreateGroupRequest
         string Title,
         int Quantity,
         string? Description,
-        List<IFormFile>? Images
+        List<IFormFile>? Images,
+        Guid? CategoryId = null
     ) : IRequest<CreateGroupRequestResponse>;
 
     public record CreateGroupRequestResponse(
