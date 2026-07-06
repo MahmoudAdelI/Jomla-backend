@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.GroupRequests.Dtos;
 using Jomla.Domain;
 using MediatR;
@@ -26,11 +26,33 @@ namespace Jomla.Application.Features.GroupRequests.Queries.GetSupplierMatchedGro
             CancellationToken cancellationToken)
         {
             var query = _context.GroupRequestAlerts
+                .AsNoTracking()
                 .Where(a => a.SupplierId == request.SupplierId
                          && a.Status != GroupRequestAlertStatus.Ignored
                          && a.GroupRequest.Status != GroupRequestStatus.Closed)
                 .Include(a => a.GroupRequest)
-                    .ThenInclude(r => r.Category);
+                    .ThenInclude(r => r.Category)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(request.Search))
+            {
+                var search = request.Search.Trim().ToLower();
+                query = query.Where(a => a.GroupRequest.Title.ToLower().Contains(search) || 
+                                         (a.GroupRequest.Description != null && a.GroupRequest.Description.ToLower().Contains(search)));
+            }
+
+            if (request.CategoryId.HasValue)
+            {
+                query = query.Where(a => a.GroupRequest.CategoryId == request.CategoryId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Status) && !request.Status.Equals("All", StringComparison.OrdinalIgnoreCase))
+            {
+                if (Enum.TryParse<GroupRequestAlertStatus>(request.Status, true, out var statusEnum))
+                {
+                    query = query.Where(a => a.Status == statusEnum);
+                }
+            }
 
             var totalCount = await query.CountAsync(cancellationToken);
 

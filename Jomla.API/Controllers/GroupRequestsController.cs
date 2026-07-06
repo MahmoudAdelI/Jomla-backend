@@ -148,13 +148,16 @@ namespace Jomla.API.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetMatchedGroupRequests(
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10)
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? search = null,
+            [FromQuery] Guid? categoryId = null,
+            [FromQuery] string? status = null)
         {
             var supplierId = _identityService.GetCurrentUserId();
             if (supplierId == Guid.Empty) return Unauthorized();
 
             var result = await _mediator.Send(new GetSupplierMatchedGroupRequestsQuery(
-                supplierId, page, pageSize));
+                supplierId, page, pageSize, search, categoryId, status));
  
             return Ok(result);
         }
