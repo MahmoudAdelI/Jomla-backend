@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Auth.DTOs;
 using MediatR;
 
@@ -31,7 +31,9 @@ namespace Jomla.Application.Features.Auth.Commands.Login
                 user.LastName,
                 refreshToken.Token,
                 refreshToken.ExpiresOn,
-                user.ImageUrl
+                user.ImageUrl,
+                user.ShippingAddress,
+                user.PhoneNumber
             );
         }
     }

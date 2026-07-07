@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Features.Users.DTOs;
+using Jomla.Application.Features.Users.DTOs;
 using MediatR;
 using System;
 using System.Collections.Generic;
@@ -14,5 +14,7 @@ namespace Jomla.Application.Features.Users.Commands.UpdateProfile
         public required string FirstName { get; init; }
         public required string LastName { get; init; }
         public required string Email { get; init; }
+        public string? ShippingAddress { get; init; }
+        public string? PhoneNumber { get; init; }
     }
 }

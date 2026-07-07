@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using FluentValidation;
 using FluentValidation.Results;
 using Jomla.Application.Common.Exceptions;
@@ -50,7 +50,9 @@ namespace Jomla.Application.Features.Auth.Commands.Register
                 user.LastName,
                 refreshToken.Token,
                 refreshToken.ExpiresOn,
-                 user.ImageUrl
+                user.ImageUrl,
+                user.ShippingAddress,
+                user.PhoneNumber
             );
         }
     }

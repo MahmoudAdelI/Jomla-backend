@@ -28,6 +28,9 @@ namespace Jomla.Application.Features.Batches.Queries.GetCompletedDeals
 
     public record DealBuyerDto(
         string Name,
-        int Quantity
+        int Quantity,
+        string Email,
+        string? PhoneNumber,
+        string? ShippingAddress
     );
 }

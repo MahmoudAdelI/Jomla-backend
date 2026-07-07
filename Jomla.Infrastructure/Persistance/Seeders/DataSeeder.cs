@@ -14,7 +14,54 @@ namespace Jomla.Infrastructure.Persistance.Seeders
         public async Task<bool> SeedAsync()
         {
             if (await _db.Users.AnyAsync())
+            {
+                // Backfill existing users with generated Address and Phone if missing
+                var usersToFix = await _db.Users
+                    .Where(u => string.IsNullOrEmpty(u.ShippingAddress) || string.IsNullOrEmpty(u.PhoneNumber))
+                    .ToListAsync();
+
+                if (usersToFix.Any())
+                {
+                    var faker = new Faker();
+                    foreach (var user in usersToFix)
+                    {
+                        if (string.IsNullOrEmpty(user.ShippingAddress))
+                        {
+                            user.ShippingAddress = faker.Address.FullAddress();
+                        }
+                        if (string.IsNullOrEmpty(user.PhoneNumber))
+                        {
+                            user.PhoneNumber = faker.Phone.PhoneNumber();
+                        }
+                    }
+                    await _db.SaveChangesAsync();
+                }
+
+                // Backfill existing batch participants with address/phone if missing
+                var participantsToFix = await _db.BatchParticipants
+                    .Include(p => p.Buyer)
+                    .Where(p => string.IsNullOrEmpty(p.ShippingAddress) || string.IsNullOrEmpty(p.PhoneNumber))
+                    .ToListAsync();
+
+                if (participantsToFix.Any())
+                {
+                    var faker = new Faker();
+                    foreach (var part in participantsToFix)
+                    {
+                        if (string.IsNullOrEmpty(part.ShippingAddress))
+                        {
+                            part.ShippingAddress = part.Buyer.ShippingAddress ?? faker.Address.FullAddress();
+                        }
+                        if (string.IsNullOrEmpty(part.PhoneNumber))
+                        {
+                            part.PhoneNumber = part.Buyer.PhoneNumber ?? faker.Phone.PhoneNumber();
+                        }
+                    }
+                    await _db.SaveChangesAsync();
+                }
+
                 return false; // DB has been seeded
+            }
             await SeedRolesAsync();
             var categories = SeedCategories();
             await _db.SaveChangesAsync();
@@ -173,6 +220,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
 
         private async Task<AppUser> CreateUserAsync(string email, string first, string last, DateTime createdAt, UserRole role)
         {
+            var faker = new Faker();
             var user = new AppUser
             {
                 Id = Guid.NewGuid(),
@@ -180,7 +228,9 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                 Email = email,
                 FirstName = first,
                 LastName = last,
-                CreatedAt = createdAt
+                CreatedAt = createdAt,
+                ShippingAddress = faker.Address.FullAddress(),
+                PhoneNumber = faker.Phone.PhoneNumber()
             };
 
             var result = await _userManager.CreateAsync(user, "Password123!");
@@ -410,7 +460,9 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                                 Quantity = qty,
                                 Status = participantStatus,
                                 StripePaymentIntentId = $"pi_{Guid.NewGuid():N}"[..27],
-                                JoinedAt = batchCreatedAt.AddHours(random.Next(1, 96))
+                                JoinedAt = batchCreatedAt.AddHours(random.Next(1, 96)),
+                                ShippingAddress = buyer.ShippingAddress,
+                                PhoneNumber = buyer.PhoneNumber
                             });
                         }
                     }

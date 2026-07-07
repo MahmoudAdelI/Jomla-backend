@@ -27,7 +27,7 @@ namespace Jomla.Infrastructure.Persistance.Configurations
 
             builder.Property(x => x.Status)
                 .HasConversion<string>()
-                .HasMaxLength(20);
+                .HasMaxLength(50);
 
             builder.Property(x => x.CreatedAt)
                 .HasDefaultValueSql("GETUTCDATE()");

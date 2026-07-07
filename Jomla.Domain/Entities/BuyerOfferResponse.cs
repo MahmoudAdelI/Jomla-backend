@@ -9,6 +9,8 @@ namespace Jomla.Domain.Entities
         public BuyerOfferResponseType Response { get; set; }
         public int AcceptedQuantity { get; set; }
         public string? StripePaymentIntentId { get; set; }
+        public string? ShippingAddress { get; set; }
+        public string? PhoneNumber { get; set; }
         public DateTime RespondedAt { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Jomla.Application.Features.Auth.DTOs
 {
@@ -10,6 +10,8 @@ namespace Jomla.Application.Features.Auth.DTOs
         string LastName,
         [property: JsonIgnore] string RefreshToken,
         DateTime RefreshTokenExpiresOn,
-         string? ImageUrl = null
+        string? ImageUrl = null,
+        string? ShippingAddress = null,
+        string? PhoneNumber = null
         );
 }

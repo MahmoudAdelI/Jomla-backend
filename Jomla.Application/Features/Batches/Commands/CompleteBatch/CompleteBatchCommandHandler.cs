@@ -107,6 +107,8 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                         // Update existing failed order
                         existingOrder.Status = captureResult.Success ? OrderStatus.Paid : OrderStatus.Failed;
                         existingOrder.PaidAt = captureResult.Success ? DateTime.UtcNow : null;
+                        existingOrder.ShippingAddress = participant.ShippingAddress;
+                        existingOrder.PhoneNumber = participant.PhoneNumber;
                     }
                     else
                     {
@@ -118,6 +120,8 @@ namespace Jomla.Application.Features.Batches.Commands.CompleteBatch
                             OfferId = null,
                             Quantity = participant.Quantity,
                             TotalAmount = participant.Quantity * batch.Offer.UnitPrice * (1 - batch.Offer.DiscountPercentage / 100m),
+                            ShippingAddress = participant.ShippingAddress,
+                            PhoneNumber = participant.PhoneNumber,
                             Status = captureResult.Success ? OrderStatus.Paid : OrderStatus.Failed,
                             PaidAt = captureResult.Success ? DateTime.UtcNow : null,
                             CreatedAt = DateTime.UtcNow

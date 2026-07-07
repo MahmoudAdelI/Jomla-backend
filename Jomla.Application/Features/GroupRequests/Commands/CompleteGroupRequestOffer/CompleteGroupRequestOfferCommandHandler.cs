@@ -122,6 +122,8 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
                                     OfferId = offer.Id,
                                     Quantity = participant.Quantity,
                                     TotalAmount = participant.Quantity * offer.CurrentUnitPrice,
+                                    ShippingAddress = response.ShippingAddress,
+                                    PhoneNumber = response.PhoneNumber,
                                     Status = OrderStatus.Pending,
                                     CreatedAt = DateTime.UtcNow
                                 });

@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Exceptions;
+using Jomla.Application.Common.Exceptions;
 using Jomla.Application.Features.Users.DTOs;
 using Jomla.Domain.Entities;
 using MediatR;
@@ -44,6 +44,8 @@ namespace Jomla.Application.Features.Users.Commands.UpdateProfile
             // Step 4: Update the simple fields
             user.FirstName = request.FirstName;
             user.LastName = request.LastName;
+            user.PhoneNumber = request.PhoneNumber;
+            user.ShippingAddress = request.ShippingAddress;
 
             // Step 5: Persist changes
             var updateResult = await userManager.UpdateAsync(user);
@@ -56,7 +58,9 @@ namespace Jomla.Application.Features.Users.Commands.UpdateProfile
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 Email = user.Email!,
-                ImageUrl = user.ImageUrl
+                ImageUrl = user.ImageUrl,
+                ShippingAddress = user.ShippingAddress,
+                PhoneNumber = user.PhoneNumber
             };
         }
 

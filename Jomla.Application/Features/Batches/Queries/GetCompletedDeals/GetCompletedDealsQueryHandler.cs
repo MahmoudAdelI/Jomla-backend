@@ -42,7 +42,10 @@ namespace Jomla.Application.Features.Batches.Queries.GetCompletedDeals
                         {
                             name = p.Buyer.Email ?? "Unknown Buyer";
                         }
-                        return new DealBuyerDto(name, p.Quantity);
+                        var email = p.Buyer.Email ?? string.Empty;
+                        var phone = p.PhoneNumber ?? p.Buyer.PhoneNumber;
+                        var address = p.ShippingAddress ?? p.Buyer.ShippingAddress;
+                        return new DealBuyerDto(name, p.Quantity, email, phone, address);
                     }).ToList();
 
                 return new CompletedDealDto(

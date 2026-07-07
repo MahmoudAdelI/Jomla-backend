@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,5 +12,7 @@ namespace Jomla.Application.Features.Users.DTOs
         public required string LastName { get; init; }
         public required string Email { get; init; }
         public string? ImageUrl { get; init; }
+        public string? ShippingAddress { get; init; }
+        public string? PhoneNumber { get; init; }
     }
 }

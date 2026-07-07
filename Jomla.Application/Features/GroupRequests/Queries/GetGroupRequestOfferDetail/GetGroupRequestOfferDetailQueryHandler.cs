@@ -23,6 +23,7 @@ public sealed class GetGroupRequestOfferDetailQueryHandler(
             throw new UnauthorizedAccessException("User is not authenticated.");
 
         var offer = await db.GroupRequestOffers
+            .AsSplitQuery()
             .Include(o => o.Supplier)
             .Include(o => o.GroupRequest)
                 .ThenInclude(gr => gr.Participants)

@@ -20,6 +20,8 @@ namespace Jomla.Application.Features.Batches.Commands
         public Guid BuyerId { get; set; }
         public int Quantity { get; set; }
         public string PaymentIntentId { get; set; } = null!;
+        public string? ShippingAddress { get; set; }
+        public string? PhoneNumber { get; set; }
     }
 
     public class ConfirmJoinBatchCommandHandler(
@@ -90,6 +92,8 @@ namespace Jomla.Application.Features.Batches.Commands
                 existingParticipant.StripePaymentIntentId = request.PaymentIntentId;
                 existingParticipant.Status = BatchParticipantStatus.Active;
                 existingParticipant.JoinedAt = DateTime.UtcNow;
+                existingParticipant.ShippingAddress = request.ShippingAddress;
+                existingParticipant.PhoneNumber = request.PhoneNumber;
             }
             else
             {
@@ -100,7 +104,9 @@ namespace Jomla.Application.Features.Batches.Commands
                     Quantity = request.Quantity,
                     StripePaymentIntentId = request.PaymentIntentId,
                     Status = BatchParticipantStatus.Active,
-                    JoinedAt = DateTime.UtcNow
+                    JoinedAt = DateTime.UtcNow,
+                    ShippingAddress = request.ShippingAddress,
+                    PhoneNumber = request.PhoneNumber
                 });
             }
 

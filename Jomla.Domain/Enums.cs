@@ -4,7 +4,7 @@ namespace Jomla.Domain
     public enum SupplierOfferStatus { PendingReview, Active, Inactive, Expired }
     public enum BatchStatus { Open, Completed, Failed }
     public enum GroupRequestStatus { PendingReview, Active, Inactive, Closed }
-    public enum GroupRequestOfferStatus { Open, Accepted, Countered, Expired }
+    public enum GroupRequestOfferStatus { Open, Accepted, Countered, Expired, PendingSupplierApproval }
     public enum BuyerOfferResponseType { Accepted, Rejected, Cancelled, MovedToNextRound }
     public enum GroupRequestAlertStatus { Pending, Responded, Ignored }
     public enum OrderStatus { Pending, Paid, Failed , Refunded }
@@ -25,6 +25,7 @@ namespace Jomla.Domain
         OfferCountered,
         OfferDeactivated,
         BatchCanceledBySupplier,
+        NegotiationPendingApproval,
     }
     public enum ModerationStatus { Pending, Approved, Flagged }
 

@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.BaseClass;
+using Jomla.Application.Common.BaseClass;
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Admin.Dtos;
 using Jomla.Domain;
@@ -29,6 +29,14 @@ namespace Jomla.Application.Features.Admin.Queries.GetPendingOffers
             var query = _context.SupplierOffers
                 .Where(o => o.ModerationStatus == ModerationStatus.Pending);
                          //&& o.CreatedAt < DateTime.UtcNow.AddMinutes(-30));
+
+            if (!string.IsNullOrWhiteSpace(request.Search))
+            {
+                var searchTerm = request.Search.Trim().ToLower();
+                query = query.Where(o => o.Title.ToLower().Contains(searchTerm) || 
+                                         (o.Description != null && o.Description.ToLower().Contains(searchTerm)) ||
+                                         (o.ModerationReason != null && o.ModerationReason.ToLower().Contains(searchTerm)));
+            }
 
             var totalCount = await query.CountAsync(cancellationToken);
 

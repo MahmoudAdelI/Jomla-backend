@@ -24,7 +24,9 @@ namespace Jomla.Application.Features.GroupRequests.Queries
         public async Task<GroupRequestDetailDto?> Handle(GetGroupRequestDetailQuery request, CancellationToken cancellationToken)
         {
             var data = await _context.GroupRequests
+                .AsSplitQuery()
                 .Where(r => r.Id == request.GroupRequestId)
+
                 .Select(r => new
                 {
                     r.Id,

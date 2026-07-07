@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Features.Users.Commands.ChangePassword;
+using Jomla.Application.Features.Users.Commands.ChangePassword;
 using Jomla.Application.Features.Users.Commands.UpdateProfile;
 using Jomla.Application.Features.Users.Commands.UpdateProfileImage;
 using Jomla.Application.Features.Users.DTOs;
@@ -30,7 +30,9 @@ namespace Jomla.API.Controllers
                 UserId = userId,
                 FirstName = request.FirstName,
                 LastName = request.LastName,
-                Email = request.Email
+                Email = request.Email,
+                ShippingAddress = request.ShippingAddress,
+                PhoneNumber = request.PhoneNumber
             };
 
             var result = await _sender.Send(command);
@@ -81,7 +83,7 @@ namespace Jomla.API.Controllers
             // Step 3: Return the new image URL
             return Ok(new { ImageUrl = imageUrl });
         }
-        public record UpdateProfileRequest(string FirstName, string LastName, string Email);
+        public record UpdateProfileRequest(string FirstName, string LastName, string Email, string? ShippingAddress, string? PhoneNumber);
         public record ChangePasswordRequest(string CurrentPassword, string NewPassword, string ConfirmNewPassword);
     }
 }

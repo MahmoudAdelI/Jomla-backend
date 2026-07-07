@@ -20,7 +20,9 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
         Guid BuyerId,
         string BuyerEmail,
         int AcceptedQuantity,
-        string PaymentIntentId
+        string PaymentIntentId,
+        string? ShippingAddress = null,
+        string? PhoneNumber = null
     ) : IRequest<bool>;
 
     public class ConfirmAcceptGroupRequestOfferCommandHandler(
@@ -116,6 +118,8 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                         Response = BuyerOfferResponseType.Accepted,
                         AcceptedQuantity = request.AcceptedQuantity,
                         StripePaymentIntentId = request.PaymentIntentId,
+                        ShippingAddress = request.ShippingAddress,
+                        PhoneNumber = request.PhoneNumber,
                         RespondedAt = DateTime.UtcNow
                     };
                     _context.BuyerOfferResponses.Add(existingResponse);
@@ -126,6 +130,8 @@ namespace Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOf
                     existingResponse.Response = BuyerOfferResponseType.Accepted;
                     existingResponse.AcceptedQuantity = request.AcceptedQuantity;
                     existingResponse.StripePaymentIntentId = request.PaymentIntentId;
+                    existingResponse.ShippingAddress = request.ShippingAddress;
+                    existingResponse.PhoneNumber = request.PhoneNumber;
                     existingResponse.RespondedAt = DateTime.UtcNow;
                 }
 

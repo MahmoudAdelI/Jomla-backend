@@ -57,7 +57,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
                 VariantAttributes = offer.VariantAttributes,
                 RoundNumber = offer.RoundNumber + 1,
                 ParentId = offer.Id,
-                Status = GroupRequestOfferStatus.Open,
+                Status = GroupRequestOfferStatus.PendingSupplierApproval,
                 AcceptedQuantity = offer.AcceptedQuantity,
                 ExpiresAt = DateTime.UtcNow.Add(duration)
             };
@@ -72,7 +72,9 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
                     BuyerId = parentResponse.BuyerId,
                     Response = BuyerOfferResponseType.Accepted,
                     StripePaymentIntentId = parentResponse.StripePaymentIntentId,
-                    RespondedAt = parentResponse.RespondedAt
+                    RespondedAt = parentResponse.RespondedAt,
+                    ShippingAddress = parentResponse.ShippingAddress,
+                    PhoneNumber = parentResponse.PhoneNumber
                 };
                 _db.BuyerOfferResponses.Add(childResponse);
 
@@ -97,34 +99,15 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
             // Save changes first to obtain the SQL Server-generated sequential GUID for childOffer.Id
             await _db.SaveChangesAsync(cancellationToken);
 
-            // 6. schedule expiry job for child offer using the generated sequential ID
-            childOffer.JobId = _jobDispatcher.Schedule<IGroupRequestOfferExpiryJob>(job =>
-                job.ExcuteAsync(childOffer.Id),
-                new DateTimeOffset(childOffer.ExpiresAt, TimeSpan.Zero));
-
-            // 7. notify all active participants about the new offer
-            var participantIds = offer.GroupRequest.Participants
-                .Where(p => p.Status == GroupRequestParticipantStatus.Active)
-                .Select(p => p.BuyerId);
-
-            var notifications = participantIds.Select(buyerId => new Notification
-            {
-                UserId = buyerId,
-                Type = NotificationType.GroupRequestOfferPlaced,
-                Title = "New offer price available",
-                Body = $"A new price of {newPrice:C} has been offered for {offer.GroupRequest.Title}.",
-                EntityId = offer.GroupRequestId,
-                EntityType = nameof(GroupRequest),
-                CreatedAt = DateTime.UtcNow
-            }).ToList();
+            var notifications = new List<Notification>();
 
             // 7b. notify the supplier about the AI agent counter-offer (using the GroupRequest ID)
             var supplierNotification = new Notification
             {
                 UserId = offer.SupplierId,
-                Type = NotificationType.OfferCountered,
-                Title = "AI Counter-Offer Created",
-                Body = $"Your agent countered with a new price of {newPrice:C} for {offer.GroupRequest.Title}.",
+                Type = NotificationType.NegotiationPendingApproval,
+                Title = "New AI Price Counter Proposed",
+                Body = $"Your AI pricing agent proposed a counter-offer of {newPrice:C} for {offer.GroupRequest.Title}. Please approve or reject it.",
                 EntityId = offer.GroupRequestId,
                 EntityType = nameof(GroupRequest),
                 CreatedAt = DateTime.UtcNow
@@ -133,7 +116,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.NegotiateGroupReques
 
             _db.Notifications.AddRange(notifications);
 
-            // Save the scheduled JobId and the new notifications
+            // Save the new notifications
             await _db.SaveChangesAsync(cancellationToken);
 
             try

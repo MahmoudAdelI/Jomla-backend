@@ -109,7 +109,9 @@ public class BatchesController(IMediator mediator) : ControllerBase
             BatchId = batchId,
             BuyerId = buyerId,
             Quantity = request.Quantity,
-            PaymentIntentId = request.PaymentIntentId
+            PaymentIntentId = request.PaymentIntentId,
+            ShippingAddress = request.ShippingAddress,
+            PhoneNumber = request.PhoneNumber
         });
 
         return Ok(new { Success = true });
@@ -205,8 +207,10 @@ public class JoinBatchRequest
 
 public class ConfirmJoinBatchRequest
 {
-    public string PaymentIntentId { get; set; }
+    public string PaymentIntentId { get; set; } = null!;
     public int Quantity { get; set; }
+    public string? ShippingAddress { get; set; }
+    public string? PhoneNumber { get; set; }
 }
 
 public class UpdateBatchParticipantQuantityRequest

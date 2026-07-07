@@ -3,6 +3,9 @@ using Jomla.Application.Features.GroupRequests.Commands.AcceptGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.CancelGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.PlaceGroupRequestOffer;
 using Jomla.Application.Features.GroupRequests.Commands.RejectGroupRequestOffer;
+using Jomla.Application.Features.GroupRequests.Commands.ApproveNegotiation;
+using Jomla.Application.Features.GroupRequests.Commands.RejectNegotiation;
+using Jomla.Application.Features.GroupRequests.Commands.TriggerNegotiation;
 using Jomla.Application.Features.GroupRequests.Dtos;
 using Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestOffers;
 using Jomla.Application.Features.GroupRequests.Queries.GetGroupRequestOfferDetail;
@@ -56,7 +59,14 @@ public class GroupRequestOffersController(IMediator mediator,
         var buyerEmail = User.FindFirstValue(ClaimTypes.Email)!;
 
         var result = await _mediator.Send(
-            new ConfirmAcceptGroupRequestOfferCommand(id, buyerId, buyerEmail, request.AcceptedQuantity, request.PaymentIntentId));
+            new ConfirmAcceptGroupRequestOfferCommand(
+                id,
+                buyerId,
+                buyerEmail,
+                request.AcceptedQuantity,
+                request.PaymentIntentId,
+                request.ShippingAddress,
+                request.PhoneNumber));
 
         return Ok(result);
     }
@@ -71,6 +81,42 @@ public class GroupRequestOffersController(IMediator mediator,
     {
         var buyerId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var result = await _mediator.Send(new RejectGroupRequestOfferCommand(id, buyerId));
+        return Ok(result);
+    }
+
+    [HttpPost("{id:guid}/approve-negotiation")]
+    [Authorize(Roles = Roles.Supplier)]
+    [Produces("application/json")]
+    [EndpointSummary("Supplier approves the AI-proposed price negotiation counter-offer.")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ApproveNegotiation(Guid id)
+    {
+        var supplierId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await _mediator.Send(new ApproveNegotiationCommand(id, supplierId));
+        return Ok(result);
+    }
+
+    [HttpPost("{id:guid}/reject-negotiation")]
+    [Authorize(Roles = Roles.Supplier)]
+    [Produces("application/json")]
+    [EndpointSummary("Supplier rejects the AI-proposed price negotiation counter-offer, failing the offer.")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RejectNegotiation(Guid id)
+    {
+        var supplierId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await _mediator.Send(new RejectNegotiationCommand(id, supplierId));
+        return Ok(result);
+    }
+
+    [HttpPost("{id:guid}/trigger-negotiation")]
+    [Authorize(Roles = Roles.Supplier)]
+    [Produces("application/json")]
+    [EndpointSummary("Supplier triggers immediate negotiation expiry flow for testing/demo purposes.")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    public async Task<IActionResult> TriggerNegotiation(Guid id)
+    {
+        var supplierId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var result = await _mediator.Send(new TriggerNegotiationCommand(id, supplierId));
         return Ok(result);
     }
 
@@ -126,4 +172,6 @@ public class ConfirmAcceptOfferRequest
 {
     public int AcceptedQuantity { get; set; }
     public string PaymentIntentId { get; set; } = null!;
+    public string? ShippingAddress { get; set; }
+    public string? PhoneNumber { get; set; }
 }

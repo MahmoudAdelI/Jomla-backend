@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.Admin.Dtos;
 using Jomla.Domain;
 using MediatR;
@@ -24,6 +24,13 @@ namespace Jomla.Application.Features.Admin.Queries.GetFlaggedGroupRequests
         {
             var query = _context.GroupRequests
                 .Where(r => r.ModerationStatus == ModerationStatus.Flagged);
+
+            if (!string.IsNullOrWhiteSpace(request.Search))
+            {
+                var searchTerm = request.Search.Trim().ToLower();
+                query = query.Where(r => r.Title.ToLower().Contains(searchTerm) ||
+                                         (r.ModerationReason != null && r.ModerationReason.ToLower().Contains(searchTerm)));
+            }
 
             var totalCount = await query.CountAsync(cancellationToken);
 

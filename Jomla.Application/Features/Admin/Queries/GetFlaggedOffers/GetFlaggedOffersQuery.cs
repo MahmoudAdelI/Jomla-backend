@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Features.Admin.Dtos;
+using Jomla.Application.Features.Admin.Dtos;
 using MediatR;
 using System;
 using System.Collections.Generic;
@@ -8,6 +8,6 @@ using System.Threading.Tasks;
 
 namespace Jomla.Application.Features.Admin.Queries.GetFlaggedOffers
 {
-    public sealed record GetFlaggedOffersQuery(int Page = 1, int PageSize = 10)
+    public sealed record GetFlaggedOffersQuery(int Page = 1, int PageSize = 10, string? Search = null)
     : IRequest<PagedResult<FlaggedOfferDto>>;
 }
