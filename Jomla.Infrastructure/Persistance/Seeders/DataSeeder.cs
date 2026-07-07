@@ -85,7 +85,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             var (groupRequests, groupRequestParticipants) = SeedGroupRequestsAndParticipants(buyers, categories);
             await _db.SaveChangesAsync();
 
-            SeedGroupRequestAlerts(groupRequests, preferences);
+            SeedGroupRequestAlerts(groupRequests, preferences, categories);
             await _db.SaveChangesAsync();
 
             var groupRequestOffers = SeedGroupRequestOffers(groupRequests, preferences, categories);
@@ -626,15 +626,17 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             return (groupRequests, allParticipants);
         }
 
-        private void SeedGroupRequestAlerts(List<GroupRequest> groupRequests, List<SupplierCategoryPreference> preferences)
+        private void SeedGroupRequestAlerts(List<GroupRequest> groupRequests, List<SupplierCategoryPreference> preferences, List<Category> categories)
         {
             var random = new Random(48);
             var alerts = new List<GroupRequestAlert>();
 
             foreach (var request in groupRequests)
             {
+                var ancestorIds = GetAncestorCategoryIds(request.CategoryId, categories);
+
                 var matchingSupplierIds = preferences
-                    .Where(p => p.CategoryId == request.CategoryId && p.MinQuantity <= request.CurrentQuantity)
+                    .Where(p => ancestorIds.Contains(p.CategoryId) && p.MinQuantity <= request.CurrentQuantity)
                     .Select(p => p.SupplierId)
                     .Distinct();
 
@@ -677,8 +679,10 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             int candidateIndex = 0;
             foreach (var request in candidates)
             {
+                var ancestorIds = GetAncestorCategoryIds(request.CategoryId, categories);
+
                 var matchingSupplierIds = preferences
-                    .Where(p => p.CategoryId == request.CategoryId && p.MinQuantity <= request.CurrentQuantity)
+                    .Where(p => ancestorIds.Contains(p.CategoryId) && p.MinQuantity <= request.CurrentQuantity)
                     .Select(p => p.SupplierId)
                     .Distinct()
                     .ToList();
@@ -932,6 +936,28 @@ namespace Jomla.Infrastructure.Persistance.Seeders
         }
         private static string SanitizeForEmail(string input) =>
             new string(input.Where(char.IsLetterOrDigit).ToArray());
+
+        private static List<Guid> GetAncestorCategoryIds(Guid categoryId, List<Category> categories)
+        {
+            var categoryById = categories.ToDictionary(c => c.Id);
+            var matchedCategoryIds = new List<Guid> { categoryId };
+            var visited = new HashSet<Guid> { categoryId };
+
+            if (!categoryById.TryGetValue(categoryId, out var currentCategory))
+                return matchedCategoryIds;
+
+            while (currentCategory.ParentId != null && !visited.Contains(currentCategory.ParentId.Value))
+            {
+                var parentId = currentCategory.ParentId.Value;
+                matchedCategoryIds.Add(parentId);
+                visited.Add(parentId);
+
+                if (!categoryById.TryGetValue(parentId, out currentCategory!))
+                    break;
+            }
+
+            return matchedCategoryIds;
+        }
 
         public async Task SeedAdminAsync()
         {

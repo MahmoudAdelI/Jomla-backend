@@ -1,6 +1,7 @@
 using Jomla.Application.Common.Interfaces;
 using Jomla.Application.Features.GroupRequests.Dtos;
 using Jomla.Domain;
+using Jomla.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -43,7 +44,10 @@ namespace Jomla.Application.Features.GroupRequests.Queries.GetSupplierMatchedGro
 
             if (request.CategoryId.HasValue)
             {
-                query = query.Where(a => a.GroupRequest.CategoryId == request.CategoryId.Value);
+                var targetCategoryId = request.CategoryId.Value;
+                var allCategories = await _context.Categories.AsNoTracking().ToListAsync(cancellationToken);
+                var descendantIds = GetDescendantCategoryIds(targetCategoryId, allCategories);
+                query = query.Where(a => descendantIds.Contains(a.GroupRequest.CategoryId));
             }
 
             if (!string.IsNullOrWhiteSpace(request.Status) && !request.Status.Equals("All", StringComparison.OrdinalIgnoreCase))
@@ -73,6 +77,26 @@ namespace Jomla.Application.Features.GroupRequests.Queries.GetSupplierMatchedGro
                 .ToListAsync(cancellationToken);
 
             return new PagedResult<SupplierMatchedGroupRequestDto>(items, totalCount, request.Page, request.PageSize);
+        }
+
+        private List<Guid> GetDescendantCategoryIds(Guid categoryId, List<Category> allCategories)
+        {
+            var result = new List<Guid> { categoryId };
+            var queue = new Queue<Guid>();
+            queue.Enqueue(categoryId);
+
+            while (queue.Count > 0)
+            {
+                var currentId = queue.Dequeue();
+                var children = allCategories.Where(c => c.ParentId == currentId).Select(c => c.Id);
+                foreach (var childId in children)
+                {
+                    result.Add(childId);
+                    queue.Enqueue(childId);
+                }
+            }
+
+            return result;
         }
     }
 }

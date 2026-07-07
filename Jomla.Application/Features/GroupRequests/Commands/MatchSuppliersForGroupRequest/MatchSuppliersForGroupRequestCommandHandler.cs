@@ -23,10 +23,29 @@ namespace Jomla.Application.Features.GroupRequests.Commands.MatchSuppliersForGro
                 .Select(a => a.SupplierId)
                 .ToHashSetAsync(cancellationToken);
 
+            // Find all matching category IDs (the request category itself and all of its ancestor categories)
+            var matchedCategoryIds = new List<Guid> { request.CategoryId };
+            var visited = new HashSet<Guid> { request.CategoryId };
+            
+            var currentCategory = await _db.Categories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == request.CategoryId, cancellationToken);
+            
+            while (currentCategory?.ParentId != null && !visited.Contains(currentCategory.ParentId.Value))
+            {
+                var parentId = currentCategory.ParentId.Value;
+                matchedCategoryIds.Add(parentId);
+                visited.Add(parentId);
+                
+                currentCategory = await _db.Categories
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(c => c.Id == parentId, cancellationToken);
+            }
+
             // 2. Find suppliers whose category preference matches and min quantity threshold is satisfied
             var matchedSuppliers = await _db.SupplierCategoryPreferences
                 .Where(p =>
-                    p.CategoryId == request.CategoryId &&
+                    matchedCategoryIds.Contains(p.CategoryId) &&
                     p.MinQuantity <= request.CurrentQuantity &&
                     !alreadyAlertedSupplierIds.Contains(p.SupplierId))
                 .Select(p => p.SupplierId)
