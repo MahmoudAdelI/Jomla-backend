@@ -32,6 +32,7 @@ public class TestAppDbContext : IAppDbContext
     public DbSet<NegotiationLog> NegotiationLogs => _context.NegotiationLogs;
     public DbSet<Notification> Notifications => _context.Notifications;
     public DbSet<Order> Orders => _context.Orders;
+    public DbSet<UserContactInfo> UserContactInfos => _context.UserContactInfos;
 
     public DatabaseFacade Database => _context.Database;
 

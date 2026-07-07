@@ -1,4 +1,4 @@
-﻿using Jomla.Application.Common.Interfaces;
+using Jomla.Application.Common.Interfaces;
 using Jomla.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -35,6 +35,8 @@ namespace Jomla.Infrastructure.Persistance
         public DbSet<Notification> Notifications => Set<Notification>();
 
         public DbSet<Order> Orders => Set<Order>();
+
+        public DbSet<UserContactInfo> UserContactInfos => Set<UserContactInfo>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

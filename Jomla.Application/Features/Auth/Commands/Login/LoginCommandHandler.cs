@@ -32,8 +32,8 @@ namespace Jomla.Application.Features.Auth.Commands.Login
                 refreshToken.Token,
                 refreshToken.ExpiresOn,
                 user.ImageUrl,
-                user.ShippingAddress,
-                user.PhoneNumber
+                user.ContactInfo?.ShippingAddress,
+                user.ContactInfo?.PhoneNumber
             );
         }
     }

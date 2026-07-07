@@ -147,10 +147,10 @@ public class NegotiateGroupRequestOfferCommandHandlerTests : ApplicationTestBase
         var allOffers = await Context.GroupRequestOffers.ToListAsync();
         var childOffer = allOffers.FirstOrDefault(o => o.ParentId == parentOffer.Id);
         Assert.NotNull(childOffer);
-        Assert.Equal(GroupRequestOfferStatus.Open, childOffer.Status);
+        Assert.Equal(GroupRequestOfferStatus.PendingSupplierApproval, childOffer.Status);
         Assert.Equal(45m, childOffer.CurrentUnitPrice);
         Assert.Equal(2, childOffer.RoundNumber);
-        Assert.Equal("child_exp_job_123", childOffer.JobId);
+        Assert.True(string.IsNullOrEmpty(childOffer.JobId));
 
         // Verify child responses created
         var childResponses = responses.Where(r => r.OfferId == childOffer.Id).ToList();
@@ -165,15 +165,14 @@ public class NegotiateGroupRequestOfferCommandHandlerTests : ApplicationTestBase
         Assert.Equal(50m, logs[0].PreviousPrice);
         Assert.Equal(45m, logs[0].NewPrice);
 
-        // Verify Expiry Job is scheduled
-        JobDispatcher.Received(1).Schedule(
+        // Verify Expiry Job is NOT scheduled in Counter round (awaits approval)
+        JobDispatcher.DidNotReceiveWithAnyArgs().Schedule<IGroupRequestOfferExpiryJob>(
             Arg.Any<Expression<Func<IGroupRequestOfferExpiryJob, Task>>>(),
             Arg.Any<DateTimeOffset>());
 
-        // Verify notifications created
+        // Verify notifications created (only 1 to supplier about pending approval)
         var notifications = await Context.Notifications.ToListAsync();
-        Assert.Equal(3, notifications.Count); // 2 buyers + 1 supplier
-        Assert.Contains(notifications, n => n.UserId == buyerId1 && n.Type == NotificationType.GroupRequestOfferPlaced);
-        Assert.Contains(notifications, n => n.UserId == supplierId && n.Type == NotificationType.OfferCountered);
+        Assert.Single(notifications);
+        Assert.Contains(notifications, n => n.UserId == supplierId && n.Type == NotificationType.NegotiationPendingApproval);
     }
 }

@@ -24,12 +24,16 @@ namespace Jomla.Infrastructure.Auth
             return (true, Enumerable.Empty<string>());
         }
 
-        public async Task<AppUser?> FindByEmailAsync(string email) => await _userMgr.FindByEmailAsync(email);
+        public async Task<AppUser?> FindByEmailAsync(string email) => 
+            await _userMgr.Users
+                .Include(u => u.ContactInfo)
+                .FirstOrDefaultAsync(u => u.NormalizedEmail == email.ToUpperInvariant());
 
         public async Task<AppUser?> FindByRefreshTokenAsync(string refreshToken)
         {
             return await _userMgr.Users
                 .Include(u => u.RefreshTokens)
+                .Include(u => u.ContactInfo)
                 .FirstOrDefaultAsync(u => u.RefreshTokens.Any(rt => rt.Token == refreshToken));
         }
 
@@ -57,7 +61,10 @@ namespace Jomla.Infrastructure.Auth
                 ?.FindFirst(ClaimTypes.Email)?.Value ?? "";
         }
 
-        public async Task<AppUser?> FindByIdAsync(Guid userId) => await _userMgr.FindByIdAsync(userId.ToString());
+        public async Task<AppUser?> FindByIdAsync(Guid userId) => 
+            await _userMgr.Users
+                .Include(u => u.ContactInfo)
+                .FirstOrDefaultAsync(u => u.Id == userId);
 
         public async Task<bool> IsInRoleAsync(AppUser user, string role) => await _userMgr.IsInRoleAsync(user, role);
 

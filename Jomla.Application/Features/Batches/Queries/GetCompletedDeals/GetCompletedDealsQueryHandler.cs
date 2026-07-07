@@ -26,6 +26,7 @@ namespace Jomla.Application.Features.Batches.Queries.GetCompletedDeals
                 .Include(b => b.Offer)
                 .Include(b => b.Participants)
                     .ThenInclude(p => p.Buyer)
+                        .ThenInclude(u => u.ContactInfo)
                 .Where(b => b.Status == BatchStatus.Completed && b.Offer.SupplierId == request.SupplierId)
                 .OrderByDescending(b => b.CompletedAt)
                 .ToListAsync(cancellationToken);
@@ -43,8 +44,8 @@ namespace Jomla.Application.Features.Batches.Queries.GetCompletedDeals
                             name = p.Buyer.Email ?? "Unknown Buyer";
                         }
                         var email = p.Buyer.Email ?? string.Empty;
-                        var phone = p.PhoneNumber ?? p.Buyer.PhoneNumber;
-                        var address = p.ShippingAddress ?? p.Buyer.ShippingAddress;
+                        var phone = p.PhoneNumber ?? p.Buyer.ContactInfo?.PhoneNumber;
+                        var address = p.ShippingAddress ?? p.Buyer.ContactInfo?.ShippingAddress;
                         return new DealBuyerDto(name, p.Quantity, email, phone, address);
                     }).ToList();
 

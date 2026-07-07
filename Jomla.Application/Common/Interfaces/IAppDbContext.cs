@@ -1,4 +1,4 @@
-﻿using Jomla.Domain.Entities;
+using Jomla.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
@@ -19,6 +19,7 @@ namespace Jomla.Application.Common.Interfaces
         DbSet<NegotiationLog> NegotiationLogs { get; }
         DbSet<Notification> Notifications { get; }
         DbSet<Order> Orders { get; }
+        DbSet<UserContactInfo> UserContactInfos { get; }
         DatabaseFacade Database { get; }
         Task<int> SaveChangesAsync(CancellationToken ct = default);
         Task<GroupRequest?> GetGroupRequestWithLockAsync(Guid id, CancellationToken ct);

@@ -17,7 +17,8 @@ namespace Jomla.Infrastructure.Persistance.Seeders
             {
                 // Backfill existing users with generated Address and Phone if missing
                 var usersToFix = await _db.Users
-                    .Where(u => string.IsNullOrEmpty(u.ShippingAddress) || string.IsNullOrEmpty(u.PhoneNumber))
+                    .Include(u => u.ContactInfo)
+                    .Where(u => u.ContactInfo == null || string.IsNullOrEmpty(u.ContactInfo.ShippingAddress) || string.IsNullOrEmpty(u.ContactInfo.PhoneNumber))
                     .ToListAsync();
 
                 if (usersToFix.Any())
@@ -25,13 +26,17 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                     var faker = new Faker();
                     foreach (var user in usersToFix)
                     {
-                        if (string.IsNullOrEmpty(user.ShippingAddress))
+                        if (user.ContactInfo == null)
                         {
-                            user.ShippingAddress = faker.Address.FullAddress();
+                            user.ContactInfo = new UserContactInfo();
                         }
-                        if (string.IsNullOrEmpty(user.PhoneNumber))
+                        if (string.IsNullOrEmpty(user.ContactInfo.ShippingAddress))
                         {
-                            user.PhoneNumber = faker.Phone.PhoneNumber();
+                            user.ContactInfo.ShippingAddress = faker.Address.FullAddress();
+                        }
+                        if (string.IsNullOrEmpty(user.ContactInfo.PhoneNumber))
+                        {
+                            user.ContactInfo.PhoneNumber = faker.Phone.PhoneNumber();
                         }
                     }
                     await _db.SaveChangesAsync();
@@ -40,6 +45,7 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                 // Backfill existing batch participants with address/phone if missing
                 var participantsToFix = await _db.BatchParticipants
                     .Include(p => p.Buyer)
+                        .ThenInclude(u => u.ContactInfo)
                     .Where(p => string.IsNullOrEmpty(p.ShippingAddress) || string.IsNullOrEmpty(p.PhoneNumber))
                     .ToListAsync();
 
@@ -50,11 +56,11 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                     {
                         if (string.IsNullOrEmpty(part.ShippingAddress))
                         {
-                            part.ShippingAddress = part.Buyer.ShippingAddress ?? faker.Address.FullAddress();
+                            part.ShippingAddress = part.Buyer.ContactInfo?.ShippingAddress ?? faker.Address.FullAddress();
                         }
                         if (string.IsNullOrEmpty(part.PhoneNumber))
                         {
-                            part.PhoneNumber = part.Buyer.PhoneNumber ?? faker.Phone.PhoneNumber();
+                            part.PhoneNumber = part.Buyer.ContactInfo?.PhoneNumber ?? faker.Phone.PhoneNumber();
                         }
                     }
                     await _db.SaveChangesAsync();
@@ -229,8 +235,11 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                 FirstName = first,
                 LastName = last,
                 CreatedAt = createdAt,
-                ShippingAddress = faker.Address.FullAddress(),
-                PhoneNumber = faker.Phone.PhoneNumber()
+                ContactInfo = role == UserRole.Buyer ? new UserContactInfo
+                {
+                    ShippingAddress = faker.Address.FullAddress(),
+                    PhoneNumber = faker.Phone.PhoneNumber()
+                } : null
             };
 
             var result = await _userManager.CreateAsync(user, "Password123!");
@@ -462,8 +471,8 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                                 Status = participantStatus,
                                 StripePaymentIntentId = $"pi_{Guid.NewGuid():N}"[..27],
                                 JoinedAt = batchCreatedAt.AddHours(random.Next(1, 96)),
-                                ShippingAddress = buyer.ShippingAddress,
-                                PhoneNumber = buyer.PhoneNumber
+                                ShippingAddress = buyer.ContactInfo?.ShippingAddress,
+                                PhoneNumber = buyer.ContactInfo?.PhoneNumber
                             });
                         }
                     }
