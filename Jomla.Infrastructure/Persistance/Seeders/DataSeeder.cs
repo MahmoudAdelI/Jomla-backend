@@ -299,14 +299,14 @@ namespace Jomla.Infrastructure.Persistance.Seeders
 
             foreach (var supplier in suppliers)
             {
-                if (offers.Count >= 12)
+                if (offers.Count >= 20)
                     break;
 
                 var offerCount = random.Next(1, 4); // 1-3 offers per supplier
 
                 for (int i = 0; i < offerCount; i++)
                 {
-                    if (offers.Count >= 12)
+                    if (offers.Count >= 20)
                         break;
 
                     Category category;
@@ -392,13 +392,14 @@ namespace Jomla.Infrastructure.Persistance.Seeders
                     }
                     else
                     {
-                        var roll = random.Next(0, 3);
-                        if (roll == 0)
+                        // 70% Open, 20% Completed, 10% Failed — so most offers have a live batch
+                        var roll = random.Next(0, 10);
+                        if (roll < 7)
                         {
                             status = BatchStatus.Open;
                             currentQuantity = random.Next(0, targetQuantity); // partially filled, still open
                         }
-                        else if (roll == 1)
+                        else if (roll < 9)
                         {
                             status = BatchStatus.Completed;
                             currentQuantity = targetQuantity;
