@@ -61,7 +61,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.MatchSuppliersForGro
                 SupplierId = supplierId,
                 GroupRequestId = request.GroupRequestId,
                 Status = GroupRequestAlertStatus.Pending,
-            });
+            }).ToList();
 
             // 4. Insert a Notification row for each matched supplier
             var notifications = matchedSuppliers.Select(supplierId => new Notification
@@ -73,7 +73,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.MatchSuppliersForGro
                 EntityId = request.GroupRequestId,
                 EntityType = nameof(GroupRequest),
                 IsRead = false,
-            });
+            }).ToList();
 
             _db.GroupRequestAlerts.AddRange(alerts);
             _db.Notifications.AddRange(notifications);
