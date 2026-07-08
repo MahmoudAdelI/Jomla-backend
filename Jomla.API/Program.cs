@@ -34,6 +34,10 @@ namespace Jomla.API
             builder.Services.AddSignalR();
             builder.Services.AddScoped<IRealtimeService, RealtimeService>();
 
+            // Give Hangfire enough time to gracefully stop on shutdown
+            builder.Services.Configure<Microsoft.Extensions.Hosting.HostOptions>(opts =>
+                opts.ShutdownTimeout = TimeSpan.FromSeconds(30));
+
             // Global exception handling
             builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
             builder.Services.AddProblemDetails();
@@ -135,13 +139,12 @@ namespace Jomla.API
             }
 
 
-            // Initialize Qdrant collections
+            // Qdrant sync on seed if needed
             using (var qdrantScope = app.Services.CreateScope())
             {
                 var initializer = qdrantScope.ServiceProvider
-                    .GetRequiredService<NegotiationRoundsCollectionInitializer>();
-
-                if (seedDatabase && didSeed)
+                    .GetRequiredService<Jomla.Infrastructure.Persistance.Qdrant.NegotiationRoundsCollectionInitializer>();
+                if (seedDatabase && didSeed && builder.Configuration.GetValue<bool>("SyncQdrantOnSeed"))
                 {
                     await initializer.RecreateCollectionAsync();
                     var syncJob = qdrantScope.ServiceProvider.GetRequiredService<INegotiationRoundSyncJob>();
