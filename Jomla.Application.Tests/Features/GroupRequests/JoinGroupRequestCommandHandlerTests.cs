@@ -260,25 +260,17 @@ public class JoinGroupRequestCommandHandlerTests : ApplicationTestBase
     }
 
     [Fact]
-    public async Task Handle_GroupRequestHasAcceptedOffer_ReturnsError()
+    public async Task Handle_GroupRequestFulfilled_ReturnsError()
     {
         // Arrange
         var groupRequest = new GroupRequest
         {
             Id = Guid.NewGuid(),
-            Status = GroupRequestStatus.Inactive,
+            Status = GroupRequestStatus.Fulfilled,
             ModerationStatus = ModerationStatus.Approved
-        };
-        var offer = new GroupRequestOffer
-        {
-            Id = Guid.NewGuid(),
-            GroupRequestId = groupRequest.Id,
-            SupplierId = Guid.NewGuid(),
-            Status = GroupRequestOfferStatus.Accepted
         };
 
         Context.GroupRequests.Add(groupRequest);
-        Context.GroupRequestOffers.Add(offer);
         await Context.SaveChangesAsync();
 
         var command = new JoinGroupRequestCommand(groupRequest.Id, Guid.NewGuid(), 5);

@@ -276,14 +276,9 @@ namespace Jomla.Application.Features.GroupRequests.Commands.CompleteGroupRequest
             {
                 offer.GroupRequest.CurrentQuantity = 0;
                 
-                if (offer.GroupRequest.Status != GroupRequestStatus.Inactive && offer.GroupRequest.Status != GroupRequestStatus.Closed)
+                if (offer.GroupRequest.Status != GroupRequestStatus.Fulfilled && offer.GroupRequest.Status != GroupRequestStatus.Closed)
                 {
-                    offer.GroupRequest.Status = GroupRequestStatus.Inactive;
-                    offer.GroupRequest.InactiveSince = DateTime.UtcNow;
-
-                    _jobDispatcher.Schedule<IGroupRequestAutoCloseJob>(
-                        j => j.ExecuteAsync(offer.GroupRequestId),
-                        DateTimeOffset.UtcNow.AddHours(24));
+                    offer.GroupRequest.Status = GroupRequestStatus.Fulfilled;
                 }
             }
 
