@@ -30,6 +30,14 @@ namespace Jomla.Infrastructure.Payments
         {
             try
             {
+                var customerService = new CustomerService();
+                var customers = await customerService.ListAsync(new CustomerListOptions { Email = buyerEmail, Limit = 1 }, cancellationToken: cancellationToken);
+                var customer = customers.FirstOrDefault();
+                if (customer == null)
+                {
+                    customer = await customerService.CreateAsync(new CustomerCreateOptions { Email = buyerEmail }, cancellationToken: cancellationToken);
+                }
+
                 // Convert dollars to cents (Stripe works with smallest currency unit)
                 var amountInCents = (long)Math.Round(amountInDollars * 100, MidpointRounding.AwayFromZero);
                 //PaymentIntentCreateOptions ورقة الطلب اللي بتكتب فيها اللي محتجاه
@@ -46,6 +54,8 @@ namespace Jomla.Infrastructure.Payments
                         { "type", "batch_join" }
                     },
                     ReceiptEmail = buyerEmail,
+                    Customer = customer.Id,
+                    SetupFutureUsage = "off_session"
                     // Automatic confirmation not required yet
                     // Buyer confirms on frontend with clientSecret
                 };
@@ -270,7 +280,27 @@ namespace Jomla.Infrastructure.Payments
         {
             try
             {
+                var customerService = new CustomerService();
+                var customers = await customerService.ListAsync(new CustomerListOptions { Email = buyerEmail, Limit = 1 }, cancellationToken: cancellationToken);
+                var customer = customers.FirstOrDefault();
+                if (customer == null)
+                {
+                    customer = await customerService.CreateAsync(new CustomerCreateOptions { Email = buyerEmail }, cancellationToken: cancellationToken);
+                }
+
                 var amountInCents = (long)Math.Round(amountInDollars * 100, MidpointRounding.AwayFromZero);
+
+                // Ensure the PaymentMethod is attached to the Customer so it can be reused
+                var paymentMethodService = new PaymentMethodService();
+                var existingPm = await paymentMethodService.GetAsync(paymentMethodId, cancellationToken: cancellationToken);
+                if (existingPm.CustomerId != customer.Id)
+                {
+                    await paymentMethodService.AttachAsync(paymentMethodId, new PaymentMethodAttachOptions
+                    {
+                        Customer = customer.Id
+                    }, cancellationToken: cancellationToken);
+                }
+
                 var options = new PaymentIntentCreateOptions
                 {
                     Amount = amountInCents,
@@ -286,6 +316,7 @@ namespace Jomla.Infrastructure.Payments
                     ReceiptEmail = buyerEmail,
                     PaymentMethod = paymentMethodId,
                     Confirm = true,
+                    Customer = customer.Id,
                     AutomaticPaymentMethods = new PaymentIntentAutomaticPaymentMethodsOptions
                     {
                         Enabled = true,
