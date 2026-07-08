@@ -258,4 +258,36 @@ public class JoinGroupRequestCommandHandlerTests : ApplicationTestBase
         // BackgroundJobDispatcher should NOT be directly enqueued here (delegated to reactivate command)
         JobDispatcher.DidNotReceiveWithAnyArgs().Enqueue(Arg.Any<Expression<Func<ISupplierMatchingJob, Task>>>());
     }
+
+    [Fact]
+    public async Task Handle_GroupRequestHasAcceptedOffer_ReturnsError()
+    {
+        // Arrange
+        var groupRequest = new GroupRequest
+        {
+            Id = Guid.NewGuid(),
+            Status = GroupRequestStatus.Inactive,
+            ModerationStatus = ModerationStatus.Approved
+        };
+        var offer = new GroupRequestOffer
+        {
+            Id = Guid.NewGuid(),
+            GroupRequestId = groupRequest.Id,
+            SupplierId = Guid.NewGuid(),
+            Status = GroupRequestOfferStatus.Accepted
+        };
+
+        Context.GroupRequests.Add(groupRequest);
+        Context.GroupRequestOffers.Add(offer);
+        await Context.SaveChangesAsync();
+
+        var command = new JoinGroupRequestCommand(groupRequest.Id, Guid.NewGuid(), 5);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal("Group request has already been fulfilled.", result.Error);
+    }
 }

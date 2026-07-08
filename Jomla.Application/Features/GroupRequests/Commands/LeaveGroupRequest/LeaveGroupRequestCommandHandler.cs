@@ -66,7 +66,16 @@ namespace Jomla.Application.Features.GroupRequests.Commands.LeaveGroupRequest
 
                 if (acceptedResponses.Any(r => r.Offer.Status == GroupRequestOfferStatus.Accepted))
                 {
-                    return new LeaveGroupRequestResponse(false, "Cannot leave the group request while one of your accepted offers is being processed.");
+                    var offerIds = acceptedResponses.Where(r => r.Offer.Status == GroupRequestOfferStatus.Accepted).Select(r => r.OfferId).ToList();
+                    var hasPendingOrder = await _context.Orders
+                        .AnyAsync(o => o.OfferId.HasValue && offerIds.Contains(o.OfferId.Value)
+                                    && o.BuyerId == request.BuyerId
+                                    && o.Status == OrderStatus.Pending, cancellationToken);
+
+                    if (hasPendingOrder)
+                    {
+                        return new LeaveGroupRequestResponse(false, "Cannot leave the group request while one of your accepted offers is being processed.");
+                    }
                 }
 
                 var openResponses = acceptedResponses.Where(r => r.Offer.Status == GroupRequestOfferStatus.Open).ToList();

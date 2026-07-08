@@ -57,6 +57,11 @@ namespace Jomla.Application.Features.GroupRequests.Commands.JoinGroupRequest
                 if (groupRequest.ModerationStatus != ModerationStatus.Approved)
                     return new JoinGroupRequestResponse(false, "Group request is not approved yet.");
 
+                var hasAcceptedOffer = await _context.GroupRequestOffers
+                    .AnyAsync(o => o.GroupRequestId == request.GroupRequestId && o.Status == GroupRequestOfferStatus.Accepted, cancellationToken);
+                if (hasAcceptedOffer)
+                    return new JoinGroupRequestResponse(false, "Group request has already been fulfilled.");
+
                 var existingParticipant = await _context.GroupRequestParticipants
                     .FirstOrDefaultAsync(p => p.GroupRequestId == request.GroupRequestId
                                            && p.BuyerId == request.BuyerId, cancellationToken);

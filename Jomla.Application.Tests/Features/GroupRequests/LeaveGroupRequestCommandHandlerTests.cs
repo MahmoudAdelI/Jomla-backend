@@ -116,11 +116,20 @@ public class LeaveGroupRequestCommandHandlerTests : ApplicationTestBase
             BuyerId = buyerId,
             Response = BuyerOfferResponseType.Accepted
         };
+        var order = new Order
+        {
+            OfferId = offer.Id,
+            BuyerId = buyerId,
+            Quantity = 5,
+            TotalAmount = 500,
+            Status = OrderStatus.Pending
+        };
 
         Context.GroupRequests.Add(groupRequest);
         Context.GroupRequestParticipants.Add(participant);
         Context.GroupRequestOffers.Add(offer);
         Context.BuyerOfferResponses.Add(response);
+        Context.Orders.Add(order);
         await Context.SaveChangesAsync();
 
         var command = new LeaveGroupRequestCommand(groupRequest.Id, buyerId);
@@ -131,6 +140,62 @@ public class LeaveGroupRequestCommandHandlerTests : ApplicationTestBase
         // Assert
         Assert.False(result.Success);
         Assert.Equal("Cannot leave the group request while one of your accepted offers is being processed.", result.Error);
+    }
+
+    [Fact]
+    public async Task Handle_AcceptedOfferIsFullyProcessed_AllowsLeaving()
+    {
+        // Arrange
+        var buyerId = Guid.NewGuid();
+        var groupRequest = new GroupRequest
+        {
+            Id = Guid.NewGuid(),
+            Status = GroupRequestStatus.Active,
+            CurrentQuantity = 10
+        };
+        var participant = new GroupRequestParticipant
+        {
+            GroupRequestId = groupRequest.Id,
+            BuyerId = buyerId,
+            Status = GroupRequestParticipantStatus.Active,
+            Quantity = 5
+        };
+        var offer = new GroupRequestOffer
+        {
+            Id = Guid.NewGuid(),
+            GroupRequestId = groupRequest.Id,
+            Status = GroupRequestOfferStatus.Accepted
+        };
+        var response = new BuyerOfferResponse
+        {
+            OfferId = offer.Id,
+            Offer = offer,
+            BuyerId = buyerId,
+            Response = BuyerOfferResponseType.Accepted
+        };
+        var order = new Order
+        {
+            OfferId = offer.Id,
+            BuyerId = buyerId,
+            Quantity = 5,
+            TotalAmount = 500,
+            Status = OrderStatus.Paid
+        };
+
+        Context.GroupRequests.Add(groupRequest);
+        Context.GroupRequestParticipants.Add(participant);
+        Context.GroupRequestOffers.Add(offer);
+        Context.BuyerOfferResponses.Add(response);
+        Context.Orders.Add(order);
+        await Context.SaveChangesAsync();
+
+        var command = new LeaveGroupRequestCommand(groupRequest.Id, buyerId);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.Success);
     }
 
     [Fact]
