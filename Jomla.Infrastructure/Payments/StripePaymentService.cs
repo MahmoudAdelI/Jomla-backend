@@ -285,7 +285,12 @@ namespace Jomla.Infrastructure.Payments
                     },
                     ReceiptEmail = buyerEmail,
                     PaymentMethod = paymentMethodId,
-                    Confirm = true
+                    Confirm = true,
+                    AutomaticPaymentMethods = new PaymentIntentAutomaticPaymentMethodsOptions
+                    {
+                        Enabled = true,
+                        AllowRedirects = "never"
+                    }
                 };
 
                 var service = new PaymentIntentService();

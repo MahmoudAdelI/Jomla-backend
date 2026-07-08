@@ -61,8 +61,7 @@ namespace Jomla.API.Middleware
                 _ => new ProblemDetails
                 {
                     Title = "Server Error!",
-                    // Security Note: Avoid leaking raw exception details in production
-                    Detail = exception.Message,
+                    Detail = "An unexpected server error occurred. Please try again later.",
                     Status = StatusCodes.Status500InternalServerError
                 }
             };
