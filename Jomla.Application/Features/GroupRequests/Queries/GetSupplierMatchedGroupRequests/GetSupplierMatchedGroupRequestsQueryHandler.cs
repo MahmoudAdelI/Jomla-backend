@@ -61,7 +61,7 @@ namespace Jomla.Application.Features.GroupRequests.Queries.GetSupplierMatchedGro
             var totalCount = await query.CountAsync(cancellationToken);
 
             var items = await query
-                .OrderByDescending(a => a.GroupRequest.CurrentQuantity)
+                .OrderByDescending(a => a.NotifiedAt)
                 .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .Select(a => new SupplierMatchedGroupRequestDto(
