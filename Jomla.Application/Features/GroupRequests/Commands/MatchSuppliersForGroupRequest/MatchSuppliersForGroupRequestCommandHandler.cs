@@ -49,6 +49,7 @@ namespace Jomla.Application.Features.GroupRequests.Commands.MatchSuppliersForGro
                     p.MinQuantity <= request.CurrentQuantity &&
                     !alreadyAlertedSupplierIds.Contains(p.SupplierId))
                 .Select(p => p.SupplierId)
+                .Distinct()
                 .ToListAsync(cancellationToken);
 
             if (matchedSuppliers.Count == 0)

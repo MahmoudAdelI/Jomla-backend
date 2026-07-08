@@ -133,4 +133,40 @@ public class MatchSuppliersForGroupRequestCommandHandlerTests : ApplicationTestB
             Arg.Is<NotificationCreatedEvent>(e => e.UserId == supplier),
             Arg.Any<CancellationToken>());
     }
+
+    [Fact]
+    public async Task Handle_MultipleMatchingPreferencesForSameSupplier_OnlyInsertsOneAlert()
+    {
+        // Arrange
+        var groupRequestId = Guid.NewGuid();
+        var parentCategoryId = Guid.NewGuid();
+        var subCategoryId = Guid.NewGuid();
+
+        var parentCategory = new Category { Id = parentCategoryId, Name = "Parent" };
+        var subCategory = new Category { Id = subCategoryId, Name = "Sub", ParentId = parentCategoryId };
+
+        var supplier = Guid.NewGuid();
+
+        // Supplier has preferences on both parent category and subcategory
+        var p1 = new SupplierCategoryPreference { SupplierId = supplier, CategoryId = parentCategoryId, MinQuantity = 5 };
+        var p2 = new SupplierCategoryPreference { SupplierId = supplier, CategoryId = subCategoryId, MinQuantity = 5 };
+
+        Context.Categories.AddRange(parentCategory, subCategory);
+        Context.SupplierCategoryPreferences.AddRange(p1, p2);
+        await Context.SaveChangesAsync();
+
+        var command = new MatchSuppliersForGroupRequestCommand(groupRequestId, subCategoryId, 10);
+
+        // Act & Assert (Should not throw tracking / duplicate key exception)
+        var exception = await Record.ExceptionAsync(() => _handler.Handle(command, CancellationToken.None));
+        Assert.Null(exception);
+
+        var alerts = await Context.GroupRequestAlerts.ToListAsync();
+        Assert.Single(alerts);
+        Assert.Equal(supplier, alerts[0].SupplierId);
+
+        var notifications = await Context.Notifications.ToListAsync();
+        Assert.Single(notifications);
+        Assert.Equal(supplier, notifications[0].UserId);
+    }
 }

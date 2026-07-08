@@ -94,7 +94,7 @@ namespace Jomla.API
             // Configure the HTTP request pipeline.
             bool didSeed = false;
             bool enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger") || app.Environment.IsDevelopment();
-            bool seedDatabase = builder.Configuration.GetValue<bool>("SeedDatabase") || app.Environment.IsDevelopment();
+            bool seedDatabase = builder.Configuration.GetValue<bool>("SeedDatabase");
 
             if (enableSwagger)
             {
