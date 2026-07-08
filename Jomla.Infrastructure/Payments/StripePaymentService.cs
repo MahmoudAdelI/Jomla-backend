@@ -54,8 +54,7 @@ namespace Jomla.Infrastructure.Payments
                         { "type", "batch_join" }
                     },
                     ReceiptEmail = buyerEmail,
-                    Customer = customer.Id,
-                    SetupFutureUsage = "off_session"
+                    Customer = customer.Id
                     // Automatic confirmation not required yet
                     // Buyer confirms on frontend with clientSecret
                 };
